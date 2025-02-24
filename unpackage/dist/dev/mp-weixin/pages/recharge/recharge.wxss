@@ -1,0 +1,20 @@
+
+.icon{
+		height: 35rpx;
+}
+.editButton{
+		width: 120rpx;
+		height: 60rpx;
+		border-radius: 40px;
+		background: rgba(255, 195, 0, 1);
+		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
+		margin-top: 12rpx;
+		justify-content: center;
+		align-items: center;
+		display: flex;
+}
+p{
+		font-size: 10rpx; 
+		color: gray; 
+		margin-top: 10rpx;
+}

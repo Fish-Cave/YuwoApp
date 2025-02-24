@@ -68,8 +68,8 @@ const capitalize = cacheStringFunction((str) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 });
 const toHandlerKey = cacheStringFunction((str) => {
-  const s = str ? `on${capitalize(str)}` : ``;
-  return s;
+  const s2 = str ? `on${capitalize(str)}` : ``;
+  return s2;
 });
 const hasChanged = (value, oldValue) => !Object.is(value, oldValue);
 const invokeArrayFns$1 = (fns, arg) => {
@@ -85,9 +85,59 @@ const def = (obj, key, value) => {
   });
 };
 const looseToNumber = (val) => {
-  const n = parseFloat(val);
-  return isNaN(n) ? val : n;
+  const n2 = parseFloat(val);
+  return isNaN(n2) ? val : n2;
 };
+function normalizeStyle(value) {
+  if (isArray(value)) {
+    const res = {};
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      const normalized = isString(item) ? parseStringStyle(item) : normalizeStyle(item);
+      if (normalized) {
+        for (const key in normalized) {
+          res[key] = normalized[key];
+        }
+      }
+    }
+    return res;
+  } else if (isString(value) || isObject(value)) {
+    return value;
+  }
+}
+const listDelimiterRE = /;(?![^(]*\))/g;
+const propertyDelimiterRE = /:([^]+)/;
+const styleCommentRE = /\/\*[^]*?\*\//g;
+function parseStringStyle(cssText) {
+  const ret = {};
+  cssText.replace(styleCommentRE, "").split(listDelimiterRE).forEach((item) => {
+    if (item) {
+      const tmp = item.split(propertyDelimiterRE);
+      tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
+    }
+  });
+  return ret;
+}
+function normalizeClass(value) {
+  let res = "";
+  if (isString(value)) {
+    res = value;
+  } else if (isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const normalized = normalizeClass(value[i]);
+      if (normalized) {
+        res += normalized + " ";
+      }
+    }
+  } else if (isObject(value)) {
+    for (const name in value) {
+      if (value[name]) {
+        res += name + " ";
+      }
+    }
+  }
+  return res.trim();
+}
 const toDisplayString = (val) => {
   return isString(val) ? val : val == null ? "" : isArray(val) || isObject(val) && (val.toString === objectToString || !isFunction(val.toString)) ? JSON.stringify(val, replacer, 2) : String(val);
 };
@@ -354,8 +404,8 @@ const E = function() {
 E.prototype = {
   _id: 1,
   on: function(name, callback, ctx) {
-    var e = this.e || (this.e = {});
-    (e[name] || (e[name] = [])).push({
+    var e2 = this.e || (this.e = {});
+    (e2[name] || (e2[name] = [])).push({
       fn: callback,
       ctx,
       _id: this._id
@@ -382,8 +432,8 @@ E.prototype = {
     return this;
   },
   off: function(name, event) {
-    var e = this.e || (this.e = {});
-    var evts = e[name];
+    var e2 = this.e || (this.e = {});
+    var evts = e2[name];
     var liveEvents = [];
     if (evts && event) {
       for (var i = evts.length - 1; i >= 0; i--) {
@@ -394,7 +444,7 @@ E.prototype = {
       }
       liveEvents = evts;
     }
-    liveEvents.length ? e[name] = liveEvents : delete e[name];
+    liveEvents.length ? e2[name] = liveEvents : delete e2[name];
     return this;
   }
 };
@@ -5024,6 +5074,120 @@ function getCreateApp() {
     return my[method];
   }
 }
+function stringifyStyle(value) {
+  if (isString(value)) {
+    return value;
+  }
+  return stringify(normalizeStyle(value));
+}
+function stringify(styles) {
+  let ret = "";
+  if (!styles || isString(styles)) {
+    return ret;
+  }
+  for (const key in styles) {
+    ret += `${key.startsWith(`--`) ? key : hyphenate(key)}:${styles[key]};`;
+  }
+  return ret;
+}
+function vOn(value, key) {
+  const instance = getCurrentInstance();
+  const ctx = instance.ctx;
+  const extraKey = typeof key !== "undefined" && (ctx.$mpPlatform === "mp-weixin" || ctx.$mpPlatform === "mp-qq" || ctx.$mpPlatform === "mp-xhs") && (isString(key) || typeof key === "number") ? "_" + key : "";
+  const name = "e" + instance.$ei++ + extraKey;
+  const mpInstance = ctx.$scope;
+  if (!value) {
+    delete mpInstance[name];
+    return name;
+  }
+  const existingInvoker = mpInstance[name];
+  if (existingInvoker) {
+    existingInvoker.value = value;
+  } else {
+    mpInstance[name] = createInvoker(value, instance);
+  }
+  return name;
+}
+function createInvoker(initialValue, instance) {
+  const invoker = (e2) => {
+    patchMPEvent(e2);
+    let args = [e2];
+    if (instance && instance.ctx.$getTriggerEventDetail) {
+      if (typeof e2.detail === "number") {
+        e2.detail = instance.ctx.$getTriggerEventDetail(e2.detail);
+      }
+    }
+    if (e2.detail && e2.detail.__args__) {
+      args = e2.detail.__args__;
+    }
+    const eventValue = invoker.value;
+    const invoke = () => callWithAsyncErrorHandling(patchStopImmediatePropagation(e2, eventValue), instance, 5, args);
+    const eventTarget = e2.target;
+    const eventSync = eventTarget ? eventTarget.dataset ? String(eventTarget.dataset.eventsync) === "true" : false : false;
+    if (bubbles.includes(e2.type) && !eventSync) {
+      setTimeout(invoke);
+    } else {
+      const res = invoke();
+      if (e2.type === "input" && (isArray(res) || isPromise(res))) {
+        return;
+      }
+      return res;
+    }
+  };
+  invoker.value = initialValue;
+  return invoker;
+}
+const bubbles = [
+  // touch事件暂不做延迟，否则在 Android 上会影响性能，比如一些拖拽跟手手势等
+  // 'touchstart',
+  // 'touchmove',
+  // 'touchcancel',
+  // 'touchend',
+  "tap",
+  "longpress",
+  "longtap",
+  "transitionend",
+  "animationstart",
+  "animationiteration",
+  "animationend",
+  "touchforcechange"
+];
+function patchMPEvent(event, instance) {
+  if (event.type && event.target) {
+    event.preventDefault = NOOP;
+    event.stopPropagation = NOOP;
+    event.stopImmediatePropagation = NOOP;
+    if (!hasOwn(event, "detail")) {
+      event.detail = {};
+    }
+    if (hasOwn(event, "markerId")) {
+      event.detail = typeof event.detail === "object" ? event.detail : {};
+      event.detail.markerId = event.markerId;
+    }
+    if (isPlainObject(event.detail) && hasOwn(event.detail, "checked") && !hasOwn(event.detail, "value")) {
+      event.detail.value = event.detail.checked;
+    }
+    if (isPlainObject(event.detail)) {
+      event.target = extend({}, event.target, event.detail);
+    }
+  }
+}
+function patchStopImmediatePropagation(e2, value) {
+  if (isArray(value)) {
+    const originalStop = e2.stopImmediatePropagation;
+    e2.stopImmediatePropagation = () => {
+      originalStop && originalStop.call(e2);
+      e2._stopped = true;
+    };
+    return value.map((fn) => (e3) => !e3._stopped && fn(e3));
+  } else {
+    return value;
+  }
+}
+const o = (value, key) => vOn(value, key);
+const s = (value) => stringifyStyle(value);
+const e = (target, ...sources) => extend(target, ...sources);
+const n = (value) => normalizeClass(value);
 const t = (val) => toDisplayString(val);
 const p = (props) => renderProps(props);
 function createApp$1(rootComponent, rootProps = null) {
@@ -5154,8 +5318,8 @@ function tryCatch(fn) {
   return function() {
     try {
       return fn.apply(fn, arguments);
-    } catch (e) {
-      console.error(e);
+    } catch (e2) {
+      console.error(e2);
     }
   };
 }
@@ -5600,7 +5764,7 @@ const $once = defineSyncApi(API_ONCE, (name, callback) => {
 const $off = defineSyncApi(API_OFF, (name, callback) => {
   if (!isArray(name))
     name = name ? [name] : [];
-  name.forEach((n) => eventBus.off(n, callback));
+  name.forEach((n2) => eventBus.off(n2, callback));
 }, OffProtocol);
 const $emit = defineSyncApi(API_EMIT, (name, ...args) => {
   eventBus.emit(name, ...args);
@@ -5611,7 +5775,7 @@ let enabled;
 function normalizePushMessage(message) {
   try {
     return JSON.parse(message);
-  } catch (e) {
+  } catch (e2) {
   }
   return message;
 }
@@ -6377,8 +6541,8 @@ function formatMessage(type, args) {
       type,
       args: formatArgs(args)
     };
-  } catch (e) {
-    originalConsole.error(e);
+  } catch (e2) {
+    originalConsole.error(e2);
   }
   return {
     type,
@@ -6638,15 +6802,15 @@ function tryConnectSocket(host2, port, id) {
       });
       resolve2(null);
     }, SOCKET_TIMEOUT);
-    socket.onOpen((e) => {
+    socket.onOpen((e2) => {
       clearTimeout(timer);
       resolve2(socket);
     });
-    socket.onClose((e) => {
+    socket.onClose((e2) => {
       clearTimeout(timer);
       resolve2(null);
     });
-    socket.onError((e) => {
+    socket.onError((e2) => {
       clearTimeout(timer);
       resolve2(null);
     });
@@ -6721,9 +6885,9 @@ function initOnError() {
   };
 }
 function initRuntimeSocketService() {
-  const hosts = "26.147.134.231,192.168.6.50,127.0.0.1,172.17.96.1";
+  const hosts = "26.147.134.231,192.168.6.50,127.0.0.1";
   const port = "8090";
-  const id = "mp-weixin_JKsXNS";
+  const id = "mp-weixin_EDtH0C";
   const lazy = typeof swan !== "undefined";
   let restoreError = lazy ? () => {
   } : initOnError();
@@ -7658,9 +7822,13 @@ const createSubpackageApp = initCreateSubpackageApp();
 exports._export_sfc = _export_sfc;
 exports.createSSRApp = createSSRApp;
 exports.defineComponent = defineComponent;
+exports.e = e;
 exports.index = index;
+exports.n = n;
+exports.o = o;
 exports.p = p;
 exports.ref = ref;
 exports.resolveComponent = resolveComponent;
+exports.s = s;
 exports.t = t;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/common/vendor.js.map
