@@ -1,0 +1,51 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+			}
+		},
+		{
+			"path" : "pages/enter/enter",
+			"style" : 
+			{
+			}
+		},
+		{
+			"path" : "pages/recharge/recharge",
+			"style" : 
+			{
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "🐟窝预约小程序",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#000000",
+		"selectedColor": "rgba(255, 141, 26, 1)",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "预约",
+				"iconPath": "/static/icon/user-add.png",
+				"selectedIconPath": "/static/icon/user-add-solid.png"
+			},
+			{
+				"pagePath": "pages/enter/enter",
+				"text": "入店",
+				"iconPath": "/static/icon/home.png",
+				"selectedIconPath": "/static/icon/home-solid.png"
+			},
+			{
+				"pagePath": "pages/recharge/recharge",
+				"text": "充值",
+				"iconPath": "/static/icon/shopping-cart.png",
+				"selectedIconPath": "/static/icon/shopping-cart-solid.png"
+			}
+		]
+	}
+}
