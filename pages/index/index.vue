@@ -2,22 +2,30 @@
 	<view>
 		<view class="Header">
 			<navigator>← 前一天</navigator>
-			<view style="">
-				<text>当前位置:&nbsp</text>
-				<a style="color: orange;">{{shopName}}</a><br/>
-				<text class="date">{{nowDate}}</text><br/>
-				<text>日历</text>
+			<view class="item">
+				<view>
+					<text>当前位置:&nbsp</text>
+					<a style="color: orange;">{{shopName}}</a><br/>
+				</view>
+				<view class="date">
+					<text >{{nowDate}}</text><br/>
+				</view>
+				<view>
+					<text>日历</text>
+				</view>					
 			</view>
 			<navigator>后一天 →</navigator>
 		</view>
 		<hr />
-		<text style="font-size: 12px; color: gray;">&nbsp&nbsp&nbsp&nbsp点击机台可查看机台信息</text>
+		<text style="font-size: 10rpx; color: gray;">&nbsp&nbsp&nbsp&nbsp点击机台可查看机台信息</text>
 		<uni-section title="IIDX" type="line">
 			<uni-group mode="card">
-				<view> 分组内容 </view>
-				<view> 分组内容 </view>
-				<view> 分组内容 </view>
-				<view> 分组内容 </view>
+				<view>
+					<view> 分组内容 </view>
+					<view> 分组内容 </view>
+					<view> 分组内容 </view>
+				</view>
+				
 			</uni-group>
 		</uni-section>
 		<uni-section title="SDVX" type="line">
@@ -67,6 +75,9 @@
 	import { ref } from 'vue';
 	const shopName = ref("鱼窝一号店")
 	const nowDate = ref("1970年1月1日")
+	function test(){
+		console.log("test")
+	}
 </script>
 <style lang="scss">
 	.Header {
@@ -76,18 +87,28 @@
 		/* 交叉轴（垂直）居中 */
 		align-items: center;
 		/* 可选：设置容器高度（垂直居中需要高度支持） */
-		height: 80px;
+		height: 160rpx;
 		/* 可选：子元素间距 */
-		gap: 60px;
+		gap: 50rpx;
 	  
 	}
+	.item{
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 10rpx;
+	}
 	.date{
-		width: 120px;
-		height: 60px;
+		width: 300rpx;
+		height: 50rpx;
 		opacity: 1;
 		border-radius: 40px;
 		background: rgba(255, 222, 115, 1);
 		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 
 </style>
