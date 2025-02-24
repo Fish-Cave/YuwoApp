@@ -18,7 +18,7 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
     const shopName = common_vendor.ref("鱼窝一号店");
     const nowDate = common_vendor.ref("1970年1月1日");
     function test() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:107", "test");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:80", "test");
     }
     return (_ctx, _cache) => {
       return {
@@ -49,34 +49,6 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
         }),
         j: common_vendor.p({
           title: "SDVX",
-          type: "line"
-        }),
-        k: common_vendor.p({
-          mode: "card"
-        }),
-        l: common_vendor.p({
-          title: "舞萌DX",
-          type: "line"
-        }),
-        m: common_vendor.p({
-          mode: "card"
-        }),
-        n: common_vendor.p({
-          title: "中二节奏",
-          type: "line"
-        }),
-        o: common_vendor.p({
-          mode: "card"
-        }),
-        p: common_vendor.p({
-          title: "音击",
-          type: "line"
-        }),
-        q: common_vendor.p({
-          mode: "card"
-        }),
-        r: common_vendor.p({
-          title: "太鼓达人",
           type: "line"
         })
       };

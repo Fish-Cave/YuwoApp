@@ -34,13 +34,12 @@
 		<view style="padding-left: 30rpx; padding-right: 30rpx;">
 			<!--玩家信息-->
 			<uni-group mode="card">
-				<view style="display: flex;">
+				<view style="display: flex; justify-content: space-between;">
 					<view>
 						<uni-title type="h1" title="我是头像"></uni-title>
 						<uni-title type="h1" title="我是头像"></uni-title>
 						<uni-title type="h1" title="我是头像"></uni-title>
 					</view>
-					<view style="width: 160rpx;" />
 					<view style="display: flex; flex-direction: column; 
 					align-items: flex-end; ">
 						<text>我是ID</text>
@@ -55,13 +54,13 @@
 					<view >
 						<text class="tips">您于{{year}}年共计在鱼窝消耗</text>
 						<text class="tips" style="color: rgba(255, 141, 26, 1);">{{4294}}</text>
-						<text class="tips">小时！地力 UP!被封禁次数：</text>
+						<text class="tips">小时! 地力 UP! 被封禁次数：</text>
 						<text class="tips" style="color: rgba(255, 141, 26, 1); ;">{{bebaned}}</text>
-						<text class="tips">次，请继续保持！</text>
+						<text class="tips">次，请继续保持! </text>
 					</view>
 					<view>
 						<button class="editButton">
-							<uni-icons type="contact" size="30"></uni-icons>
+							<uni-icons type="compose" size="30"></uni-icons>
 						</button>
 					</view>
 				</view>
@@ -173,7 +172,7 @@
 		align-items: center;
 	}
 	.editButton{
-		width: 100rpx;
+		width: 120rpx;
 		height: 80rpx;
 		border-radius: 40rpx;
 		background: rgba(255, 195, 0, 1);

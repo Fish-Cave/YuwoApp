@@ -31,21 +31,26 @@
 			</view>
 		</view>
 		
+		<!--BLANK-->
+		<view style="height: 20rpx;"></view>
+		
 		<!--机台详细信息，使用了uniapp uni-ui的卡片分组-->
 		
 		<view style="padding-left: 30rpx; padding-right:30rpx ;">
-			<text class="tips">点击机台可查看机台信息</text>
+			
+			<text class="tips">点击机台名称可查看机台信息</text>
+			
 			<uni-section title="IIDX" type="line">
 				<uni-group mode="card">
-					<view style="display: flex;">
-						<view>
+					<view style="display: flex; justify-content: space-around">
+						<view style="display: flex; flex-direction: column;">
 							<text>当前预约玩家</text>
 							<text>玩家</text>
 							<text>玩家</text>
 							<text>玩家</text>
 							<text>玩家</text>
 							<text>玩家</text>
-						</view>>
+						</view>
 						<view style="display: flex; flex-direction: column;">
 							<text>在此显示机台详细信息</text>
 						</view>
@@ -62,39 +67,7 @@
 					<view> 分组内容 </view>
 				</uni-group>
 			</uni-section>
-			<uni-section title="舞萌DX" type="line">
-				<uni-group mode="card">
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-				</uni-group>
-			</uni-section>
-			<uni-section title="中二节奏" type="line">
-				<uni-group mode="card">
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-				</uni-group>
-			</uni-section>
-			<uni-section title="音击" type="line">
-				<uni-group mode="card">
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-				</uni-group>
-			</uni-section>
 			
-			<uni-section title="太鼓达人" type="line">
-				<uni-group mode="card">
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-					<view> 分组内容 </view>
-				</uni-group>
-			</uni-section>
 		</view>	
 	</view>
 </template>

@@ -1,78 +1,82 @@
 <template>
-	<view style="padding-left: 30rpx; padding-right: 30rpx;">
-		<view>
-			<!--玩家信息-->
-			<view>
-				<view style="display: flex; padding-left: 20rpx;">
+	<view>
+		<uni-group mode="card">
+			<view style="display: flex; justify-content: space-between;">
+				<view>
+					<uni-title type="h1" title="我是头像"></uni-title>
+					<uni-title type="h1" title="我是头像"></uni-title>
+				</view>
+				<view style="display: flex; flex-direction: column; 
+				align-items: flex-end; gap: 10rpx;">
+					<text>我是ID</text>
+					<text>我是UID</text>
+					<button class="editButton">
+						<uni-icons type="compose" size="30"></uni-icons>
+					</button>
+				</view>
+			</view>
+		</uni-group>
+		<view style="padding-left: 30rpx; padding-right: 30rpx;">
+			<view style="display: flex; justify-content: space-between;">
+				<view style="display: flex; flex-direction: column;">
+					<uni-title type="h1" title="剩余时长"></uni-title>
+					<uni-title type="h1" title="鱼窝会员"></uni-title>
+					<uni-title type="h1" title="大月卡/大周卡"></uni-title>
+				</view>
+				<view style="display: flex; flex-direction: column; justify-content: space-around;">
 					<view>
-						<h1>我是头像</h1>
-						<h1>我是头像</h1>
-						<h1>我是头像</h1>
+						<text style="color: rgba(255, 141, 26, 1);">{{}}</text>
+						<text>小时</text>
 					</view>
-					<view style="width: 200rpx;"/>
-					<view style="display: flex; flex-direction: column;">
-						<h2>我是ID</h2>
-						<text>我是UID</text>
-						<button class="editButton">
-							<img class="icon"/>
-						</button>
+					<view>
+						<text style="color: rgba(255, 141, 26, 1);">{{}}</text>
+						<text>到期</text>
+					</view>
+					<view>
+						<text>到期</text>
 					</view>
 				</view>
 			</view>
-			<!--BLANK-->
-			<view style="height: 30rpx;"/>
 			
-			<view style="display: flex;">
-				<view style="display: flex; flex-direction: column;">
-					<h2>剩余时长</h2>
-					<h2>鱼窝会员</h2>
-					<h2>大月卡/大周卡</h2>
-				</view>
-				<view style="display: flex; flex-direction: column;">
-					<h2>{{}}小时</h2>
-					<h2>{{}}到期</h2>
-					<h2>{{}}到期</h2>
-				</view>
-			</view>
-			<!--BLANK-->
-			<view style="height: 20rpx;"/>
 			
-			<view style="display: flex;">
-				<p>如果已经成为会员，以下售价将会显示会员价格。已售出时长不进行退款，请理智购买。</p>
-			</view>
-			
-			<!--BLANK-->
-			<view style="height: 20rpx;"/>
-			<view>
-				
-			</view>
-			
-			<hr />
 		</view>
 	</view>
+		
+	
 </template>
 
 <script lang="ts" setup>
 	
 </script>
 <style>
-	.icon{
-		height: 35rpx;
+	.tips{
+		font-size: 25rpx;
+		color: gray; 
+		margin-top: 10rpx;
+	}
+	.item{
+		display: flex; 
+		justify-content: center; 
+		align-items: center;
 	}
 	.editButton{
 		width: 120rpx;
-		height: 60rpx;
+		height: 80rpx;
+		border-radius: 40rpx;
+		background: rgba(255, 195, 0, 1);
+		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
+		display: flex;
+		justify-content: center; 
+		align-items: center;
+	}
+	.bt{
+		width: 200rpx;
+		height:40px;
 		border-radius: 40px;
 		background: rgba(255, 195, 0, 1);
 		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
-		margin-top: 12rpx;
-		justify-content: center;
-		align-items: center;
 		display: flex;
-	}
-	p{
-		font-size: 10rpx; 
-		color: gray; 
-		margin-top: 10rpx;
+		justify-content: center; 
+		align-items: center;
 	}
 </style>

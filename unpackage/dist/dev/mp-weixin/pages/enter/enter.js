@@ -57,7 +57,7 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
         k: common_vendor.t(4294),
         l: common_vendor.t(bebaned.value),
         m: common_vendor.p({
-          type: "contact",
+          type: "compose",
           size: "30"
         }),
         n: common_vendor.p({

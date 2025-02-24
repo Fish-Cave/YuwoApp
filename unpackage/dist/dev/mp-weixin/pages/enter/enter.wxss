@@ -10,7 +10,7 @@
 		align-items: center;
 }
 .editButton{
-		width: 100rpx;
+		width: 120rpx;
 		height: 80rpx;
 		border-radius: 40rpx;
 		background: rgba(255, 195, 0, 1);
