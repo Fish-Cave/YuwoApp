@@ -31,7 +31,7 @@
 			</view>
 		</view>
 		
-		<view style="padding-left: 30rpx; padding-right: 30rpx;">
+		<view class="itemContainer">
 			<!--玩家信息-->
 			<uni-group mode="card">
 				<view style="display: flex; justify-content: space-between;">
@@ -190,6 +190,14 @@
 		display: flex;
 		justify-content: center; 
 		align-items: center;
+	}
+	.itemContainer{
+		padding-left: 30rpx; 
+		padding-right: 30rpx;
+	}
+	.containerVertical{
+		display: flex; 
+		flex-direction: column;
 	}
 	/*分割线*/
 </style>

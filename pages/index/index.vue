@@ -33,17 +33,15 @@
 		
 		<!--BLANK-->
 		<view style="height: 20rpx;"></view>
-		
 		<!--机台详细信息，使用了uniapp uni-ui的卡片分组-->
-		
-		<view style="padding-left: 30rpx; padding-right:30rpx ;">
+		<view class="itemContainer">
 			
 			<text class="tips">点击机台名称可查看机台信息</text>
 			
 			<uni-section title="IIDX" type="line">
 				<uni-group mode="card">
 					<view style="display: flex; justify-content: space-around">
-						<view style="display: flex; flex-direction: column;">
+						<view class=".containerVertical">
 							<text>当前预约玩家</text>
 							<text>玩家</text>
 							<text>玩家</text>
@@ -51,7 +49,7 @@
 							<text>玩家</text>
 							<text>玩家</text>
 						</view>
-						<view style="display: flex; flex-direction: column;">
+						<view class=".containerVertical">
 							<text>在此显示机台详细信息</text>
 						</view>
 					</view>
@@ -92,11 +90,6 @@
 		justify-content: center; 
 		align-items: center;
 	}
-	/*分割线*/
-	hr{
-		margin-left: 30rpx;
-		margin-right: 30rpx;
-	}
 	/*预约按钮*/
 	.orderButton{
 		margin-top: 35rpx;
@@ -106,6 +99,14 @@
 		border-radius: 40px;
 		background: rgba(255, 195, 0, 1);
 		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
+	}
+	.itemContainer{
+		padding-left: 30rpx; 
+		padding-right: 30rpx;
+	}
+	.containerVertical{
+		display: flex; 
+		flex-direction: column;
 	}
 	/*我不会写样式*/
 </style>

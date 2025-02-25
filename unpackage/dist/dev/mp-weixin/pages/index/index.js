@@ -18,7 +18,7 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
     const shopName = common_vendor.ref("鱼窝一号店");
     const nowDate = common_vendor.ref("1970年1月1日");
     function test() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:80", "test");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:78", "test");
     }
     return (_ctx, _cache) => {
       return {

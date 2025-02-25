@@ -32,18 +32,17 @@ function _sfc_render(_ctx, _cache) {
     }),
     e: common_vendor.p({
       type: "h1",
-      title: "剩余时长"
+      title: "鱼窝会员"
     }),
     f: common_vendor.p({
       type: "h1",
-      title: "鱼窝会员"
-    }),
-    g: common_vendor.p({
-      type: "h1",
       title: "大月卡/大周卡"
     }),
-    h: common_vendor.t(),
-    i: common_vendor.t()
+    g: common_vendor.t(),
+    h: common_vendor.p({
+      type: "info",
+      size: "50rpx"
+    })
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

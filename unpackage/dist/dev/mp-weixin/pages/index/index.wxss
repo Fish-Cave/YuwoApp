@@ -35,12 +35,6 @@
   align-items: center;
 }
 
-/*分割线*/
-hr {
-  margin-left: 30rpx;
-  margin-right: 30rpx;
-}
-
 /*预约按钮*/
 .orderButton {
   margin-top: 35rpx;
@@ -50,6 +44,14 @@ hr {
   border-radius: 40px;
   background: #ffc300;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
+}
+.itemContainer {
+  padding-left: 30rpx;
+  padding-right: 30rpx;
+}
+.containerVertical {
+  display: flex;
+  flex-direction: column;
 }
 
 /*我不会写样式*/
