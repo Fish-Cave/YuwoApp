@@ -34,108 +34,103 @@
       <text class="tips">点击机台名称可查看机台信息</text>
     </view>
 
-    <!-- IIDX Section -->
-    <view class="machine-section">
-      <uni-section title="IIDX" type="line">
+    <!-- Dynamic Machine Sections -->
+    <view class="machine-section" v-for="machineType in machineTypes" :key="machineType.type">
+      <uni-section :title="machineType.displayName" type="line">
         <MachineTimeSlot
-          machineName="机台1"
-          machineType="IIDX"
-          :machineCount="1"
-          :maxQueueCount="3"
-          :timeSlots="iidxTimeSlots"
-          :avatars="iidxAvatars"
+          v-for="machine in machineType.machines"
+          :key="machine.name"
+          :machineName="machine.name"
+          :machineType="machineType.type"
+          :machineCount="machine.count"
+          :maxQueueCount="machine.maxQueue"
+          :timeSlots="getTimeSlots(machineType.type, machine.name)"
+          :avatars="machineType.defaultAvatars"
           :showAvatars="true"
           statusMessage="折叠预约列表"
           buttonText="预约此机台"
+          :machineDescription="machineType.description"
           @buttonClick="handleBooking"
-        />
-      </uni-section>
-    </view>
-
-    <!-- SDVX Section -->
-    <view class="machine-section">
-      <uni-section title="SDVX" type="line">
-        <MachineTimeSlot
-          machineName="机台1"
-          machineType="SDVX"
-          :machineCount="1"
-          :maxQueueCount="2"
-          :timeSlots="sdvxTimeSlots"
-          :avatars="sdvxAvatars"
-          :showAvatars="true"
-          statusMessage="打开预约列表"
-          buttonText="预约此机台"
-          @buttonClick="handleBooking"
-        />
-        <MachineTimeSlot
-          machineName="机台2"
-          machineType="SDVX"
-          :machineCount="1"
-          :maxQueueCount="2"
-          :timeSlots="sdvxTimeSlots"
-          :avatars="sdvxAvatars"
-          :showAvatars="true"
-          statusMessage="打开预约列表"
-          buttonText="预约此机台"
-          @buttonClick="handleBooking"
-        />
+        >
+        </MachineTimeSlot>
       </uni-section>
     </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import MachineTimeSlot from './time-slot.vue';
+import machineTypesData from './machine-types.json';
 
 const shopName = ref("鱼窝一号店");
 const nowDate = ref("2024-08-21 星期三");
+const machineTypes = ref(machineTypesData);
 
 const allTimeSlots = ref([
-  // IIDX time slots (overlapping reservations)
   {
     startTime: '2408210900',
     endTime: '2408211200',
-    text: '9:00-12:00',
     color: '#FF8D1A',
     machine: 'IIDX',
+    machineName: 'IIDX-机台1',
     userId: '1'
   },
   {
     startTime: '2408211000',
     endTime: '2408211500',
-    text: '10:00-15:00',
     color: '#FF8D1A',
     machine: 'IIDX',
+    machineName: 'IIDX-机台1',
     userId: '2'
   },
+  {
+    startTime: '2408211700',
+    endTime: '2408212000',
+    color: '#FF8D1A',
+    machine: 'IIDX',
+    machineName: 'IIDX-机台1',
+    userId: '7'
+  },
+  {
+    startTime: '2408210000',
+    endTime: '2408210200',
+    color: '#FF8D1A',
+    machine: 'IIDX',
+    machineName: 'IIDX-机台1',
+    userId: '8'
+  },
 
-  // SDVX time slots
   {
     startTime: '2408210700',
     endTime: '2408211200',
-    text: '7:00-12:00',
     color: '#FF8D1A',
     machine: 'SDVX',
+    machineName: 'SDVX-机台1',
     userId: '3'
-  }
+  },
+  {
+    startTime: '2408210900',
+    endTime: '2408211800',
+    color: '#FF8D1A',
+    machine: 'SDVX',
+    machineName: 'SDVX-机台2',
+    userId: '4'
+  },
+   {
+     startTime: '2408211200',
+     endTime: '2408211600',
+     color: '#FF8D1A',
+     machine: 'DDR',
+     machineName: 'DDR-机台1',
+     userId: '5'
+   }
 ]);
 
-// Separate time slots for each machine type
-const iidxTimeSlots = ref(allTimeSlots.value.filter(slot => slot.machine === 'IIDX'));
-const sdvxTimeSlots = ref(allTimeSlots.value.filter(slot => slot.machine === 'SDVX'));
+const getTimeSlots = (machineType, machineName) => {
+  return allTimeSlots.value.filter(slot => slot.machine === machineType && slot.machineName === machineName);
+};
 
-// Machine-specific avatar data
-const iidxAvatars = ref([
-  { src: '/static/avatar1.png' },
-  { src: '/static/avatar2.png' }
-]);
-
-const sdvxAvatars = ref([
-  { src: '/static/avatar3.png' }
-]);
-
-// Handle booking button click
 function handleBooking(machineType) {
   console.log(`Booking machine type: ${machineType}`);
 }
@@ -148,7 +143,6 @@ function handleBooking(machineType) {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Header Styles */
 .header {
   display: flex;
   justify-content: space-between;
@@ -199,14 +193,12 @@ function handleBooking(machineType) {
   color: #666;
 }
 
-/* Divider */
 .divider {
   height: 2rpx;
   background-color: #e5e5e5;
   margin: 0 30rpx;
 }
 
-/* Tip Container */
 .tip-container {
   padding: 20rpx 30rpx;
 }
@@ -216,11 +208,9 @@ function handleBooking(machineType) {
   color: #999;
 }
 
-/* Machine Sections */
 .machine-section {
   margin-bottom: 40rpx;
   margin-left: 30rpx;
   margin-right: 30rpx;
 }
-
 </style>

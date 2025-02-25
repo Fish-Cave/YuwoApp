@@ -1,8 +1,7 @@
 <template>
   <view class="machine-time-slot">
-    <!-- Machine header: name and stats -->
     <view class="machine-header">
-      <view class="machine-name">{{ machineName }}</view>
+      <text class="machine-name" @click="showMachineInfo">{{ machineName }}</text>
       <view class="machine-stats">
         <view class="stat-item">
           <text>机台数</text>
@@ -14,6 +13,8 @@
         </view>
       </view>
     </view>
+
+    <slot name="machine-info"></slot>
 
     <view class="time-slot-section">
       <view class="user-avatars" v-if="showAvatars && !isFolded">
@@ -51,10 +52,24 @@
             :style="{
               left: calculateLeftPosition(slot.startTime) + '%',
               width: calculateWidth(slot.startTime, slot.endTime) + '%',
-              backgroundColor: '#FF8D1A'
             }"
           >
-            <text class="slot-text">共 {{ slot.userCount || totalUserCount }} 人排队</text>
+            <text
+              ref="slotTextRefs"
+              class="slot-text"
+              :class="{
+                'text-centered': textPosition[index] === 'center',
+                'text-left': textPosition[index] === 'left',
+                'text-right': textPosition[index] === 'right'
+              }"
+              :style="{
+                '--left-offset': textOffsets[index] + 'rpx',
+                '--right-offset': textOffsets[index] + 'rpx'
+              }"
+              v-if="index === longestSlotIndex"
+            >
+              共 {{ totalUserCount }} 人排队
+            </text>
           </view>
         </view>
 
@@ -73,7 +88,7 @@
                 backgroundColor: slot.color || '#FF8D1A'
               }"
             >
-              <text class="slot-text">{{ slot.text || `${formatTime(slot.startTime)}-${formatTime(slot.endTime)}` }}</text>
+              <text class="slot-text">{{ calculateText(slot.startTime, slot.endTime) }}</text>
             </view>
           </view>
         </view>
@@ -86,11 +101,22 @@
     </view>
 
     <button class="action-button" @click="onButtonClick">{{ buttonText }}</button>
+
+    <uni-popup ref="popup" type="dialog" @change="change">
+      <uni-popup-dialog
+        :title="machineName"
+        :content="machineDescription"
+        :type="msgType"
+        @confirm="dialogConfirm"
+        @close="dialogClose"
+      />
+    </uni-popup>
   </view>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
+import { defineEmits, defineProps } from 'vue';
 
 const props = defineProps({
   machineName: {
@@ -136,50 +162,51 @@ const props = defineProps({
   buttonText: {
     type: String,
     default: '预约此机台'
+  },
+  machineDescription: {
+    type: String,
+    default: ''
   }
 });
 
 const emit = defineEmits(['buttonClick']);
 const isFolded = ref(true);
+const popup = ref(null);
+const msgType = ref('info');
+const textPosition = ref([]);
+const textOffsets = ref([]);  //  存储文本偏移量的数组
+const slotTextRefs = ref([]);
 
-// Filter time slots for the current machine type
 const filteredTimeSlots = computed(() => {
-  if (!props.machineType) return props.timeSlots;
-  return props.timeSlots.filter(slot => slot.machine === props.machineType);
+  return props.timeSlots.filter(slot => slot.machine === props.machineType && slot.machineName === props.machineName);
 });
 
-// Count total users with bookings
 const totalUserCount = computed(() => {
   return filteredTimeSlots.value.length;
 });
 
-// Toggle fold/unfold function
 const toggleFold = () => {
   isFolded.value = !isFolded.value;
 };
 
-// Merge overlapping time slots to create the total timeline
 const mergedTimeSlots = computed(() => {
   if (filteredTimeSlots.value.length === 0) {
     return [];
   }
 
-  // Sort by start time
   const sortedSlots = [...filteredTimeSlots.value].sort((a, b) => {
     const startTimeA = parseInt(a.startTime);
     const startTimeB = parseInt(b.startTime);
     return startTimeA - startTimeB;
   });
 
-  // Merge overlapping slots
   const merged = [];
-  let current = { ...sortedSlots[0] }; 
+  let current = { ...sortedSlots[0] };
 
   for (let i = 1; i < sortedSlots.length; i++) {
     const currentEndTime = parseInt(current.endTime);
     const nextStartTime = parseInt(sortedSlots[i].startTime);
     const nextEndTime = parseInt(sortedSlots[i].endTime);
-
 
     if (currentEndTime >= nextStartTime) {
       if (nextEndTime > currentEndTime) {
@@ -188,12 +215,11 @@ const mergedTimeSlots = computed(() => {
       current.userCount = (current.userCount || 1) + 1;
     } else {
       merged.push(current);
-      current = { ...sortedSlots[i] }; 
+      current = { ...sortedSlots[i] };
     }
   }
 
   merged.push(current);
-
   return merged;
 });
 
@@ -202,7 +228,6 @@ const timeMarkers = computed(() => {
 });
 
 const calculateLeftPosition = (timeString) => {
-
   const hour = parseInt(timeString.substring(6, 8));
   const minute = parseInt(timeString.substring(8, 10));
   const totalMinutes = (hour * 60) + minute;
@@ -214,11 +239,15 @@ const calculateLeftPosition = (timeString) => {
 const calculateWidth = (startTime, endTime) => {
   const startPosition = calculateLeftPosition(startTime);
   const endPosition = calculateLeftPosition(endTime);
-
   const width = endPosition - startPosition;
-
   return width;
 };
+
+const calculateText = (startTime, endTime) => {
+  const start = formatTime(startTime);
+  const end = formatTime(endTime);
+  return `${start}-${end}`;
+}
 
 const formatTime = (timeString) => {
   const hour = timeString.substring(6, 8);
@@ -226,13 +255,90 @@ const formatTime = (timeString) => {
   return `${hour}:${minute}`;
 };
 
-// Handle button click
 const onButtonClick = () => {
   emit('buttonClick', props.machineType);
 };
 
+const showMachineInfo = () => {
+  popup.value.open('dialog');
+};
+
+const closePopup = () => {
+  popup.value.close();
+};
+
+const dialogConfirm = () => {
+  popup.value.close();
+};
+
+const dialogClose = () => {
+  popup.value.close();
+};
+
+const change = (e) => {
+  console.log('当前模式：' + e.type + ',状态：' + e.show);
+};
+
+const longestSlotIndex = computed(() => {
+  if (!mergedTimeSlots.value || mergedTimeSlots.value.length === 0) {
+    return -1;
+  }
+
+  let longestIndex = 0;
+  let maxLength = 0;
+
+  for (let i = 0; i < mergedTimeSlots.value.length; i++) {
+    const slot = mergedTimeSlots.value[i];
+    const width = calculateWidth(slot.startTime, slot.endTime);
+    if (width > maxLength) {
+      maxLength = width;
+      longestIndex = i;
+    }
+  }
+  return longestIndex;
+});
+
+const calculateTextPosition = async () => {
+  if (!mergedTimeSlots.value) {
+    return;
+  }
+  await nextTick();
+
+  const positions = [];
+  const offsets = [];
+
+  for (let i = 0; i < mergedTimeSlots.value.length; i++) {
+    const slot = mergedTimeSlots.value[i];
+    const slotStart = calculateLeftPosition(slot.startTime);
+    const slotEnd = calculateLeftPosition(slot.endTime);
+    const slotWidth = slotEnd - slotStart;
+
+    const textEl = slotTextRefs.value[i];
+    const textWidth = textEl ? textEl.offsetWidth : 0; // 获取文本的实际宽度
+
+    const isTextOverflowingLeft = slotStart < (textWidth / 200); // 转换为百分比
+    const isTextOverflowingRight = (100 - slotEnd) < (textWidth / 200); // 转换为百分比
+
+    let offset = 5;  // 默认偏移量
+    if (isTextOverflowingLeft) {
+      positions.push('left');
+      offset = Math.max(5, (textWidth / 200) - slotStart); // 确保文本完整显示
+    } else if (isTextOverflowingRight) {
+      positions.push('right');
+      offset = Math.max(5, (textWidth / 200) - (100 - slotEnd));
+    } else {
+      positions.push('center');
+      offset = 5;
+    }
+    offsets.push(offset);
+  }
+  textPosition.value = positions;
+  textOffsets.value = offsets;
+};
+
 onMounted(() => {
   isFolded.value = totalUserCount.value > 2;
+  calculateTextPosition();
 });
 </script>
 
@@ -257,6 +363,7 @@ onMounted(() => {
   font-size: 32rpx;
   font-weight: bold;
   color: #FF8D1A;
+  cursor: pointer;
 }
 
 .machine-stats {
@@ -311,15 +418,15 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  width: 100%; /* 确保时间轴容器占据足够的宽度 */
-  overflow-x: auto; /* 添加水平滚动条，以防内容超出屏幕 */
+  width: 100%;
+  overflow-x: auto;
 }
 
 .time-indicators {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5rpx;
-  padding: 0 10rpx; /* 增加左右内边距，防止刻度文字贴边 */
+  padding: 0 10rpx;
 }
 
 .time-marker {
@@ -368,15 +475,33 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #FF8D1A;
 }
 
 .slot-text {
-  color: white;
+  color: #654321;
   font-size: 24rpx;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   padding: 0 10rpx;
+  position: absolute; /* 绝对定位使文本可以超出条的长度 */
+}
+
+.text-centered {
+  left: 50%;
+  transform: translateX(-50%); /* 水平居中 */
+}
+
+.text-left {
+  left: var(--left-offset); /* 动态偏移量 */
+  transform: translateX(0);
+}
+
+.text-right {
+  right: var(--right-offset); /* 动态偏移量 */
+  left: auto;
+  transform: translateX(0);
 }
 
 .status-message {
@@ -412,5 +537,10 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: #333;
+}
+
+.machine-name {
+  cursor: pointer;
+  text-decoration: underline;
 }
 </style>
