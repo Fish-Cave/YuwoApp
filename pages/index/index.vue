@@ -43,14 +43,13 @@
 			<uni-section title="IIDX" type="line">
 				<uni-group mode="card">
 					<view style="display: flex; justify-content: space-around">
-						<view style="display: flex; flex-direction: column;">
-							<text>当前预约玩家</text>
-							<text>玩家</text>
-							<text>玩家</text>
-							<text>玩家</text>
-							<text>玩家</text>
-							<text>玩家</text>
-						</view>
+						  <view style="width: 100%;">
+						    <TimeSlotComponent 
+						      :timeSlots="machineTimeSlots" 
+						      :showAvatars="true"
+						      :avatars="userAvatars"
+						    />
+						  </view>
 						<view style="display: flex; flex-direction: column;">
 							<text>在此显示机台详细信息</text>
 						</view>
@@ -74,11 +73,30 @@
 
 <script lang="ts" setup>
 	import { ref } from 'vue';
+	import TimeSlotComponent from './time-slot.vue';
 	const shopName = ref("鱼窝一号店")
 	const nowDate = ref("1970年1月1日")
 	function test(){
 		console.log("test")
 	}
+	const machineTimeSlots = ref([
+	  { 
+	    startTime: '2401010500', 
+	    endTime: '2401011600', 
+	    text: '5:00-16:00',
+	    color: '#FF8D1A' 
+	  },
+	  { 
+	    startTime: '2401010700', 
+	    endTime: '2401012000', 
+	    text: '7:00-20:00',
+	    color: '#FF8D1A' 
+	  }
+	]);
+	const userAvatars = ref([
+	  { src: '/static/avatar1.png' },
+	  { src: '/static/avatar2.png' }
+	]);
 </script>
 <style lang="scss">	
 	/*容器内组件水平排列*/
