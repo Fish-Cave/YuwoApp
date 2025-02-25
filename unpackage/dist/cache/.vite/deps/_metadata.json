@@ -1,8 +1,10 @@
 {
-  "hash": "f3847a97",
-  "configHash": "224fbd66",
+
+  "hash": "c868a0ad",
+  "configHash": "8f519e8b",
   "lockfileHash": "e3b0c442",
-  "browserHash": "64a095e7",
+  "browserHash": "45bab07a",
+
   "optimized": {},
   "chunks": {}
 }
