@@ -1,7 +1,7 @@
 {
   "usingComponents": {
     "uni-icons": "../../uni_modules/uni-icons/components/uni-icons/uni-icons",
-    "uni-group": "../../uni_modules/uni-group/components/uni-group/uni-group",
-    "uni-section": "../../uni_modules/uni-section/components/uni-section/uni-section"
+    "uni-section": "../../uni_modules/uni-section/components/uni-section/uni-section",
+    "machine-time-slot": "./time-slot"
   }
 }

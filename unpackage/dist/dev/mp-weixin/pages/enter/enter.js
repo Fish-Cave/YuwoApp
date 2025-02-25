@@ -26,17 +26,17 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
       return {
         a: common_vendor.p({
           type: "arrow-left",
-          size: "50rpx"
+          size: "20"
         }),
         b: common_vendor.t(shopName.value),
         c: common_vendor.t(nowDate.value),
         d: common_vendor.p({
-          type: "calendar-filled",
-          size: "50rpx"
+          type: "calendar",
+          size: "16"
         }),
         e: common_vendor.p({
           type: "arrow-right",
-          size: "50rpx"
+          size: "20"
         }),
         f: common_vendor.p({
           type: "h1",

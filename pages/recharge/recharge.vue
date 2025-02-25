@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view class="container">
 		<uni-group mode="card">
 			<view style="display: flex; justify-content: space-between;">
 				<view>
@@ -33,14 +33,20 @@
 					</view>
 				</view>
 			</view>
+			
 			<view>
 				<text class="tips">
 					如果已经成为会员，计时计费将会使用会员价格。
 				</text>	
 			</view>
 			
-			<!--BLANK-->
-			<view style="height: 500rpx;"></view>
+			<!--这里应该有一个容器用来放计时收费相关的东西-->
+			<view style="height: 500rpx; display: flex; flex-direction: column; justify-content: center;">
+				<text>这里应该有一个容器用来放计时收费相关的东西</text>
+				<text>这里应该有一个容器用来放计时收费相关的东西</text>
+				<text>这里应该有一个容器用来放计时收费相关的东西</text>
+			</view>
+			
 			
 			<!--会员充值模块-->
 			<view>
@@ -78,6 +84,11 @@
 	
 </script>
 <style>
+	.container {
+	  background-color: #f5f5f5;
+	  min-height: 100vh;
+	  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	}
 	.tips{
 		font-size: 25rpx;
 		color: gray; 
@@ -119,6 +130,8 @@
 	.itemContainer{
 		padding-left: 30rpx; 
 		padding-right: 30rpx;
+		display: flex;
+		flex-direction: column;
 	}
 	.containerVertical{
 		display: flex; 

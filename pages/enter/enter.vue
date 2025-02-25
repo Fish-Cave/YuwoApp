@@ -1,34 +1,30 @@
 <template>	
-	<view>
-		<!--导航栏？-->
-		<view style="display: flex; justify-content: center; align-items: center; gap: 40rpx;">
-			<view class="item">
-				<uni-icons type="arrow-left" size="50rpx"></uni-icons>
-				<navigator>前一天</navigator>
-			</view>
-			<view style="display: flex; flex-direction: column;
-			justify-content: center; align-items: center; margin-top: 10rpx;">
-				<view>
-					<text>
-						当前店铺: 
-					</text>
-					<text style="color: rgba(255, 141, 26, 1);">
-					{{shopName}}
-					</text>
-				</view>
-				<view>
-					<text>{{nowDate}}</text>
-				</view>
-				<view class="item">
-					<uni-icons type="calendar-filled" size="50rpx"></uni-icons>
-					<text>日历</text>
-				</view>
-				
-			</view>
-			<view class="item">
-				<navigator>后一天</navigator>
-				<uni-icons type="arrow-right" size="50rpx"></uni-icons>
-			</view>
+	<view class="container">
+		<!-- Header Navigation -->
+		<view class="header">
+		  <view class="nav-item">
+		    <uni-icons type="arrow-left" size="20"></uni-icons>
+		    <text class="nav-text">前一天</text>
+		  </view>
+		
+		  <view class="date-container">
+		    <view class="location">
+		      <text>当前位置: </text>
+		      <text class="shop-name">{{ shopName }}</text>
+		    </view>
+		    <view class="date-pill">
+		      <text>{{ nowDate }}</text>
+		    </view>
+		    <view class="calendar-btn">
+		      <uni-icons type="calendar" size="16"></uni-icons>
+		      <text>日历</text>
+		    </view>
+		  </view>
+		
+		  <view class="nav-item">
+		    <text class="nav-text">后一天</text>
+		    <uni-icons type="arrow-right" size="20"></uni-icons>
+		  </view>
 		</view>
 		
 		<view class="itemContainer">
@@ -161,6 +157,60 @@
 	const bebaned = ref(0)
 </script>
 <style>
+	.container {
+	  background-color: #f5f5f5;
+	  min-height: 100vh;
+	  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	}
+	.header {
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  padding: 20rpx 30rpx;
+	}
+	
+	.nav-item {
+	  display: flex;
+	  align-items: center;
+	  gap: 10rpx;
+	}
+	
+	.nav-text {
+	  font-size: 28rpx;
+	  color: #333;
+	}
+	
+	.date-container {
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  gap: 10rpx;
+	}
+	
+	.location {
+	  font-size: 28rpx;
+	  color: #333;
+	}
+	
+	.shop-name {
+	  color: #FF8D1A;
+	}
+	
+	.date-pill {
+	  background-color: #FFD700;
+	  padding: 8rpx 40rpx;
+	  border-radius: 30rpx;
+	  margin-top: 10rpx;
+	  margin-bottom: 10rpx;
+	}
+	
+	.calendar-btn {
+	  display: flex;
+	  align-items: center;
+	  gap: 10rpx;
+	  font-size: 26rpx;
+	  color: #666;
+	}
 	.tips{
 		font-size: 25rpx;
 		color: gray; 
