@@ -17,9 +17,9 @@
 			</view>
 		</uni-group>
 		
-		<view style="padding-left: 30rpx; padding-right: 30rpx;">
+		<view class="itemContainer" >
 			<view style="display: flex; justify-content: space-between;">
-				<view style="display: flex; flex-direction: column;">
+				<view class=".containerVertical">
 					<uni-title type="h1" title="鱼窝会员"></uni-title>
 					<uni-title type="h1" title="大月卡/大周卡"></uni-title>
 				</view>
@@ -44,10 +44,22 @@
 			
 			<!--会员充值模块-->
 			<view>
-				<view>
-					
+				<view style="display: flex; justify-content: space-between; 
+				padding-left: 20rpx; padding-right: 20rpx;" >
+					<view class="box">
+						<text>鱼窝会员</text><br/>
+						<text>售价: 30</text>
+					</view>
+					<view class="box">
+						<text>鱼窝会员</text><br/>
+						<text>售价: 30</text>
+					</view>
+					<view class="box">
+						<text>鱼窝会员</text><br/>
+						<text>售价: 30</text>
+					</view>
 				</view>
-				<view style="display: flex;">
+				<view style="display: flex; margin-top: 20rpx;">
 					<view style="display: flex; justify-content: center;
 					 align-content: center; align-self: center;">
 						<uni-icons type="info" size="50rpx"></uni-icons>
@@ -95,5 +107,21 @@
 		display: flex;
 		justify-content: center; 
 		align-items: center;
+	}
+	.box{
+		width: 160rpx;
+		height: 140rpx;
+		border-radius: 10rpx;
+		background: rgba(255, 255, 255, 1);
+		border: 3px solid rgba(255, 195, 0, 1);
+		box-shadow: 0px 2px 4px  rgba(0, 0, 0, 0.25);
+	}
+	.itemContainer{
+		padding-left: 30rpx; 
+		padding-right: 30rpx;
+	}
+	.containerVertical{
+		display: flex; 
+		flex-direction: column;
 	}
 </style>

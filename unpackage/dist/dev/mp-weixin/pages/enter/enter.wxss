@@ -29,4 +29,12 @@
 		justify-content: center; 
 		align-items: center;
 }
+.itemContainer{
+		padding-left: 30rpx; 
+		padding-right: 30rpx;
+}
+.containerVertical{
+		display: flex; 
+		flex-direction: column;
+}
 	/*分割线*/

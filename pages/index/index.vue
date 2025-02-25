@@ -56,6 +56,7 @@
       </uni-section>
     </view>
   </view>
+
 </template>
 
 <script lang="ts" setup>
@@ -213,4 +214,5 @@ function handleBooking(machineType) {
   margin-left: 30rpx;
   margin-right: 30rpx;
 }
+
 </style>
