@@ -2,7 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/enter/enter",
-    "pages/recharge/recharge"
+    "pages/recharge/recharge",
+    "pages/register/register"
   ],
   "window": {
     "navigationBarTextStyle": "black",

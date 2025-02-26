@@ -45,6 +45,7 @@
 				<text>这里应该有一个容器用来放计时收费相关的东西</text>
 				<text>这里应该有一个容器用来放计时收费相关的东西</text>
 				<text>这里应该有一个容器用来放计时收费相关的东西</text>
+				<navigator url="/pages/register/register"><text>TEST</text></navigator>
 			</view>
 			
 			
