@@ -8,8 +8,8 @@
 				</view>
 				<view style="display: flex; flex-direction: column; 
 				align-items: flex-end; gap: 10rpx;">
-					<text>我是ID</text>
-					<text>我是UID</text>
+					<text>我是ID{{userInfo.userName}}</text>
+					<text>我是UID{{userInfo.userUniID}}</text>
 					<button class="editButton">
 						<uni-icons type="compose" size="30"></uni-icons>
 					</button>
@@ -82,7 +82,8 @@
 </template>
 
 <script lang="ts" setup>
-	
+	import {useUserInfo} from '@/store/UserInfo.ts'
+	const userInfo = useUserInfo()
 </script>
 <style>
 	.container {

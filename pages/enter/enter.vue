@@ -38,9 +38,8 @@
 					</view>
 					<view style="display: flex; flex-direction: column; 
 					align-items: flex-end; ">
-						<text>我是ID</text>
-						<text>我是UID</text>
-						<text>我是会员剩余时长</text>
+						<text>我是ID {{userInfo.userName}}</text>
+						<text>我是UID {{userInfo.userUniID}}</text>
 					</view>
 				</view>
 			</uni-group>
@@ -150,11 +149,14 @@
 	
 <script lang="ts" setup>
 	import { ref } from 'vue';
+	import {useUserInfo} from '@/store/UserInfo.ts'
 	const shopName = ref("鱼窝一号店")
 	const nowDate = ref("1970年1月1日")
 	const reserveTime = ref(65535)
 	const year = ref(2024)
 	const bebaned = ref(0)
+	const userInfo = useUserInfo()
+	console.log(userInfo)
 </script>
 <style>
 	.container {

@@ -63,10 +63,14 @@
 import { ref, onMounted, computed } from 'vue';
 import MachineTimeSlot from './time-slot.vue';
 import machineTypesData from './machine-types.json';
+import {useUserInfo} from '@/store/UserInfo.ts'
 
 const shopName = ref("鱼窝一号店");
 const nowDate = ref("2024-08-21 星期三");
 const machineTypes = ref(machineTypesData);
+const userInfo = useUserInfo()
+
+
 
 const allTimeSlots = ref([
   {
@@ -135,6 +139,16 @@ const getTimeSlots = (machineType, machineName) => {
 function handleBooking(machineType) {
   console.log(`Booking machine type: ${machineType}`);
 }
+
+function userInit(){
+	userInfo.$patch({
+		userName:"Test",
+		userUniID:"0000",
+		avatar:"xxxx",
+	})
+}
+userInit()
+
 </script>
 
 <style lang="scss">
