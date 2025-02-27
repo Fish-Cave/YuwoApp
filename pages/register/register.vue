@@ -8,6 +8,12 @@
 							<uni-easyinput type="text" 
 							v-model="userData.username" placeholder="请输入昵称🐟" />
 						</uni-forms-item>
+						
+						<uni-forms-item label="QQ号 :" required name="qqNumber">
+							<uni-easyinput type="text" 
+							v-model="userData.qqNumber" placeholder="请输QQ号🐧" />
+						</uni-forms-item>
+						
 							
 						<uni-forms-item label="手机号 :" required name="mobile">
 							<uni-easyinput type="text" 
@@ -26,6 +32,10 @@
 					</view>
 				</uni-card>
 			</uni-section>
+			<view>
+				<text class="tips">本表单只做信息登记使用，
+				如要获取预约权限请联系管理员</text>
+			</view>
 			
 			<!--鱼鱼-->
 <!--			
@@ -50,11 +60,13 @@
 		username:String,
 		mobile:String,
 		email:String,
+		qqNumber:String,
 	}
 	const userData = reactive<userInfo>({
 		username:"",
 		mobile:"",
 		email:"",
+		qqNumber:"",
 	})
 	
 	function CommitUserData(){
@@ -66,6 +78,14 @@
 				{
 					require: true,
 					errorMessage: '请输入姓名',
+				}
+			]
+		},
+		qqNumber :{
+			rules:[
+				{
+					require: true,
+					errorMessage: '请输入QQ号',
 				}
 			]
 		},
@@ -116,6 +136,12 @@
 	  align-items: center;
 	  justify-content: center;
 	  color: #333;
+	}
+	.tips{
+		font-size: 25rpx;
+		color: gray; 
+		margin-top: 10rpx;
+		padding: 30rpx
 	}
 	
 </style>
