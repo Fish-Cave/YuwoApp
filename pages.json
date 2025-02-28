@@ -1,58 +1,163 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-			}
-		},
-		{
-			"path" : "pages/enter/enter",
-			"style" : 
-			{
-			}
-		},
-		{
-			"path" : "pages/recharge/recharge",
-			"style" : 
-			{
-			}
-		},
-		{
-			"path" : "pages/register/register",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "🐟窝预约小程序",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"tabBar": {
-		"color": "#000000",
-		"selectedColor": "rgba(255, 141, 26, 1)",
-		"list": [
-			{
-				"pagePath": "pages/index/index",
-				"text": "预约",
-				"iconPath": "/static/icon/user-add.png",
-				"selectedIconPath": "/static/icon/user-add-solid.png"
-			},
-			{
-				"pagePath": "pages/enter/enter",
-				"text": "入店",
-				"iconPath": "/static/icon/home.png",
-				"selectedIconPath": "/static/icon/home-solid.png"
-			},
-			{
-				"pagePath": "pages/recharge/recharge",
-				"text": "充值",
-				"iconPath": "/static/icon/shopping-cart.png",
-				"selectedIconPath": "/static/icon/shopping-cart-solid.png"
-			}
-		]
-	}
+    "pages": [
+        {
+            "path": "pages/index/index",
+            "style": {}
+        },
+        {
+            "path": "pages/enter/enter",
+            "style": {}
+        },
+        {
+            "path": "pages/recharge/recharge",
+            "style": {}
+        },
+        {
+            "path": "pages/orders/orders",
+            "style": {}
+        },
+        {
+            "path": "pages/register/register",
+            "style": {
+                "navigationBarTitleText": ""
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/register/register",
+            "style": {
+                "navigationBarTitleText": "注册"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/login/login-withoutpwd",
+            "style": {
+                "navigationBarTitleText": "登录"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/login/login-withpwd",
+            "style": {
+                "navigationBarTitleText": "账号密码登录"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/login/login-smscode",
+            "style": {
+                "navigationBarTitleText": "手机验证码登录"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/userinfo",
+            "style": {
+                "navigationBarTitleText": "个人资料"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/bind-mobile/bind-mobile",
+            "style": {
+                "navigationBarTitleText": "绑定手机号码"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/cropImage/cropImage",
+            "style": {
+                "navigationBarTitleText": ""
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/register/register-by-email",
+            "style": {
+                "navigationBarTitleText": "邮箱验证码注册"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/retrieve/retrieve",
+            "style": {
+                "navigationBarTitleText": "重置密码"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/retrieve/retrieve-by-email",
+            "style": {
+                "navigationBarTitleText": "通过邮箱重置密码"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/common/webview/webview",
+            "style": {
+                "enablePullDownRefresh": false,
+                "navigationBarTitleText": ""
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/change_pwd/change_pwd",
+            "style": {
+                "enablePullDownRefresh": false,
+                "navigationBarTitleText": "修改密码"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/register/register-admin",
+            "style": {
+                "enablePullDownRefresh": false,
+                "navigationBarTitleText": "注册管理员账号"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/set-pwd/set-pwd",
+            "style": {
+                "enablePullDownRefresh": false,
+                "navigationBarTitleText": "设置密码"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/deactivate/deactivate",
+            "style": {
+                "navigationBarTitleText": "注销账号"
+            }
+        },
+        {
+            "path": "uni_modules/uni-id-pages/pages/userinfo/realname-verify/realname-verify",
+            "style": {
+                "enablePullDownRefresh": false,
+                "navigationBarTitleText": "实名认证"
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "🐟窝预约小程序",
+        "navigationBarBackgroundColor": "#F8F8F8",
+        "backgroundColor": "#F8F8F8"
+    },
+    "tabBar": {
+        "color": "#000000",
+        "selectedColor": "rgba(255, 141, 26, 1)",
+        "list": [
+            {
+                "pagePath": "pages/index/index",
+                "text": "预约",
+                "iconPath": "/static/icon/user-add.png",
+                "selectedIconPath": "/static/icon/user-add-solid.png"
+            },
+            {
+                "pagePath": "pages/enter/enter",
+                "text": "入店",
+                "iconPath": "/static/icon/home.png",
+                "selectedIconPath": "/static/icon/home-solid.png"
+            },
+            {
+                "pagePath": "pages/recharge/recharge",
+                "text": "充值",
+                "iconPath": "/static/icon/shopping-cart.png",
+                "selectedIconPath": "/static/icon/shopping-cart-solid.png"
+            },
+            {
+                "pagePath": "uni_modules/uni-id-pages/pages/userinfo/userinfo",
+                "text": "我的",
+                "iconPath": "/static/icon/user.png",
+                "selectedIconPath": "/static/icon/user-fill.png"
+            }
+        ]
+    }
 }

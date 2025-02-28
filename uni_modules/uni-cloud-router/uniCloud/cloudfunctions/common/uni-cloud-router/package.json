@@ -1,0 +1,16 @@
+{
+    "name": "uni-cloud-router",
+    "version": "0.0.10",
+    "description": "uni-cloud router",
+    "main": "dist\/index.js",
+    "author": "fxy060608",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https:\/\/github.com\/fxy060608\/uni-cloud-router.git"
+    },
+    "origin-plugin-dev-name": "uni-cloud-router",
+    "origin-plugin-version": "1.0.3",
+    "plugin-dev-name": "uni-cloud-router",
+    "plugin-version": "1.0.3"
+}
