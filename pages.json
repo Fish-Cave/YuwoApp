@@ -6,22 +6,21 @@
 			}
 		},
 		{
-			"path" : "pages/enter/enter",
-			"style" : 
-			{
-			}
-		},
-		{
 			"path" : "pages/recharge/recharge",
 			"style" : 
 			{
 			}
 		},
 		{
-			"path" : "pages/register/register",
+			"path" : "pages/signIn/signIn",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/user/user",
+			"style" : 
+			{
 			}
 		}
 	],
@@ -42,14 +41,14 @@
 				"selectedIconPath": "/static/icon/user-add-solid.png"
 			},
 			{
-				"pagePath": "pages/enter/enter",
-				"text": "入店",
+				"pagePath": "pages/signIn/signIn",
+				"text": "签到",
 				"iconPath": "/static/icon/home.png",
 				"selectedIconPath": "/static/icon/home-solid.png"
 			},
 			{
-				"pagePath": "pages/recharge/recharge",
-				"text": "充值",
+				"pagePath": "pages/user/user",
+				"text": "我的",
 				"iconPath": "/static/icon/shopping-cart.png",
 				"selectedIconPath": "/static/icon/shopping-cart-solid.png"
 			}
