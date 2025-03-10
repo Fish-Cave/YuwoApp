@@ -33,28 +33,6 @@
     <view class="tip-container">
       <text class="tips">点击机台名称可查看机台信息</text>
     </view>
-
-    <!-- Dynamic Machine Sections -->
-    <view class="machine-section" v-for="machineType in machineTypes" :key="machineType.type">
-      <uni-section :title="machineType.displayName" type="line">
-        <MachineTimeSlot
-          v-for="machine in machineType.machines"
-          :key="machine.name"
-          :machineName="machine.name"
-          :machineType="machineType.type"
-          :machineCount="machine.count"
-          :maxQueueCount="machine.maxQueue"
-          :timeSlots="getTimeSlots(machineType.type, machine.name)"
-          :avatars="machineType.defaultAvatars"
-          :showAvatars="true"
-          statusMessage="折叠预约列表"
-          buttonText="预约此机台"
-          :machineDescription="machineType.description"
-          @buttonClick="handleBooking"
-        >
-        </MachineTimeSlot>
-      </uni-section>
-    </view>
   </view>
 
 </template>
