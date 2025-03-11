@@ -15,12 +15,27 @@
 			"path" : "pages/signIn/signIn",
 			"style" : 
 			{
+				"navigationBarTitleText" : "签到"
 			}
 		},
 		{
 			"path" : "pages/user/user",
 			"style" : 
 			{
+			}
+		},
+		{
+			"path" : "pages/order/order",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/start/start",
+			"style" : 
+			{
+				"navigationBarTitleText" : "开始使用"
 			}
 		}
 	],

@@ -1,51 +1,21 @@
 <template>
-  <view class="container">
-    <!-- Header Navigation -->
-    <view class="header">
-      <view class="nav-item">
-        <uni-icons type="arrow-left" size="20"></uni-icons>
-        <text class="nav-text">前一天</text>
-      </view>
-
-      <view class="date-container">
-        <view class="location">
-          <text>当前位置: </text>
-          <text class="shop-name">{{ shopName }}</text>
-        </view>
-        <view class="date-pill">
-          <text>{{ nowDate }}</text>
-        </view>
-        <view class="calendar-btn">
-          <uni-icons type="calendar" size="16"></uni-icons>
-          <text>日历</text>
-        </view>
-      </view>
-
-      <view class="nav-item">
-        <text class="nav-text">后一天</text>
-        <uni-icons type="arrow-right" size="20"></uni-icons>
-      </view>
-    </view>
-
-    <view class="divider"></view>
-
-    <!-- Machine Info Tip -->
-    <view class="tip-container">
-      <text class="tips">点击机台名称可查看机台信息</text>
-    </view>
-  </view>
-
+	<view>
+		<wu-calendar type="week"
+		@change="calendarChange"
+		slideSwitchMode="none"
+		:fold="false"
+		startWeek="mon"
+		startDate="2025-01-01"/>
+	</view>
+	<view>
+		<usage></usage>
+	</view>
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
-import MachineTimeSlot from './time-slot.vue';
-import machineTypesData from './machine-types.json';
-
 const shopName = ref("鱼窝一号店");
 const nowDate = ref("2024-08-21 星期三");
-const machineTypes = ref(machineTypesData);
-
 const allTimeSlots = ref([
   {
     startTime: '2408210900',
@@ -105,13 +75,10 @@ const allTimeSlots = ref([
      userId: '5'
    }
 ]);
-
-const getTimeSlots = (machineType, machineName) => {
-  return allTimeSlots.value.filter(slot => slot.machine === machineType && slot.machineName === machineName);
-};
-
-function handleBooking(machineType) {
-  console.log(`Booking machine type: ${machineType}`);
+function calendarChange(e:object){
+	console.log(e);
+	let date = e
+	console.log(date.fulldate)
 }
 </script>
 
