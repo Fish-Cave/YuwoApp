@@ -5,6 +5,7 @@
 		slideSwitchMode="none"
 		:fold="false"
 		startWeek="mon"
+		color="#f9cb14"
 		startDate="2025-01-01"/>
 	</view>
 	<view>
@@ -14,6 +15,10 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
+import dayjs from 'dayjs';
+import usage from './usage'
+var now = dayjs()
+console.log(JSON.stringify(now))
 const shopName = ref("鱼窝一号店");
 const nowDate = ref("2024-08-21 星期三");
 const allTimeSlots = ref([

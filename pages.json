@@ -28,7 +28,7 @@
 			"path" : "pages/order/order",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+				"navigationBarTitleText" : "预约机台"
 			}
 		},
 		{
