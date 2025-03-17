@@ -1,0 +1,117 @@
+{
+  "passwordSecret": [
+    {
+      "type": "hmac-sha256",
+      "version": 1
+    }
+  ], // 数据库中password字段是加密存储的，这里的passwordSecret即为加密密码所用的加密算法，详见[密码安全]
+  "passwordStrength": "medium", // 密码强度，新增于 uni-id-pages 1.0.8版本，见下方说明
+  "tokenSecret": "", // 生成token所用的密钥，注意修改为自己的，使用一个较长的字符串即可
+  "requestAuthSecret": "", // URL化请求鉴权签名密钥
+  "tokenExpiresIn": 7200, // 全平台token过期时间，未指定过期时间的平台会使用此值
+  "tokenExpiresThreshold": 3600, // 新增于uni-id 1.1.7版本，checkToken时如果token有效期小于此值且在有效期内则自动获取新token，请注意将新token返回给前端保存（云对象会自动保存符合uniCloud响应体规范的响应内的新token），如果不配置此参数则不开启自动获取新token功能
+  "maxTokenLength": 10, // 数据库用户记录token数组的最大长度，默认为10。新增于uni-id-common 1.0.16
+  "passwordErrorLimit": 6, // 密码错误最大重试次数
+  "passwordErrorRetryTime": 3600, // 密码错误重试次数超限之后的冻结时间
+  "autoSetInviteCode": false, // 是否在用户注册时自动设置邀请码，默认不自动设置
+  "forceInviteCode": false, // 是否强制用户注册时必填邀请码，默认为false
+  "idCardCertifyLimit": 1, // 实名认证相关; 限制每个身份证可以绑定几个账号
+  "realNameCertifyLimit": 5, // 实名认证相关; 限制用户每日认证次数，防止接口被刷
+  "sensitiveInfoEncryptSecret": "", // 敏感信息加密密钥(长度为32位的字符串)，如使用实名认证功能需配置此密钥
+  "frvNeedAlivePhoto": false, // 实名认证相关；是否获取认证照片
+  "userRegisterDefaultRole": [], // 用户注册时的默认角色
+  "app": { // 如果你使用旧版本uni-id公共模块而不是uni-id-common这里可能配置的是app-plus，务必注意调整为app
+    "tokenExpiresIn": 2592000,
+    "tokenExpiresThreshold": 864000,
+    "oauth": {
+      // App微信登录所用到的appid、appsecret需要在微信开放平台获取，注意：不是公众平台而是开放平台
+      "weixin": {
+        "appid": "",
+        "appsecret": ""
+      },
+      // App QQ登录所用到的appid、appsecret需要在腾讯开放平台获取，注意：不是公众平台而是开放平台
+      "qq": {
+        "appid": "",
+        "appsecret": ""
+      },
+      "apple": { // 使用苹果登录时需要
+        "bundleId": ""
+      },
+      "huawei": { // 鸿蒙应用使用华为登录
+        "clientId": "",
+        "clientSecret": ""
+      }
+    }
+  },
+  "web": { // 如果你使用旧版本uni-id公共模块而不是uni-id-common这里可能配置的是h5，务必注意调整为web
+    "tokenExpiresIn": 7200,
+    "tokenExpiresThreshold": 3600,
+    "oauth": {
+      "weixin-h5": { // 微信公众号登录配置
+        "appid": "",
+        "appsecret": ""
+      },
+      "weixin-web": { // 微信PC页面扫码登录配置
+        "appid": "",
+        "appsecret": ""
+      }
+    }
+  },
+  "mp-weixin": {
+    "tokenExpiresIn": 259200,
+    "tokenExpiresThreshold": 86400,
+    "oauth": {
+      // 微信小程序登录所用的appid、appsecret需要在对应的小程序管理控制台获取
+      "weixin": {
+        "appid": "",
+        "appsecret": ""
+      }
+    }
+  },
+  "mp-qq": {
+    "tokenExpiresIn": 259200,
+    "tokenExpiresThreshold": 86400,
+    "oauth": {
+      // QQ小程序登录所用的appid、appsecret需要在对应的小程序管理控制台获取
+      "qq": {
+        "appid": "",
+        "appsecret": ""
+      }
+    }
+  },
+  "mp-alipay": {
+    "tokenExpiresIn": 259200,
+    "tokenExpiresThreshold": 86400,
+    "oauth": {
+      // 支付宝小程序登录用到的appid、privateKey请参考支付宝小程序的文档进行设置或者获取，https://opendocs.alipay.com/open/291/105971#LDsXr
+      "alipay": {
+        "appid": "",
+        "privateKey": "", // 私钥
+        "keyType": "PKCS8" // 私钥类型，如果私钥类型不是PKCS8，需要填写此字段，否则会出现“error:0D0680A8:asn1 encoding routines:ASN1_CHECK_TLEN:wrong tag”错误
+      }
+    }
+  },
+  "mp-harmony": {
+      "oauth": {
+        "huawei": { // 鸿蒙元服务使用华为登录
+          "clientId": "",
+          "clientSecret": ""
+        }
+      }
+  },
+  "service": {
+    "sms": {
+      "name": "", // 应用名称，对应短信模版的name
+      "codeExpiresIn": 180, // 验证码过期时间，单位为秒，注意一定要是60的整数倍
+      "scene": {
+        "bind-mobile-by-sms": { // 对绑定手机号场景的配置，短信验证码场景值参考：https://uniapp.dcloud.net.cn/uniCloud/uni-id/summary.html#sms-scene
+          "templateId": "", // 绑定手机号使用的短信验证码模板
+          "codeExpiresIn": 240 // 绑定手机号验证码过期时间
+        }
+      }
+    },
+    "univerify": {
+      "appid": "" // uni-id-co 1.1.17及以上版本无需填写，当前应用的appid，使用云函数URL化，此项必须配置
+    }
+  }
+}

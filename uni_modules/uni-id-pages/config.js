@@ -16,13 +16,21 @@ export default {
     // "alipay",
     // "douyin",
 
-    //'univerify',
+    // #ifdef APP
+    'univerify',
+    // #endif
+    // #ifndef MP-HARMONY
     'weixin',
+    // #endif
     'username',
-    //'apple',
-    //'smsCode',
-    //'huawei',
-    //'huaweiMobile'
+    // #ifdef APP
+    'apple',
+    // #endif
+    'smsCode',
+    // #ifdef APP-HARMONY || MP-HARMONY
+    'huawei',
+    'huaweiMobile'
+    // #endif
   ],
   // 政策协议
   agreements: {
@@ -50,7 +58,7 @@ export default {
 	 * weak（弱：密码必须包含字母和数字，长度范围：6-16位之间）
 	 * 为空或false则不验证密码强度
 	 */
-  passwordStrength: 'false',
+  passwordStrength: 'medium',
   /**
 	 * 登录后允许用户设置密码（只针对未设置密码得用户）
 	 * 开启此功能将 setPasswordAfterLogin 设置为 true 即可
@@ -61,5 +69,5 @@ export default {
 	 *   "allowSkip": true
 	 * }
 	 * */
-  setPasswordAfterLogin: true
+  setPasswordAfterLogin: false
 }
