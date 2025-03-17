@@ -42,6 +42,9 @@
 <script setup lang="ts">
 	function goOrder(){
 		console.log("test")
+		uni.navigateTo({
+			url: '/pages/order/order'
+		});
 	}
 </script>
 

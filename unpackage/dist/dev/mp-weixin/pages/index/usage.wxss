@@ -1,0 +1,20 @@
+
+.bt{
+		padding-top: 20rpx;
+		display: flex;
+		justify-content: center;
+		align-self: center;
+		background-color: gray;
+		border-radius: 20rpx;
+		height: 70rpx;
+		width: 270rpx;
+}
+.icon{
+		padding-top: 20rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: gray;
+		height: 80rpx;
+		border-radius: 30rpx;
+}

@@ -1,7 +1,6 @@
 {
   "usingComponents": {
-    "uni-icons": "../../uni_modules/uni-icons/components/uni-icons/uni-icons",
-    "uni-section": "../../uni_modules/uni-section/components/uni-section/uni-section",
-    "machine-time-slot": "./time-slot"
+    "wu-calendar": "../../uni_modules/wu-calendar/components/wu-calendar/wu-calendar",
+    "usage": "./usage"
   }
 }

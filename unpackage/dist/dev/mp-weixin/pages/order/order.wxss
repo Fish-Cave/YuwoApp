@@ -1,0 +1,31 @@
+
+.divider {
+		height: 2rpx;
+		background-color: rgb(242, 242, 242);
+		margin-top: 15rpx;
+		margin-bottom: 15rpx;
+}
+.attention {
+		background-color: rgb(253, 251, 231);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		align-self: center;
+		align-content: center;
+		border-radius: 20rpx;
+		height: 90rpx;
+}
+.bt {
+		background-color: rgb(249, 203, 20);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 20rpx;
+		width: 80%;
+		height: 80rpx;
+}
+.price {
+		display: flex;
+		width: 90%;
+		justify-content: space-between;
+}

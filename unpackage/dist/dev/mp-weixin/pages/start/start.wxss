@@ -1,0 +1,25 @@
+
+.bt {
+		margin: 30rpx 30rpx;
+		background-color: rgb(249, 203, 20);
+		border-radius: 20rpx;
+		height: 120rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+}
+.content {
+		display: flex;
+		flex-direction: column;
+}
+.title {
+		margin-left: 20rpx;
+		font-size: 35rpx;
+		font-weight: bold;
+}
+.divider {
+		height: 2rpx;
+		background-color: rgb(242, 242, 242);
+		margin-top: 15rpx;
+		margin-bottom: 15rpx;
+}

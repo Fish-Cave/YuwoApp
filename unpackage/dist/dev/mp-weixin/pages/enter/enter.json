@@ -1,8 +1,0 @@
-{
-  "usingComponents": {
-    "uni-icons": "../../uni_modules/uni-icons/components/uni-icons/uni-icons",
-    "uni-title": "../../uni_modules/uni-title/components/uni-title/uni-title",
-    "uni-group": "../../uni_modules/uni-group/components/uni-group/uni-group",
-    "uni-card": "../../uni_modules/uni-card/components/uni-card/uni-card"
-  }
-}
