@@ -1,36 +1,13 @@
 export default {
   // 调试模式
-  debug: false,
+  debug: true,
   /*
 		登录类型 未列举到的或运行环境不支持的，将被自动隐藏。
 		如果需要在不同平台有不同的配置，直接用条件编译即可
 	*/
   isAdmin: false, // 区分管理端与用户端
   loginTypes: [
-    // "qq",
-    // "xiaomi",
-    // "sinaweibo",
-    // "taobao",
-    // "facebook",
-    // "google",
-    // "alipay",
-    // "douyin",
-
-    // #ifdef APP
-    'univerify',
-    // #endif
-    // #ifndef MP-HARMONY
-    'weixin',
-    // #endif
-    'username',
-    // #ifdef APP
-    'apple',
-    // #endif
-    'smsCode',
-    // #ifdef APP-HARMONY || MP-HARMONY
-    'huawei',
-    'huaweiMobile'
-    // #endif
+	  "weixin"
   ],
   // 政策协议
   agreements: {
