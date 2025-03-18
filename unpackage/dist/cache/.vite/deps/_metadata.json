@@ -1,13 +1,13 @@
 {
-  "hash": "f3847a97",
-  "configHash": "224fbd66",
+  "hash": "f76cb4b8",
+  "configHash": "49de5f74",
   "lockfileHash": "e3b0c442",
-  "browserHash": "799cc619",
+  "browserHash": "25135966",
   "optimized": {
     "dayjs": {
       "src": "../../../../../node_modules/dayjs/dayjs.min.js",
       "file": "dayjs.js",
-      "fileHash": "bf499042",
+      "fileHash": "1ec64355",
       "needsInterop": true
     }
   },

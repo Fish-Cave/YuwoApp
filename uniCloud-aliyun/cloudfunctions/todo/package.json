@@ -1,0 +1,7 @@
+{
+  "name": "todo",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
