@@ -1,11 +1,20 @@
 <template>
 	<view>
-		<wu-calendar type="week" @change="calendarChange" slideSwitchMode="none" :fold="false" startWeek="mon"
-			color="#f9cb14" startDate="2025-01-01" />
+		<view>
+			<wu-calendar type="week" 
+			@change="calendarChange" 
+			slideSwitchMode="none" 
+			:fold="false" 
+			startWeek="mon"
+			color="#f9cb14" 
+			startDate="2025-01-01" />
+		</view>
+		<view>
+			<usage></usage>
+			<button @click="goToConfig()">配置</button>
+		</view>
 	</view>
-	<view>
-		<usage></usage>
-	</view>
+
 </template>
 
 <script lang="ts" setup>
@@ -79,6 +88,12 @@
 		console.log(e);
 		let date = e
 		console.log(date.fulldate)
+	}
+	function goToConfig(){
+		console.log('test')
+		uni.navigateTo({
+			url: "/pages/config/config"
+		})
 	}
 </script>
 
