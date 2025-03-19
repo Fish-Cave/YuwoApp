@@ -19,6 +19,14 @@ module.exports = {
 			"machinenum":true,
 		}).get()
 	},
+	GetMachinesInfo:function(content){
+		const collection = db.collection('machines');
+		return collection.field({
+			
+		}).where({
+			
+		}).get()
+	},
 	
 	Prices_Add: function(content){
 		const collection = db.collection('prices');
@@ -48,7 +56,7 @@ module.exports = {
 			"startTime" : true,
 		}).where({
 			userId : content,
-		}).orderBy("startTime", "desc").get()
+		}).limit(2).orderBy("startTime", "desc").get()
 	},
 	
 	GetUserInfo: function(content){

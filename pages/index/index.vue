@@ -14,7 +14,6 @@
 			<button v-if="isAdmin" @click="goToConfig()" >配置</button>
 		</view>
 	</view>
-	<text>{{userProfile}}</text>>
 </template>
 
 <script lang="ts" setup>

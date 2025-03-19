@@ -41,7 +41,6 @@
 				<text>{{machine._id}}</text>
 			</uni-card>
 		</view>
-		<text>{{machines}}</text>
 	</view>
 </template>
 

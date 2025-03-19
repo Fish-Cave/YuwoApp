@@ -97,7 +97,7 @@
 						<uni-col :span="12">
 							<view style="display: flex;flex-direction: column;">
 								<text>{{data.machineId}}</text>
-								<text>{{data.startTime}}</text>
+								<uni-dateformat :date='data.startTime'></uni-dateformat>
 							</view>
 						</uni-col>
 						<uni-col :span="6">
@@ -119,7 +119,6 @@
 				<uni-list-item showArrow title="帮助中心" />
 			</uni-card>
 		</view>
-		<text>{{Data}}</text>
 		<button @click="logOut()">退出登录</button>
 	</view>
 </template>
