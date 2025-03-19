@@ -33,4 +33,31 @@ module.exports = {
 			"description":true,
 		}).get()
 	},
+	
+	Reservation_Add: function(content){
+		const collection = db.collection('reservation-log');
+		collection.add(content)
+	},
+	GetReservationInfo: function(content){
+		const collection = db.collection('reservation-log');
+		return collection.field({
+			"_id" : true,
+			"machineId" : true,
+			"isOvernight" : true,
+			"status" : true,
+			"startTime" : true,
+		}).where({
+			userId : content,
+		}).orderBy("startTime", "desc").get()
+	},
+	
+	GetUserInfo: function(content){
+		const collection = db.collection('uni-id-users');
+		return collection.field({
+			"nickname" : true,
+			"avatar" : true,
+		}).where({
+			_id : content
+		}).get()
+	}
 }

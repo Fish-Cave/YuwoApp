@@ -15,8 +15,8 @@
 						<!--这一块是用户名和UID，可能要调一下字体和间距-->
 						<uni-col :span="16">
 							<view style="display: flex;flex-direction: column;">
-								<text>{{userProfile.userName}}</text>
-								<text>UID:{{userProfile.userID}}</text>
+								<text>{{}}</text>
+								<text>UID:{{}}</text>
 							</view>
 						</uni-col>
 						<!--小齿轮-->
@@ -28,15 +28,15 @@
 				<!--这一块是白字的统计信息，应该要调一下字体-->
 				<view style="display: flex; justify-content: space-around;">
 					<view class="card">
-						<text>{{userProfile.playCount}}</text>
+						<text>{{}}</text>
 						<text>总使用次数</text>
 					</view>
 					<view class="card">
-						<text>{{userProfile.time}}</text>
+						<text>{{}}</text>
 						<text>总使用时长</text>
 					</view>
 					<view class="card">
-						<text>{{userProfile.totalCost}}</text>
+						<text>{{}}</text>
 						<text>总消费金额</text>
 					</view>
 				</view>
@@ -86,7 +86,8 @@
 						<uni-list-item showArrow title="最近订单" />
 					</uni-list>
 				</template>
-				<view v-for="data in testOrderData" :key="data.orderID">
+				
+				<view v-for="data in Data" :key="data._id">
 					<uni-row>
 						<uni-col :span="6">
 							<view class="orderbox">
@@ -95,20 +96,21 @@
 						</uni-col>
 						<uni-col :span="12">
 							<view style="display: flex;flex-direction: column;">
-								<text>{{data.machineName}} - {{data.machineID}}</text>
-								<text>{{data.orderTime}}</text>
+								<text>{{data.machineId}}</text>
+								<text>{{data.startTime}}</text>
 							</view>
 						</uni-col>
 						<uni-col :span="6">
 							<view style="display: flex;flex-direction: column;">
-								<text v-if="data.orderStatus == 1" style="color: greenyellow;">已完成</text>
+								<text v-if="data.status == 1" style="color: greenyellow;">已完成</text>
 								<text v-else style="color: red;">未完成</text>
-								<text>{{data.orderPrice}}</text>
+								<text>{{data.status}}</text>
 							</view>
 						</uni-col>
 					</uni-row>
 					<view class="divider"></view>
 				</view>
+				
 			</uni-card>
 
 			<!--最底下两个功能按钮-->
@@ -117,16 +119,36 @@
 				<uni-list-item showArrow title="帮助中心" />
 			</uni-card>
 		</view>
+		<text>{{Data}}</text>
 		<button @click="logOut()">退出登录</button>
 	</view>
 </template>
 
 <script setup lang="ts">
-	import { reactive } from 'vue'
+	import { onMounted, reactive, ref } from 'vue'
 	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
 	import { useProfileStroe } from '@/stores/userProfileStore'
+	const todo = uniCloud.importObject('todo')
+	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	const profile = ref({})
+	interface reservationData {
+		_id:String;
+		machineId:String;
+		isOvernight:Boolean;
+		status:String;
+		startTime:String;
+	}
+	const Data = ref<reservationData[]>([])
+	
+	async function getReservationData() {
+		try {
+			let result = await todo.GetReservationInfo(res.uid)
+			console.log(result.data)
+			Data.value = result.data
+		} catch {}
+	}
+	
 	const uniIdCo = uniCloud.importObject('uni-id-co')
-	const userProfile = useProfileStroe()
 	//这是测试用的订单信息
 	const testOrderData = reactive([
 		{
@@ -164,17 +186,11 @@
 				title: '退出成功',
 				icon: 'none'
 			});
-		} catch (e) {
-			
-		}
-
+		} catch { }
 	}
-	uni.getStorage({
-		key: 'uni_id_token',
-		success: function (res) {
-			console.log(res.data);
-		}
-	});
+	onMounted(() => {
+		getReservationData()
+	})
 </script>
 
 <style>

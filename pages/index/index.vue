@@ -11,11 +11,10 @@
 		</view>
 		<view>
 			<usage></usage>
-			<button @click="goToConfig()">配置</button>
+			<button v-if="isAdmin" @click="goToConfig()" >配置</button>
 		</view>
 	</view>
 	<text>{{userProfile}}</text>>
-
 </template>
 
 <script lang="ts" setup>
@@ -24,23 +23,20 @@
 	import usage from './usage';
 	import { useProfileStroe } from '../../stores/userProfileStore';
 	const userProfile = useProfileStroe()
-	var now = dayjs()
-	console.log(JSON.stringify(now))
-	function calendarChange(e : object) {
-		console.log(e);
-		let date = e
-		console.log(date.fulldate)
-	}
+	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	const isAdmin = res.role.includes("admin")
 	function goToConfig(){
 		console.log('test')
 		uni.navigateTo({
 			url: "/pages/config/config"
 		})
 	}
+	
 	uni.$on("uni-id-pages-login-success",function(){
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
-		userProfile.uid = res.uid
+		userProfile._id = res.uid
 		userProfile.role = res.role
+		userProfile.permission = res.permission
 	})
 </script>
 

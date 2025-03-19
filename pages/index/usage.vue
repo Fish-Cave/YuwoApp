@@ -41,6 +41,7 @@
 				<text>{{machine._id}}</text>
 			</uni-card>
 		</view>
+		<text>{{machines}}</text>
 	</view>
 </template>
 
@@ -60,7 +61,7 @@
 			url: '/pages/order/order',
 			success: function (res) {
 				// 通过eventChannel向被打开页面传送数据
-				res.eventChannel.emit('acceptDataFromOpenerPage', { name: machineName, id: machineID })
+				res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
 			}
 		});
 	}
