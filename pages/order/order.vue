@@ -32,12 +32,12 @@
 		<view class="booking-container">
 			<uni-title type="h1" title="确认预约信息"></uni-title>
 
-			<view style="margin-bottom: 10rpx;"> <!--  添加 debug 开关 -->
+			<view style="margin-bottom: 10rpx;">
 				<text style="margin-right: 20rpx;">Debug 信息:</text>
 				<switch :checked="debug" @change="debugSwitchChange" />
 			</view>
 
-			<view>  <!-- 调整 segmented control 布局 -->
+			<view>
 				<text class="segment-label">预约类型:</text>
 			</view>
 			<view class="segmented-control-container">
@@ -48,24 +48,6 @@
 
 			<view v-if="Data.isOvernight">
 				<view class="time-selection">
-					<view class="option">
-						<text class="option-label">预约日期</text>
-						<picker mode="date" :value="selectedDate" :start="minDate" @change="onDateChange">
-							<view class="picker-view">
-								<text>{{ selectedDate || '请选择日期' }}</text>
-								<uni-icons type="down" size="16"></uni-icons>
-							</view>
-						</picker>
-					</view>
-					<view class="option">
-						<text class="option-label">开始时间</text>
-						<picker mode="time" :value="selectedStartTime" @change="onStartTimeChange">
-							<view class="picker-view">
-								<text>{{ selectedStartTime || '请选择时间' }}</text>
-								<uni-icons type="down" size="16"></uni-icons>
-							</view>
-						</picker>
-					</view>
 					<uni-row class="attention-box">
 						<uni-col :span="4">
 							<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
@@ -78,15 +60,6 @@
 
 			<view v-else>
 				<view class="time-selection">
-					<view class="option">
-						<text class="option-label">预约日期</text>
-						<picker mode="date" :value="selectedDate" :start="minDate" @change="onDateChange">
-							<view class="picker-view">
-								<text>{{ selectedDate || '请选择日期' }}</text>
-								<uni-icons type="down" size="16"></uni-icons>
-							</view>
-						</picker>
-					</view>
 				</view>
 				<view class="time-range">
 					<view class="option">
@@ -144,7 +117,7 @@
 
 	const todo = uniCloud.importObject('todo')
 	const machineName = ref("")
-	const debug = ref(false); // 设置为true可以显示订单详情调试信息
+	const debug = ref(false);
 
 	// 日期和时间选择器的值
 	const selectedDate = ref('');
@@ -161,8 +134,8 @@
 	interface reservationData {
 		"userId": string;
 		"machineId": string;
-		"startTime": number; // 使用 number 类型表示时间戳
-		"endTime": number;   // 使用 number 类型表示时间戳
+		"startTime": number;
+		"endTime": number;
 		"isOvernight": boolean;
 		"status": string;
 		"notes": string;
@@ -190,6 +163,16 @@
 	function onSegmentChange(e) {
 		segmentedCurrent.value = e.currentIndex;
 		Data.isOvernight = e.currentIndex === 1;
+		if (Data.isOvernight) {
+			//过夜预约默认开始时间
+			selectedStartTime.value = '22:00';
+		} else {
+			// 普通预约恢复开始时间为当前时间
+			const now = dayjs();
+			const roundedMinutes = Math.ceil(now.minute() / 30) * 30;
+			selectedStartTime.value = now.minute(roundedMinutes % 60).hour(now.hour() + Math.floor(roundedMinutes / 60)).format('HH:mm');
+		}
+		updateStartTimestamp(); // 更新时间戳
 		calculateTotalTimeAndPrice();
 	}
 
@@ -221,7 +204,7 @@
 	// 更新开始时间戳
 	function updateStartTimestamp() {
 		if (selectedDate.value && selectedStartTime.value) {
-			const dateTimeStr = `${selectedDate.value} ${selectedStartTime.value}`;
+			const dateTimeStr = `${selectedDate.value || dayjs().format('YYYY-MM-DD')} ${selectedStartTime.value}`;  // 如果没有选择日期，使用今天
 			Data.startTime = dayjs(dateTimeStr).valueOf();
 		}
 	}
@@ -229,7 +212,7 @@
 	// 更新结束时间戳
 	function updateEndTimestamp() {
 		if (selectedDate.value && selectedEndTime.value) {
-			const dateTimeStr = `${selectedDate.value} ${selectedEndTime.value}`;
+			const dateTimeStr = `${selectedDate.value || dayjs().format('YYYY-MM-DD')} ${selectedEndTime.value}`; // 如果没有选择日期，使用今天
 			Data.endTime = dayjs(dateTimeStr).valueOf();
 		}
 	}
@@ -248,7 +231,7 @@
 			// 处理跨天情况（结束时间小于开始时间）
 			let diffHours = end.diff(start, 'hour', true);
 			if (diffHours < 0) {
-				diffHours = 24 + diffHours; // 假设是在同一天24小时内
+				diffHours = 24 + diffHours;
 			}
 
 			totalTime.value = parseFloat(diffHours.toFixed(1));
@@ -259,11 +242,6 @@
 			totalTime.value = 0;
 			price.value = 0;
 		}
-	}
-
-	// 处理日期变化
-	function onDateChange(e) {
-		selectedDate.value = e.detail.value;
 	}
 
 	// 处理开始时间变化
@@ -278,17 +256,8 @@
 
 	// 提交订单
 	async function submitOrder() {
-		// 验证是否选择了日期
-		if (!selectedDate.value) {
-			uni.showToast({
-				title: '请选择预约日期',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 验证是否选择了开始时间
-		if (!selectedStartTime.value) {
+		// 验证开始时间 (普通预约需要选择开始时间)
+		if (!Data.isOvernight && !selectedStartTime.value) {
 			uni.showToast({
 				title: '请选择开始时间',
 				icon: 'none'
@@ -296,20 +265,24 @@
 			return;
 		}
 
-		// 如果不是过夜，验证结束时间
-		if (!Data.isOvernight && !selectedEndTime.value) {
-			uni.showToast({
-				title: '请选择结束时间',
-				icon: 'none'
-			});
-			return;
-		}
-
 		// 确保时间戳已更新
 		updateStartTimestamp();
+		// 普通预约需要结束时间
 		if (!Data.isOvernight) {
+			if (!selectedEndTime.value) {
+				uni.showToast({
+					title: '请选择结束时间',
+					icon: 'none'
+				});
+				return;
+			}
 			updateEndTimestamp();
+		} else {
+			// 过夜预约，默认结束时间为第二天早上8点 (假设)
+			const startTimeDayjs = dayjs(Data.startTime);
+			Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
 		}
+
 
 		// 验证当前时间
 		const now = Date.now();
@@ -321,7 +294,7 @@
 			return;
 		}
 
-		// 验证结束时间在开始时间之后
+		// 验证结束时间在开始时间之后 (仅普通预约)
 		if (!Data.isOvernight && Data.endTime <= Data.startTime) {
 			uni.showToast({
 				title: '结束时间必须晚于开始时间',
@@ -330,10 +303,6 @@
 			return;
 		}
 
-		// 如果是过夜模式，清空结束时间
-		if (Data.isOvernight) {
-			Data.endTime = 0;
-		}
 
 		Data.status = "confirmed";
 
@@ -380,9 +349,9 @@
 		// 设置默认日期为今天
 		selectedDate.value = dayjs().format('YYYY-MM-DD');
 
-		// 设置当前时间为默认开始时间（向上取整到最近的半小时）
+		// 设置普通预约默认开始时间为当前时间（向上取整到最近的半小时）
 		const now = dayjs();
-		const roundedMinutes = Math.ceil(now.minute() / 30) * 30; // 向上取整到最近的半小时
+		const roundedMinutes = Math.ceil(now.minute() / 30) * 30;
 		selectedStartTime.value = now.minute(roundedMinutes % 60).hour(now.hour() + Math.floor(roundedMinutes / 60)).format('HH:mm');
 
 		Data.userId = res.uid;
