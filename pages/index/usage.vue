@@ -35,9 +35,10 @@
 					</view>
 					<view class="bt" style="background-color: rgb(249, 203, 20);">
 						<uni-icons type="personadd" size="30"></uni-icons>
-						<text @click="goOrder()">预约</text>
+						<text @click="goOrder(machine.name,machine._id)">预约</text>
 					</view>
 				</view>
+				<text>{{machine._id}}</text>
 			</uni-card>
 		</view>
 	</view>
@@ -47,15 +48,20 @@
 	import { onMounted, reactive, ref } from 'vue';
 	const todo = uniCloud.importObject('todo')
 	interface machine {
+		"_id": string;
 		"name" : string;
 		"capacity" : number;
 		"status" : string;
 		"machinenum" : number;
 	}
-	function goOrder() {
+	function goOrder(machineName : String,machineID : String) {
 		console.log("test")
 		uni.navigateTo({
-			url: '/pages/order/order'
+			url: '/pages/order/order',
+			success: function (res) {
+				// 通过eventChannel向被打开页面传送数据
+				res.eventChannel.emit('acceptDataFromOpenerPage', { name: machineName, id: machineID })
+			}
 		});
 	}
 	const machines = ref<machine[]>([])

@@ -14,76 +14,18 @@
 			<button @click="goToConfig()">配置</button>
 		</view>
 	</view>
+	<text>{{userProfile}}</text>>
 
 </template>
 
 <script lang="ts" setup>
-	import { ref, onMounted, computed } from 'vue';
+	import { ref, onMounted, computed, reactive } from 'vue';
 	import dayjs from 'dayjs';
-	import usage from './usage'
+	import usage from './usage';
+	import { useProfileStroe } from '../../stores/userProfileStore';
+	const userProfile = useProfileStroe()
 	var now = dayjs()
 	console.log(JSON.stringify(now))
-	const shopName = ref("鱼窝一号店");
-	const nowDate = ref("2024-08-21 星期三");
-	const allTimeSlots = ref([
-		{
-			startTime: '2408210900',
-			endTime: '2408211200',
-			color: '#FF8D1A',
-			machine: 'IIDX',
-			machineName: 'IIDX-机台1',
-			userId: '1'
-		},
-		{
-			startTime: '2408211000',
-			endTime: '2408211500',
-			color: '#FF8D1A',
-			machine: 'IIDX',
-			machineName: 'IIDX-机台1',
-			userId: '2'
-		},
-		{
-			startTime: '2408211700',
-			endTime: '2408212000',
-			color: '#FF8D1A',
-			machine: 'IIDX',
-			machineName: 'IIDX-机台1',
-			userId: '7'
-		},
-		{
-			startTime: '2408210000',
-			endTime: '2408210200',
-			color: '#FF8D1A',
-			machine: 'IIDX',
-			machineName: 'IIDX-机台1',
-			userId: '8'
-		},
-
-		{
-			startTime: '2408210700',
-			endTime: '2408211200',
-			color: '#FF8D1A',
-			machine: 'SDVX',
-			machineName: 'SDVX-机台1',
-			userId: '3'
-		},
-		{
-			startTime: '2408210900',
-			endTime: '2408211800',
-			color: '#FF8D1A',
-			machine: 'SDVX',
-			machineName: 'SDVX-机台2',
-			userId: '4'
-		},
-		{
-			startTime: '2408211200',
-			endTime: '2408211600',
-			color: '#FF8D1A',
-			machine: 'DDR',
-			machineName: 'DDR-机台1',
-			userId: '5'
-		}
-	]);
 	function calendarChange(e : object) {
 		console.log(e);
 		let date = e
@@ -95,6 +37,11 @@
 			url: "/pages/config/config"
 		})
 	}
+	uni.$on("uni-id-pages-login-success",function(){
+		const res = uniCloud.getCurrentUserInfo('uni_id_token')
+		userProfile.uid = res.uid
+		userProfile.role = res.role
+	})
 </script>
 
 <style lang="scss">

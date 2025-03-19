@@ -12,6 +12,7 @@ module.exports = {
 	Machines_List:function(){
 		const collection = db.collection('machines');
 		return collection.field({
+			"_id":true,
 			"name":true,
 			"capacity":true,
 			"status":true,

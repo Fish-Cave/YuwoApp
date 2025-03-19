@@ -117,6 +117,7 @@
 				<uni-list-item showArrow title="帮助中心" />
 			</uni-card>
 		</view>
+		<button @click="logOut()">退出登录</button>
 	</view>
 </template>
 
@@ -124,6 +125,7 @@
 	import { reactive } from 'vue'
 	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
 	import { useProfileStroe } from '@/stores/userProfileStore'
+	const uniIdCo = uniCloud.importObject('uni-id-co')
 	const userProfile = useProfileStroe()
 	//这是测试用的订单信息
 	const testOrderData = reactive([
@@ -144,6 +146,35 @@
 			orderPrice: "$5.99"
 		}
 	])
+	async function logOut() {
+		try {
+			await uniIdCo.logout()
+			// 3. 清除本地 token 和用户信息
+			uni.removeStorageSync('uni_id_token');
+			uni.removeStorageSync('uni_id_token_expired');
+			// 4. 更新全局状态（Vuex/Pinia）
+
+			// 5. 跳转到登录页
+			uni.reLaunch({
+				url: '/uni_modules/uni-id-pages/pages/login/login-withpwd'
+			});
+
+			// 6. （可选）处理成功提示
+			uni.showToast({
+				title: '退出成功',
+				icon: 'none'
+			});
+		} catch (e) {
+			
+		}
+
+	}
+	uni.getStorage({
+		key: 'uni_id_token',
+		success: function (res) {
+			console.log(res.data);
+		}
+	});
 </script>
 
 <style>
