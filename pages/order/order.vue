@@ -25,16 +25,16 @@
 		<view class="divider" />
 		<view class="chart-container">
 			<uni-title type="h1" title="已有预约时段"></uni-title>
-
+			<view class="timeline-hours">
+				<span>0:00</span>
+				<span>6:00</span>
+				<span>12:00</span>
+				<span>18:00</span>
+				<span>24:00</span>
+			</view>
 			<!-- 替换神秘条形图为实际的时间轴条形图 -->
 			<view class="timeline-container mb-4">
-				<view class="timeline-hours">
-					<span>0:00</span>
-					<span>6:00</span>
-					<span>12:00</span>
-					<span>18:00</span>
-					<span>24:00</span>
-				</view>
+				
 				<view class="timeline-bar">
 					<view v-for="(reservation, index) in reservations" :key="index" class="timeline-segment"
 						:style="calculateSegmentStyle(reservation)" @click="showReservationInfo(reservation)"></view>
@@ -72,6 +72,12 @@
 					active-color="#f9cb14" @clickItem="onSegmentChange"></uni-segmented-control>
 			</view>
 
+			<!-- 橙色提示信息 -->
+			<view v-if="showNormalBookingTimeExpiredWarning" class="booking-time-warning">
+				<uni-icons type="warning-filled" color="#f9cb14" size="16" style="margin-right: 5rpx;"></uni-icons>
+				已超过普通预约时间，请选择夜间预约
+			</view>
+
 
 			<view v-if="Data.isOvernight">
 				<view class="time-selection">
@@ -91,21 +97,19 @@
 				<view class="time-range">
 					<view class="option">
 						<text class="option-label">开始时间</text>
-						<picker mode="time" :value="selectedStartTime" @change="onStartTimeChange">
-							<view class="picker-view">
-								<text>{{ selectedStartTime || '请选择时间' }}</text>
-								<uni-icons type="down" size="16"></uni-icons>
-							</view>
-						</picker>
+						<view class="picker-view" @click="openStartTimePicker">
+							<text>{{ selectedStartTime || '请选择时间' }}</text>
+							<uni-icons type="down" size="16"></uni-icons>
+						</view>
+						<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
 					</view>
 					<view class="option">
 						<text class="option-label">结束时间</text>
-						<picker mode="time" :value="selectedEndTime" @change="onEndTimeChange">
-							<view class="picker-view">
-								<text>{{ selectedEndTime || '请选择时间' }}</text>
-								<uni-icons type="down" size="16"></uni-icons>
-							</view>
-						</picker>
+						<view class="picker-view" @click="openEndTimePicker">
+							<text>{{ selectedEndTime || '请选择时间' }}</text>
+							<uni-icons type="down" size="16"></uni-icons>
+						</view>
+						<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour" :maxHour="maxEndTimeHour"  :filter="timeFilter" :minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
 					</view>
 				</view>
 				<view>
@@ -193,6 +197,20 @@
 	const selectedStartTime = ref('');
 	const selectedEndTime = ref('');
 
+	// uv-datetime-picker ref
+	const startTimePicker = ref(null);
+	const endTimePicker = ref(null);
+
+	// 可选时间范围限制
+	const minStartTimeHour = ref(0);
+	const maxStartTimeHour = ref(22); // 普通预约最大时间 22:00
+	const minEndTimeHour = ref(0);
+	const maxEndTimeHour = ref(23);
+	const minEndTimeMinute = ref(0); // 新增结束时间分钟限制
+
+	// 用于控制是否显示橙色提示信息
+	const showNormalBookingTimeExpiredWarning = ref(false);
+
 	// uni-segmented-control相关
 	const segmentedValues = ['普通预约', '过夜预约'];
 	const segmentedCurrent = ref(0);
@@ -228,19 +246,48 @@
 		debug.value = e.detail.value;
 	}
 
+	// **新的函数：更新预约类型和相关设置**
+	function updateBookingType() {
+		showNormalBookingTimeExpiredWarning.value = false; // 每次更新前先隐藏警告
+
+		if (Data.isOvernight) {
+			//过夜预约默认开始时间
+			selectedStartTime.value = '22:00';
+			minStartTimeHour.value = 22;
+			maxStartTimeHour.value = 22;
+			minEndTimeHour.value = 0;
+			maxEndTimeHour.value = 8;
+			minEndTimeMinute.value = 0;
+		} else {
+			// 普通预约恢复普通时间限制
+			updateMinStartTime(selectedDate.value); // 传入 selectedDate
+			minEndTimeHour.value = 8; // 普通预约最早结束时间
+			maxEndTimeHour.value = 22; // 普通预约最晚结束时间
+			minEndTimeMinute.value = 0;
+
+			// **新的日期判断逻辑：只有当选择的日期是今天时，才判断当前时间是否超过 22:00**
+			if (dayjs(selectedDate.value).isSame(dayjs(), 'day')) {
+				const now = dayjs();
+				if (now.hour() >= 22) {
+					segmentedCurrent.value = 1;
+					Data.isOvernight = true;
+					showNormalBookingTimeExpiredWarning.value = true;
+				} else {
+					showNormalBookingTimeExpiredWarning.value = false; // 确保在 22:00 前不显示警告
+				}
+			} else {
+				// 如果选择的是未来日期，则不显示警告，保持普通预约选中状态
+				showNormalBookingTimeExpiredWarning.value = false;
+			}
+		}
+	}
+
+
 	// 处理分段控制器变化
 	function onSegmentChange(e) {
 		segmentedCurrent.value = e.currentIndex;
 		Data.isOvernight = e.currentIndex === 1;
-		if (Data.isOvernight) {
-			//过夜预约默认开始时间
-			selectedStartTime.value = '22:00';
-		} else {
-			// 普通预约恢复开始时间为当前时间
-			const now = dayjs();
-			const roundedMinutes = Math.ceil(now.minute() / 30) * 30;
-			selectedStartTime.value = now.minute(roundedMinutes % 60).hour(now.hour() + Math.floor(roundedMinutes / 60)).format('HH:mm');
-		}
+		updateBookingType(); // 调用更新预约类型函数
 		updateStartTimestamp(); // 更新时间戳
 		calculateTotalTimeAndPrice();
 	}
@@ -310,22 +357,47 @@
 			if (totalTime.value < 5) {
 				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
 			}
-			// 计算价格：5元/半小时	
+			// 计算价格：5元/半小时
 		} else {
 			totalTime.value = 0;
 			price.value = 0;
 		}
 	}
 
-	// 处理开始时间变化
-	function onStartTimeChange(e) {
-		selectedStartTime.value = e.detail.value;
+	// 打开开始时间选择器
+	function openStartTimePicker() {
+		startTimePicker.value.open();
 	}
 
-	// 处理结束时间变化
-	function onEndTimeChange(e) {
-		selectedEndTime.value = e.detail.value;
+	// 打开结束时间选择器
+	function openEndTimePicker() {
+		endTimePicker.value.open();
 	}
+
+	// 确认开始时间
+	function confirmStartTime(e) {
+		selectedStartTime.value = e.value;
+		// 自动设置结束时间为开始时间 30 分钟后
+		const startTime = dayjs(selectedStartTime.value, 'HH:mm');
+		const endTime = startTime.add(30, 'minute');
+		selectedEndTime.value = endTime.format('HH:mm');
+		updateEndTimestamp(); // 更新结束时间戳，用于价格计算等
+	}
+
+	// 确认结束时间
+	function confirmEndTime(e) {
+		selectedEndTime.value = e.value;
+	}
+
+
+	// 时间过滤器函数
+	function timeFilter(type: string, options: number[]) {
+		if (type === 'minute') {
+			return options.filter((option) => option % 30 === 0);
+		}
+		return options;
+	}
+
 
 	// 检查时间冲突
 	function checkTimeConflict() {
@@ -441,103 +513,60 @@
 		});
 	}
 
+	// 更新最小开始时间
+	function updateMinStartTime(dateStr?: string) { // dateStr 参数为可选
+		const now = dayjs();
+		let targetDate = dayjs(); // 默认为今天
 
-	// 提交订单
-	async function submitOrder() {
-		// 验证开始时间 (普通预约需要选择开始时间)
-		if (!Data.isOvernight && !selectedStartTime.value) {
-			uni.showToast({
-				title: '请选择开始时间',
-				icon: 'none'
-			});
-			return;
+		if (dateStr) {
+			targetDate = dayjs(dateStr);
 		}
 
-		// 确保时间戳已更新
-		updateStartTimestamp();
-		// 普通预约需要结束时间
-		if (!Data.isOvernight) {
-			if (!selectedEndTime.value) {
-				uni.showToast({
-					title: '请选择结束时间',
-					icon: 'none'
-				});
-				return;
-			}
-			updateEndTimestamp();
+		if (targetDate.isAfter(now, 'day')) {
+			// 如果选择的日期是未来日期，则最小开始时间为当天的 08:00
+			minStartTimeHour.value = 8;
+			selectedStartTime.value = '08:00';
 		} else {
-			// 过夜预约，默认结束时间为第二天早上8点 (假设)
-			const startTimeDayjs = dayjs(Data.startTime);
-			Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
-		}
-
-
-		// 验证当前时间
-		const now = Date.now();
-		if (Data.startTime < now) {
-			uni.showToast({
-				title: '开始时间不能早于当前时间',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 验证结束时间在开始时间之后 (仅普通预约)
-		if (!Data.isOvernight && Data.endTime <= Data.startTime) {
-			uni.showToast({
-				title: '结束时间必须晚于开始时间',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 检查时间冲突
-		const hasConflict = checkTimeConflict();
-		if (hasConflict) {
-			uni.showToast({
-				title: '所选时间段与已有预约冲突',
-				icon: 'none'
-			});
-			return;
-		}
-
-		Data.status = 1;
-
-		try {
-			uni.showLoading({
-				title: '提交中...'
-			});
-
-			const res = await todo.Reservation_Add(Data);
-
-			uni.hideLoading();
-
-			if (res && res.errCode) { // Check for error response from cloud function
-				uni.showToast({
-					title: '预约失败: ' + (res.errMsg || '未知错误'),
-					// Display error message from cloud function
-					icon: 'none'
-				});
-			} else {
-				uni.showToast({
-					title: '预约成功',
-					icon: 'success'
-				});
-				// **在这里调用 getReservationsForDate 函数刷新预约条**
-				getReservationsForDate(Data.machineId, selectedDate.value);
-				uni.navigateBack()
+			// 如果选择的日期是今天或过去（虽然日历组件已限制过去日期，但作为保护）
+			if (now.hour() >= 21 && now.minute() > 30) {
+				// 超过 21:30，普通预约只能选择 21:30 - 22:00
+				minStartTimeHour.value = 21;
+				maxStartTimeHour.value = 22;
+				selectedStartTime.value = '21:30'; // 默认开始时间 21:30
+			} else if (now.hour() >= 22) {
+				// 超过 22:00，普通预约不可选，强制过夜预约 (在 onSegmentChange 中处理)
+				minStartTimeHour.value = 22; // 实际上不会用到，因为会被强制切换到过夜
+				maxStartTimeHour.value = 22;
+				selectedStartTime.value = '22:00'; // 默认开始时间 22:00 (虽然会被强制切换)
 			}
+			else {
+				// 正常情况下，8:00 - 22:00 范围，且只能向后选
+				minStartTimeHour.value = 8; // 正常开始时间 08:00
+				maxStartTimeHour.value = 22;
+				const roundedMinutes = Math.ceil(now.minute() / 30) * 30;
+				const roundedTime = now.minute(roundedMinutes % 60).hour(now.hour() + Math.floor(roundedMinutes / 60));
+
+				// 最小开始时间不能早于 8:00
+				const earliestStartTime = dayjs().hour(8).minute(0).second(0);
+				let calculatedStartTime = roundedTime;
+				if (calculatedStartTime.isBefore(earliestStartTime)) {
+					calculatedStartTime = earliestStartTime;
+				}
 
 
-		} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
-			uni.hideLoading();
-			uni.showToast({
-				title: '预约失败: 网络错误或未知错误',
-				icon: 'none'
-			});
-			console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
+				// 如果当前时间是整点或者30分，直接设置 selectedStartTime，否则需要加30分钟
+				if (now.minute() % 30 === 0) {
+					selectedStartTime.value = calculatedStartTime.format('HH:mm');
+				} else {
+					selectedStartTime.value = calculatedStartTime.add(30, 'minute').format('HH:mm');
+				}
+			}
 		}
+		if (minStartTimeHour.value < 8) minStartTimeHour.value = 8; // 确保最小开始时间不低于 8:00
+		if (maxStartTimeHour.value > 22) maxStartTimeHour.value = 22; // 确保最大开始时间不高于 22:00
+
 	}
+
 
 	// 处理日历变化
 	function calendarChange(e) {
@@ -551,13 +580,19 @@
 				icon: 'none'
 			});
 			selectedDate.value = dayjs().format('YYYY-MM-DD');
+			return; // 如果选择了过去日期，直接返回，不进行后续预约类型更新
 		}
+
+		updateBookingType(); // **日期更改后立即更新预约类型**
+		updateMinStartTime(selectedDate.value); // 更新最小开始时间，传入 selectedDate
+
 
 		// 获取所选日期的预约信息
 		if (Data.machineId) {
 			getReservationsForDate(Data.machineId, selectedDate.value);
 		}
 	}
+
 
 	onMounted(() => {
 		const instance = getCurrentInstance().proxy;
@@ -578,17 +613,15 @@
 		// 设置默认日期为今天
 		selectedDate.value = dayjs().format('YYYY-MM-DD');
 
-		// 设置普通预约默认开始时间为当前时间（向上取整到最近的半小时）
-		const now = dayjs();
-		const roundedMinutes = Math.ceil(now.minute() / 30) * 30;
-		selectedStartTime.value = now.minute(roundedMinutes % 60).hour(now.hour() + Math.floor(roundedMinutes / 60)).format('HH:mm');
+		updateBookingType(); // **页面加载时初始化预约类型**
+		updateMinStartTime(selectedDate.value); // 初始化时传入 selectedDate
+
 
 		Data.userId = res.uid;
 	});
 </script>
-
 <style>
-	/* 优化后的样式 */
+
 	.header-container {
 		padding: 20rpx;
 	}
@@ -774,7 +807,7 @@
 	/* timeline chart 样式 */
 	.timeline-container {
 		position: relative;
-		height: 60rpx;
+		height: 50rpx;
 		background-color: #f0f0f0;
 		border-radius: 10rpx;
 		overflow: hidden;
