@@ -1,0 +1,149 @@
+{
+  "bsonType": "object",
+  "required": [
+    "_id",
+    "title",
+    "type",
+    "pay_type",
+    "total_fee",
+    "user_id",
+    "platform",
+    "status",
+    "is_refund",
+    "refund_amount",
+    "refund_count",
+    "create_time",
+    "update_time"
+  ],
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+      "description": "存储文档 ID（统一订单 ID），系统自动生成"
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "订单标题，例如：XX 窝点预约，XX 会员卡购买"
+    },
+    "type": {
+      "bsonType": "string",
+      "description": "订单类型：reservation (窝点预约), membership (会员卡购买)"
+    },
+    "pay_type": {
+      "bsonType": "string",
+      "description": "支付渠道，wxpay | alipay"
+    },
+    "total_fee": {
+      "bsonType": "int",
+      "description": "订单总金额，单位：分。"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "下单用户ID，uni-id-users表",
+      "foreignKey": "uni-id-users._id",
+      "forceDefaultValue": {
+        "$env": "uid"
+      }
+    },
+    "platform": {
+      "bsonType": "string",
+      "description": "下单平台类型：h5、mp-weixin、mp-alipay、app-plus等"
+    },
+    "status": {
+      "bsonType": "int",
+      "minimum": -3,
+      "maximum": 5,
+      "description": "订单状态，1：待付款，2：已付款，3：退款审核中，4：退款中，5：已退款，-1已取消付款/退款，-2：退款拒绝，-3：退款失败"
+    },
+    "is_refund": {
+      "bsonType": "bool",
+      "description": "是否是退款订单"
+    },
+    "refund_amount": {
+      "bsonType": "int",
+      "description": "退款金额（非退款订单表示已退款总金额，退款订单表示该笔退款的退款金额），单位：分"
+    },
+    "refund_count": {
+      "bsonType": "int",
+      "description": "总退款笔数（非退款订单有值）"
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "description": "订单创建时间/发起退款时间"
+    },
+    "update_time": {
+      "bsonType": "timestamp",
+      "description": "订单更新时间"
+    },
+    "paid_time": {
+      "bsonType": "timestamp",
+      "description": "订单付款时间"
+    },
+    "refund_time": {
+      "bsonType": "timestamp",
+      "description": "订单完成退款时间"
+    },
+    "refund_desc": {
+      "bsonType": "string",
+      "description": "退款原因"
+    },
+    "transaction_id": {
+      "bsonType": "string",
+      "description": "微信或支付宝交易单号"
+    },
+    "info": {
+      "bsonType": "object",
+      "description": "自定义的订单拓展信息，如商品信息、会员卡种类信息等。例如：{\"venueId\": \"窝点ID\", \"appointmentTime\": \"预约时间\", \"duration\": \"预约时长\", \"membershipCardId\": \"会员卡ID\", \"price\": \"价格\", \"discount\": \"优惠\", \"description\": \"描述\"}",
+      "properties": {
+        "machineId": {
+          "bsonType": "string",
+          "description": "机台ID，关联机台信息表 machines._id",
+          "index": true // 添加索引提示
+        },
+        "appointmentTime": {
+          "bsonType": "timestamp",
+          "description": "预约时间",
+          "index": true // 添加索引提示
+        },
+        "duration": {
+          "bsonType": "int",
+          "description": "预约时长，单位分钟",
+          "index": true // 添加索引提示
+        },
+        "price": {
+          "bsonType": "number",
+          "description": "价格",
+          "index": true // 添加索引提示
+        },
+        "discount": {
+          "bsonType": "number",
+          "description": "优惠",
+          "index": true // 添加索引提示
+        },
+        "description": {
+          "bsonType": "string",
+          "description": "描述",
+          "index": true // 添加索引提示
+        },
+        "membershipCardId": {
+          "bsonType": "string",
+          "description": "会员卡ID",
+          "index": true // 添加索引提示
+        }
+      }
+    },
+    "reservationId": {
+      "bsonType": "String",
+      "description": "预约表的Id"
+    }
+  },
+  "version": "0.0.2",
+  "indexes": [  // 显式定义索引，更清晰
+    { "key": { "info.venueId": 1 }, "name": "venueId" },
+    { "key": { "info.appointmentTime": 1 }, "name": "appointmentTime" },
+    { "key": { "info.duration": 1 }, "name": "duration" },
+    { "key": { "info.price": 1 }, "name": "price" },
+    { "key": { "info.discount": 1 }, "name": "discount" },
+    { "key": { "info.description": 1 }, "name": "description" },
+    { "key": { "info.membershipCardId": 1 }, "name": "membershipCardId" }
+  ]
+}

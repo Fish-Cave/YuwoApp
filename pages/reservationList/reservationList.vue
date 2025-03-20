@@ -9,7 +9,7 @@
 				</uni-col>
 				<uni-col :span="16">
 					<view style="display: flex;flex-direction: column;">
-						<text>{{getMachineName(data.machineId)}}</text>
+						<text>{{data.machineId[0].name}}</text>
 						<uni-dateformat :date='data.startTime'></uni-dateformat>
 					</view>
 				</uni-col>
@@ -35,28 +35,17 @@
 		status:number; 
 		startTime:string;
 	}
-	interface machine{
-		name:string
-		type:string,
-		capacity:number,
-		status:string,
+	interface machine {
+		_id:string;
+		name:string;
 	}
+	const machineInfo = ref<machine[]>([])
 	const Data = ref<reservationData[]>([])
-	const machineData = ref<machine[]>([])
-	let testData = []
 	async function getReservationData() {
 		try {
 			let result = await todo.GetReservationInfo(res.uid)
-			Data.value = result.data	
+			Data.value = result.data
 		} catch {}
-	}
-	async function getMachineName(content:string){
-		try{
-			let result = await todo.GetMachinesInfo(content)
-			machineData.value = result.data
-			testData = result.data
-			console.log(toRaw(machineData.value))
-		} catch{}
 	}
 	onMounted(() => {
 		getReservationData()
