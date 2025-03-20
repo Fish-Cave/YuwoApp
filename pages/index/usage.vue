@@ -27,14 +27,14 @@
 				</view>
 				<view style="padding-top: 40rpx;">
 					<!-- 条形图渲染位置 -->
+					<view class="timeline-hours">
+						<span>0:00</span>
+						<span>6:00</span>
+						<span>12:00</span>
+						<span>18:00</span>
+						<span>24:00</span>
+					</view>
 					<view class="timeline-container mb-4">
-						<view class="timeline-hours">
-							<span>0:00</span>
-							<span>6:00</span>
-							<span>12:00</span>
-							<span>18:00</span>
-							<span>24:00</span>
-						</view>
 						<view class="timeline-bar">
 							<view
 								v-for="(reservation, index) in machineData.reservations"
