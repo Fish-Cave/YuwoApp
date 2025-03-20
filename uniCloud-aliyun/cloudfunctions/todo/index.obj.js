@@ -50,10 +50,9 @@ module.exports = {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		const collectionJQL = dbJQL.collection("reservation-log")
-		collectionJQL.add(content)
+		dbJQL.collection('reservation-log').add(content)
 	},
-	
+
 	GetReservationInfo: function(content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
@@ -71,38 +70,39 @@ module.exports = {
 			"startTime": true,
 		}).orderBy("startTime", "desc").get()
 	},
-	
+
 	GetMachineReservationInfo: async function(startTime, endTime) { // 新增的 GetMachineReservationInfo，根据时间范围获取机台预约信息
-			const dbJQL = uniCloud.databaseForJQL({
-				clientInfo: this.getClientInfo()
-			});
-			const collectionJQL = dbJQL.collection('reservation-log');
-			const machines = await dbJQL.collection('machines').field("_id,name,machinenum").get() // 获取机台信息，用于后续关联
-	
-			const reservationData = await collectionJQL.where(`startTime >= ${startTime} && endTime <= ${endTime}`)
-				.field({
-					"_id": true,
-					"machineId": true,
-					"isOvernight": true,
-					"status": true,
-					"startTime": true,
-					"endTime": true,
-				}).get()
-	
-			const machineMap = new Map();
-			machines.data.forEach(machine => {
-				machineMap.set(machine._id, machine); // 使用 Map 优化查询效率
-			});
-	
-			const result = machines.data.map(machine => {
-				const machineReservations = reservationData.data.filter(reservation => reservation.machineId === machine._id);
-				return {
-					machineInfo: machine,
-					reservations: machineReservations
-				};
-			});
-			return result;
-		},
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		const collectionJQL = dbJQL.collection('reservation-log');
+		const machines = await dbJQL.collection('machines').field("_id,name,machinenum").get() // 获取机台信息，用于后续关联
+
+		const reservationData = await collectionJQL.where(`startTime >= ${startTime} && endTime <= ${endTime}`)
+			.field({
+				"_id": true,
+				"machineId": true,
+				"isOvernight": true,
+				"status": true,
+				"startTime": true,
+				"endTime": true,
+			}).get()
+
+		const machineMap = new Map();
+		machines.data.forEach(machine => {
+			machineMap.set(machine._id, machine); // 使用 Map 优化查询效率
+		});
+
+		const result = machines.data.map(machine => {
+			const machineReservations = reservationData.data.filter(reservation => reservation
+				.machineId === machine._id);
+			return {
+				machineInfo: machine,
+				reservations: machineReservations
+			};
+		});
+		return result;
+	},
 
 	GetUserInfo: function(content) {
 		const collection = db.collection('uni-id-users');
