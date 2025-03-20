@@ -53,6 +53,7 @@
 		"capacity" : number;
 		"status" : string;
 		"machinenum" : number;
+		"description": string;
 	}
 	function goOrder(machineName : String,machineID : String) {
 		console.log("test")

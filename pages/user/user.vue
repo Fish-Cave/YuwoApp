@@ -9,7 +9,6 @@
 						<uni-col :span="6">
 							<view class="avatar">
 								<!--我看了一下他这个src是支持绝对位置、相对位置、base64-->
-								<image :src=userProfile.avatar mode="aspectFill"></image>
 							</view>
 						</uni-col>
 						<!--这一块是用户名和UID，可能要调一下字体和间距-->
@@ -56,7 +55,7 @@
 					</view>
 
 					<view class="card">
-						<view class="orderingbox">
+						<view class="orderingbox" @click="goToreservationList()">
 							<uni-icons type="calendar" size="30"></uni-icons>
 						</view>
 						<text>预约中</text>
@@ -130,6 +129,7 @@
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const profile = ref({})
+	console.log(res)
 	interface reservationData {
 		_id:String;
 		machineId:String;
@@ -167,6 +167,11 @@
 			orderPrice: "$5.99"
 		}
 	])
+	function goToreservationList(){
+		uni.navigateTo({
+			url: '/pages/reservationList/reservationList'
+		});
+	}
 	async function logOut() {
 		try {
 			await uniIdCo.logout()
@@ -188,7 +193,6 @@
 		} catch { }
 	}
 	onMounted(() => {
-		getReservationData()
 	})
 </script>
 

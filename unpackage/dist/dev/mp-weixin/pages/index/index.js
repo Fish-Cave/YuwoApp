@@ -1,5 +1,6 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const stores_userProfileStore = require("../../stores/userProfileStore.js");
 if (!Array) {
   const _easycom_wu_calendar2 = common_vendor.resolveComponent("wu-calendar");
   _easycom_wu_calendar2();
@@ -12,76 +13,24 @@ const usage = () => "./usage.js";
 const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
   __name: "index",
   setup(__props) {
-    var now = common_vendor.dayjs();
-    common_vendor.index.__f__("log", "at pages/index/index.vue:21", JSON.stringify(now));
-    common_vendor.ref("鱼窝一号店");
-    common_vendor.ref("2024-08-21 星期三");
-    common_vendor.ref([
-      {
-        startTime: "2408210900",
-        endTime: "2408211200",
-        color: "#FF8D1A",
-        machine: "IIDX",
-        machineName: "IIDX-机台1",
-        userId: "1"
-      },
-      {
-        startTime: "2408211000",
-        endTime: "2408211500",
-        color: "#FF8D1A",
-        machine: "IIDX",
-        machineName: "IIDX-机台1",
-        userId: "2"
-      },
-      {
-        startTime: "2408211700",
-        endTime: "2408212000",
-        color: "#FF8D1A",
-        machine: "IIDX",
-        machineName: "IIDX-机台1",
-        userId: "7"
-      },
-      {
-        startTime: "2408210000",
-        endTime: "2408210200",
-        color: "#FF8D1A",
-        machine: "IIDX",
-        machineName: "IIDX-机台1",
-        userId: "8"
-      },
-      {
-        startTime: "2408210700",
-        endTime: "2408211200",
-        color: "#FF8D1A",
-        machine: "SDVX",
-        machineName: "SDVX-机台1",
-        userId: "3"
-      },
-      {
-        startTime: "2408210900",
-        endTime: "2408211800",
-        color: "#FF8D1A",
-        machine: "SDVX",
-        machineName: "SDVX-机台2",
-        userId: "4"
-      },
-      {
-        startTime: "2408211200",
-        endTime: "2408211600",
-        color: "#FF8D1A",
-        machine: "DDR",
-        machineName: "DDR-机台1",
-        userId: "5"
-      }
-    ]);
-    function calendarChange(e) {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:84", e);
-      let date = e;
-      common_vendor.index.__f__("log", "at pages/index/index.vue:86", date.fulldate);
+    const userProfile = stores_userProfileStore.useProfileStroe();
+    const res = common_vendor.er.getCurrentUserInfo("uni_id_token");
+    const isAdmin = res.role.includes("admin");
+    function goToConfig() {
+      common_vendor.index.__f__("log", "at pages/index/index.vue:28", "test");
+      common_vendor.index.navigateTo({
+        url: "/pages/config/config"
+      });
     }
+    common_vendor.index.$on("uni-id-pages-login-success", function() {
+      const res2 = common_vendor.er.getCurrentUserInfo("uni_id_token");
+      userProfile._id = res2.uid;
+      userProfile.role = res2.role;
+      userProfile.permission = res2.permission;
+    });
     return (_ctx, _cache) => {
-      return {
-        a: common_vendor.o(calendarChange),
+      return common_vendor.e({
+        a: common_vendor.o(_ctx.calendarChange),
         b: common_vendor.p({
           type: "week",
           slideSwitchMode: "none",
@@ -89,8 +38,11 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
           startWeek: "mon",
           color: "#f9cb14",
           startDate: "2025-01-01"
-        })
-      };
+        }),
+        c: common_vendor.unref(isAdmin)
+      }, common_vendor.unref(isAdmin) ? {
+        d: common_vendor.o(($event) => goToConfig())
+      } : {});
     };
   }
 });

@@ -5558,14 +5558,19 @@ function findScopedSlotInvoker(vueId, instance) {
     parent = parent.parent;
   }
 }
+function setRef(ref2, id, opts = {}) {
+  const { $templateRefs } = getCurrentInstance();
+  $templateRefs.push({ i: id, r: ref2, k: opts.k, f: opts.f });
+}
 const o$1 = (value, key) => vOn(value, key);
 const f$1 = (source, renderItem) => vFor(source, renderItem);
 const r$1 = (name, props, key) => renderSlot(name, props, key);
 const s$1 = (value) => stringifyStyle(value);
-const e$1 = (target, ...sources) => extend(target, ...sources);
+const e = (target, ...sources) => extend(target, ...sources);
 const n$1 = (value) => normalizeClass(value);
 const t$1 = (val) => toDisplayString(val);
 const p$1 = (props) => renderProps(props);
+const sr = (ref2, id, opts) => setRef(ref2, id, opts);
 function createApp$1(rootComponent, rootProps = null) {
   rootComponent && (rootComponent.mpType = "app");
   return createVueApp(rootComponent, rootProps).use(plugin);
@@ -7263,7 +7268,7 @@ function initOnError() {
 function initRuntimeSocketService() {
   const hosts = "26.147.134.231,192.168.6.50,127.0.0.1";
   const port = "8090";
-  const id = "mp-weixin_V4Uwpz";
+  const id = "mp-weixin_JxTEye";
   const lazy = typeof swan !== "undefined";
   let restoreError = lazy ? () => {
   } : initOnError();
@@ -8195,1070 +8200,6 @@ const createSubpackageApp = initCreateSubpackageApp();
   wx.createPluginApp = global.createPluginApp = createPluginApp;
   wx.createSubpackageApp = global.createSubpackageApp = createSubpackageApp;
 }
-var isVue2 = false;
-function set(target, key, val) {
-  if (Array.isArray(target)) {
-    target.length = Math.max(target.length, key);
-    target.splice(key, 1, val);
-    return val;
-  }
-  target[key] = val;
-  return val;
-}
-function del(target, key) {
-  if (Array.isArray(target)) {
-    target.splice(key, 1);
-    return;
-  }
-  delete target[key];
-}
-/*!
- * pinia v2.1.7
- * (c) 2023 Eduardo San Martin Morote
- * @license MIT
- */
-let activePinia;
-const setActivePinia = (pinia) => activePinia = pinia;
-const getActivePinia = () => hasInjectionContext() && inject(piniaSymbol) || activePinia;
-const piniaSymbol = Symbol("pinia");
-function isPlainObject(o2) {
-  return o2 && typeof o2 === "object" && Object.prototype.toString.call(o2) === "[object Object]" && typeof o2.toJSON !== "function";
-}
-var MutationType;
-(function(MutationType2) {
-  MutationType2["direct"] = "direct";
-  MutationType2["patchObject"] = "patch object";
-  MutationType2["patchFunction"] = "patch function";
-})(MutationType || (MutationType = {}));
-const IS_CLIENT = typeof window !== "undefined";
-const USE_DEVTOOLS = IS_CLIENT;
-const componentStateTypes = [];
-const getStoreType = (id) => "🍍 " + id;
-function registerPiniaDevtools(app, pinia) {
-}
-function addStoreToDevtools(app, store) {
-  if (!componentStateTypes.includes(getStoreType(store.$id))) {
-    componentStateTypes.push(getStoreType(store.$id));
-  }
-}
-function patchActionForGrouping(store, actionNames, wrapWithProxy) {
-  const actions = actionNames.reduce((storeActions, actionName) => {
-    storeActions[actionName] = toRaw(store)[actionName];
-    return storeActions;
-  }, {});
-  for (const actionName in actions) {
-    store[actionName] = function() {
-      const trackedStore = wrapWithProxy ? new Proxy(store, {
-        get(...args) {
-          return Reflect.get(...args);
-        },
-        set(...args) {
-          return Reflect.set(...args);
-        }
-      }) : store;
-      const retValue = actions[actionName].apply(trackedStore, arguments);
-      return retValue;
-    };
-  }
-}
-function devtoolsPlugin({ app, store, options }) {
-  if (store.$id.startsWith("__hot:")) {
-    return;
-  }
-  store._isOptionsAPI = !!options.state;
-  patchActionForGrouping(store, Object.keys(options.actions), store._isOptionsAPI);
-  const originalHotUpdate = store._hotUpdate;
-  toRaw(store)._hotUpdate = function(newStore) {
-    originalHotUpdate.apply(this, arguments);
-    patchActionForGrouping(store, Object.keys(newStore._hmrPayload.actions), !!store._isOptionsAPI);
-  };
-  addStoreToDevtools(
-    app,
-    // FIXME: is there a way to allow the assignment from Store<Id, S, G, A> to StoreGeneric?
-    store
-  );
-}
-function createPinia() {
-  const scope = effectScope(true);
-  const state = scope.run(() => ref({}));
-  let _p = [];
-  let toBeInstalled = [];
-  const pinia = markRaw({
-    install(app) {
-      setActivePinia(pinia);
-      {
-        pinia._a = app;
-        app.provide(piniaSymbol, pinia);
-        app.config.globalProperties.$pinia = pinia;
-        toBeInstalled.forEach((plugin2) => _p.push(plugin2));
-        toBeInstalled = [];
-      }
-    },
-    use(plugin2) {
-      if (!this._a && !isVue2) {
-        toBeInstalled.push(plugin2);
-      } else {
-        _p.push(plugin2);
-      }
-      return this;
-    },
-    _p,
-    // it's actually undefined here
-    // @ts-expect-error
-    _a: null,
-    _e: scope,
-    _s: /* @__PURE__ */ new Map(),
-    state
-  });
-  if (USE_DEVTOOLS && typeof Proxy !== "undefined") {
-    pinia.use(devtoolsPlugin);
-  }
-  return pinia;
-}
-const isUseStore = (fn) => {
-  return typeof fn === "function" && typeof fn.$id === "string";
-};
-function patchObject(newState, oldState) {
-  for (const key in oldState) {
-    const subPatch = oldState[key];
-    if (!(key in newState)) {
-      continue;
-    }
-    const targetValue = newState[key];
-    if (isPlainObject(targetValue) && isPlainObject(subPatch) && !isRef(subPatch) && !isReactive(subPatch)) {
-      newState[key] = patchObject(targetValue, subPatch);
-    } else {
-      {
-        newState[key] = subPatch;
-      }
-    }
-  }
-  return newState;
-}
-function acceptHMRUpdate(initialUseStore, hot) {
-  return (newModule) => {
-    const pinia = hot.data.pinia || initialUseStore._pinia;
-    if (!pinia) {
-      return;
-    }
-    hot.data.pinia = pinia;
-    for (const exportName in newModule) {
-      const useStore = newModule[exportName];
-      if (isUseStore(useStore) && pinia._s.has(useStore.$id)) {
-        const id = useStore.$id;
-        if (id !== initialUseStore.$id) {
-          console.warn(`The id of the store changed from "${initialUseStore.$id}" to "${id}". Reloading.`);
-          return hot.invalidate();
-        }
-        const existingStore = pinia._s.get(id);
-        if (!existingStore) {
-          console.log(`[Pinia]: skipping hmr because store doesn't exist yet`);
-          return;
-        }
-        useStore(pinia, existingStore);
-      }
-    }
-  };
-}
-const noop = () => {
-};
-function addSubscription(subscriptions, callback, detached, onCleanup = noop) {
-  subscriptions.push(callback);
-  const removeSubscription = () => {
-    const idx = subscriptions.indexOf(callback);
-    if (idx > -1) {
-      subscriptions.splice(idx, 1);
-      onCleanup();
-    }
-  };
-  if (!detached && getCurrentScope()) {
-    onScopeDispose(removeSubscription);
-  }
-  return removeSubscription;
-}
-function triggerSubscriptions(subscriptions, ...args) {
-  subscriptions.slice().forEach((callback) => {
-    callback(...args);
-  });
-}
-const fallbackRunWithContext = (fn) => fn();
-function mergeReactiveObjects(target, patchToApply) {
-  if (target instanceof Map && patchToApply instanceof Map) {
-    patchToApply.forEach((value, key) => target.set(key, value));
-  }
-  if (target instanceof Set && patchToApply instanceof Set) {
-    patchToApply.forEach(target.add, target);
-  }
-  for (const key in patchToApply) {
-    if (!patchToApply.hasOwnProperty(key))
-      continue;
-    const subPatch = patchToApply[key];
-    const targetValue = target[key];
-    if (isPlainObject(targetValue) && isPlainObject(subPatch) && target.hasOwnProperty(key) && !isRef(subPatch) && !isReactive(subPatch)) {
-      target[key] = mergeReactiveObjects(targetValue, subPatch);
-    } else {
-      target[key] = subPatch;
-    }
-  }
-  return target;
-}
-const skipHydrateSymbol = Symbol("pinia:skipHydration");
-function skipHydrate(obj) {
-  return Object.defineProperty(obj, skipHydrateSymbol, {});
-}
-function shouldHydrate(obj) {
-  return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
-}
-const { assign } = Object;
-function isComputed(o2) {
-  return !!(isRef(o2) && o2.effect);
-}
-function createOptionsStore(id, options, pinia, hot) {
-  const { state, actions, getters } = options;
-  const initialState = pinia.state.value[id];
-  let store;
-  function setup() {
-    if (!initialState && !hot) {
-      {
-        pinia.state.value[id] = state ? state() : {};
-      }
-    }
-    const localState = hot ? (
-      // use ref() to unwrap refs inside state TODO: check if this is still necessary
-      toRefs(ref(state ? state() : {}).value)
-    ) : toRefs(pinia.state.value[id]);
-    return assign(localState, actions, Object.keys(getters || {}).reduce((computedGetters, name) => {
-      if (name in localState) {
-        console.warn(`[🍍]: A getter cannot have the same name as another state property. Rename one of them. Found with "${name}" in store "${id}".`);
-      }
-      computedGetters[name] = markRaw(computed(() => {
-        setActivePinia(pinia);
-        const store2 = pinia._s.get(id);
-        return getters[name].call(store2, store2);
-      }));
-      return computedGetters;
-    }, {}));
-  }
-  store = createSetupStore(id, setup, options, pinia, hot, true);
-  return store;
-}
-function createSetupStore($id, setup, options = {}, pinia, hot, isOptionsStore) {
-  let scope;
-  const optionsForPlugin = assign({ actions: {} }, options);
-  if (!pinia._e.active) {
-    throw new Error("Pinia destroyed");
-  }
-  const $subscribeOptions = {
-    deep: true
-    // flush: 'post',
-  };
-  {
-    $subscribeOptions.onTrigger = (event) => {
-      if (isListening) {
-        debuggerEvents = event;
-      } else if (isListening == false && !store._hotUpdating) {
-        if (Array.isArray(debuggerEvents)) {
-          debuggerEvents.push(event);
-        } else {
-          console.error("🍍 debuggerEvents should be an array. This is most likely an internal Pinia bug.");
-        }
-      }
-    };
-  }
-  let isListening;
-  let isSyncListening;
-  let subscriptions = [];
-  let actionSubscriptions = [];
-  let debuggerEvents;
-  const initialState = pinia.state.value[$id];
-  if (!isOptionsStore && !initialState && !hot) {
-    {
-      pinia.state.value[$id] = {};
-    }
-  }
-  const hotState = ref({});
-  let activeListener;
-  function $patch(partialStateOrMutator) {
-    let subscriptionMutation;
-    isListening = isSyncListening = false;
-    {
-      debuggerEvents = [];
-    }
-    if (typeof partialStateOrMutator === "function") {
-      partialStateOrMutator(pinia.state.value[$id]);
-      subscriptionMutation = {
-        type: MutationType.patchFunction,
-        storeId: $id,
-        events: debuggerEvents
-      };
-    } else {
-      mergeReactiveObjects(pinia.state.value[$id], partialStateOrMutator);
-      subscriptionMutation = {
-        type: MutationType.patchObject,
-        payload: partialStateOrMutator,
-        storeId: $id,
-        events: debuggerEvents
-      };
-    }
-    const myListenerId = activeListener = Symbol();
-    nextTick$1().then(() => {
-      if (activeListener === myListenerId) {
-        isListening = true;
-      }
-    });
-    isSyncListening = true;
-    triggerSubscriptions(subscriptions, subscriptionMutation, pinia.state.value[$id]);
-  }
-  const $reset = isOptionsStore ? function $reset2() {
-    const { state } = options;
-    const newState = state ? state() : {};
-    this.$patch(($state) => {
-      assign($state, newState);
-    });
-  } : (
-    /* istanbul ignore next */
-    () => {
-      throw new Error(`🍍: Store "${$id}" is built using the setup syntax and does not implement $reset().`);
-    }
-  );
-  function $dispose() {
-    scope.stop();
-    subscriptions = [];
-    actionSubscriptions = [];
-    pinia._s.delete($id);
-  }
-  function wrapAction(name, action) {
-    return function() {
-      setActivePinia(pinia);
-      const args = Array.from(arguments);
-      const afterCallbackList = [];
-      const onErrorCallbackList = [];
-      function after(callback) {
-        afterCallbackList.push(callback);
-      }
-      function onError2(callback) {
-        onErrorCallbackList.push(callback);
-      }
-      triggerSubscriptions(actionSubscriptions, {
-        args,
-        name,
-        store,
-        after,
-        onError: onError2
-      });
-      let ret;
-      try {
-        ret = action.apply(this && this.$id === $id ? this : store, args);
-      } catch (error) {
-        triggerSubscriptions(onErrorCallbackList, error);
-        throw error;
-      }
-      if (ret instanceof Promise) {
-        return ret.then((value) => {
-          triggerSubscriptions(afterCallbackList, value);
-          return value;
-        }).catch((error) => {
-          triggerSubscriptions(onErrorCallbackList, error);
-          return Promise.reject(error);
-        });
-      }
-      triggerSubscriptions(afterCallbackList, ret);
-      return ret;
-    };
-  }
-  const _hmrPayload = /* @__PURE__ */ markRaw({
-    actions: {},
-    getters: {},
-    state: [],
-    hotState
-  });
-  const partialStore = {
-    _p: pinia,
-    // _s: scope,
-    $id,
-    $onAction: addSubscription.bind(null, actionSubscriptions),
-    $patch,
-    $reset,
-    $subscribe(callback, options2 = {}) {
-      const removeSubscription = addSubscription(subscriptions, callback, options2.detached, () => stopWatcher());
-      const stopWatcher = scope.run(() => watch(() => pinia.state.value[$id], (state) => {
-        if (options2.flush === "sync" ? isSyncListening : isListening) {
-          callback({
-            storeId: $id,
-            type: MutationType.direct,
-            events: debuggerEvents
-          }, state);
-        }
-      }, assign({}, $subscribeOptions, options2)));
-      return removeSubscription;
-    },
-    $dispose
-  };
-  const store = reactive(assign(
-    {
-      _hmrPayload,
-      _customProperties: markRaw(/* @__PURE__ */ new Set())
-      // devtools custom properties
-    },
-    partialStore
-    // must be added later
-    // setupStore
-  ));
-  pinia._s.set($id, store);
-  const runWithContext = pinia._a && pinia._a.runWithContext || fallbackRunWithContext;
-  const setupStore = runWithContext(() => pinia._e.run(() => (scope = effectScope()).run(setup)));
-  for (const key in setupStore) {
-    const prop = setupStore[key];
-    if (isRef(prop) && !isComputed(prop) || isReactive(prop)) {
-      if (hot) {
-        set(hotState.value, key, toRef(setupStore, key));
-      } else if (!isOptionsStore) {
-        if (initialState && shouldHydrate(prop)) {
-          if (isRef(prop)) {
-            prop.value = initialState[key];
-          } else {
-            mergeReactiveObjects(prop, initialState[key]);
-          }
-        }
-        {
-          pinia.state.value[$id][key] = prop;
-        }
-      }
-      {
-        _hmrPayload.state.push(key);
-      }
-    } else if (typeof prop === "function") {
-      const actionValue = hot ? prop : wrapAction(key, prop);
-      {
-        setupStore[key] = actionValue;
-      }
-      {
-        _hmrPayload.actions[key] = prop;
-      }
-      optionsForPlugin.actions[key] = prop;
-    } else {
-      if (isComputed(prop)) {
-        _hmrPayload.getters[key] = isOptionsStore ? (
-          // @ts-expect-error
-          options.getters[key]
-        ) : prop;
-        if (IS_CLIENT) {
-          const getters = setupStore._getters || // @ts-expect-error: same
-          (setupStore._getters = markRaw([]));
-          getters.push(key);
-        }
-      }
-    }
-  }
-  {
-    assign(store, setupStore);
-    assign(toRaw(store), setupStore);
-  }
-  Object.defineProperty(store, "$state", {
-    get: () => hot ? hotState.value : pinia.state.value[$id],
-    set: (state) => {
-      if (hot) {
-        throw new Error("cannot set hotState");
-      }
-      $patch(($state) => {
-        assign($state, state);
-      });
-    }
-  });
-  {
-    store._hotUpdate = markRaw((newStore) => {
-      store._hotUpdating = true;
-      newStore._hmrPayload.state.forEach((stateKey) => {
-        if (stateKey in store.$state) {
-          const newStateTarget = newStore.$state[stateKey];
-          const oldStateSource = store.$state[stateKey];
-          if (typeof newStateTarget === "object" && isPlainObject(newStateTarget) && isPlainObject(oldStateSource)) {
-            patchObject(newStateTarget, oldStateSource);
-          } else {
-            newStore.$state[stateKey] = oldStateSource;
-          }
-        }
-        set(store, stateKey, toRef(newStore.$state, stateKey));
-      });
-      Object.keys(store.$state).forEach((stateKey) => {
-        if (!(stateKey in newStore.$state)) {
-          del(store, stateKey);
-        }
-      });
-      isListening = false;
-      isSyncListening = false;
-      pinia.state.value[$id] = toRef(newStore._hmrPayload, "hotState");
-      isSyncListening = true;
-      nextTick$1().then(() => {
-        isListening = true;
-      });
-      for (const actionName in newStore._hmrPayload.actions) {
-        const action = newStore[actionName];
-        set(store, actionName, wrapAction(actionName, action));
-      }
-      for (const getterName in newStore._hmrPayload.getters) {
-        const getter = newStore._hmrPayload.getters[getterName];
-        const getterValue = isOptionsStore ? (
-          // special handling of options api
-          computed(() => {
-            setActivePinia(pinia);
-            return getter.call(store, store);
-          })
-        ) : getter;
-        set(store, getterName, getterValue);
-      }
-      Object.keys(store._hmrPayload.getters).forEach((key) => {
-        if (!(key in newStore._hmrPayload.getters)) {
-          del(store, key);
-        }
-      });
-      Object.keys(store._hmrPayload.actions).forEach((key) => {
-        if (!(key in newStore._hmrPayload.actions)) {
-          del(store, key);
-        }
-      });
-      store._hmrPayload = newStore._hmrPayload;
-      store._getters = newStore._getters;
-      store._hotUpdating = false;
-    });
-  }
-  if (USE_DEVTOOLS) {
-    const nonEnumerable = {
-      writable: true,
-      configurable: true,
-      // avoid warning on devtools trying to display this property
-      enumerable: false
-    };
-    ["_p", "_hmrPayload", "_getters", "_customProperties"].forEach((p2) => {
-      Object.defineProperty(store, p2, assign({ value: store[p2] }, nonEnumerable));
-    });
-  }
-  pinia._p.forEach((extender) => {
-    if (USE_DEVTOOLS) {
-      const extensions = scope.run(() => extender({
-        store,
-        app: pinia._a,
-        pinia,
-        options: optionsForPlugin
-      }));
-      Object.keys(extensions || {}).forEach((key) => store._customProperties.add(key));
-      assign(store, extensions);
-    } else {
-      assign(store, scope.run(() => extender({
-        store,
-        app: pinia._a,
-        pinia,
-        options: optionsForPlugin
-      })));
-    }
-  });
-  if (store.$state && typeof store.$state === "object" && typeof store.$state.constructor === "function" && !store.$state.constructor.toString().includes("[native code]")) {
-    console.warn(`[🍍]: The "state" must be a plain object. It cannot be
-	state: () => new MyClass()
-Found in store "${store.$id}".`);
-  }
-  if (initialState && isOptionsStore && options.hydrate) {
-    options.hydrate(store.$state, initialState);
-  }
-  isListening = true;
-  isSyncListening = true;
-  return store;
-}
-function defineStore(idOrOptions, setup, setupOptions) {
-  let id;
-  let options;
-  const isSetupStore = typeof setup === "function";
-  if (typeof idOrOptions === "string") {
-    id = idOrOptions;
-    options = isSetupStore ? setupOptions : setup;
-  } else {
-    options = idOrOptions;
-    id = idOrOptions.id;
-    if (typeof id !== "string") {
-      throw new Error(`[🍍]: "defineStore()" must be passed a store id as its first argument.`);
-    }
-  }
-  function useStore(pinia, hot) {
-    const hasContext = hasInjectionContext();
-    pinia = // in test mode, ignore the argument provided as we can always retrieve a
-    // pinia instance with getActivePinia()
-    pinia || (hasContext ? inject(piniaSymbol, null) : null);
-    if (pinia)
-      setActivePinia(pinia);
-    if (!activePinia) {
-      throw new Error(`[🍍]: "getActivePinia()" was called but there was no active Pinia. Are you trying to use a store before calling "app.use(pinia)"?
-See https://pinia.vuejs.org/core-concepts/outside-component-usage.html for help.
-This will fail in production.`);
-    }
-    pinia = activePinia;
-    if (!pinia._s.has(id)) {
-      if (isSetupStore) {
-        createSetupStore(id, setup, options, pinia);
-      } else {
-        createOptionsStore(id, options, pinia);
-      }
-      {
-        useStore._pinia = pinia;
-      }
-    }
-    const store = pinia._s.get(id);
-    if (hot) {
-      const hotId = "__hot:" + id;
-      const newStore = isSetupStore ? createSetupStore(hotId, setup, options, pinia, true) : createOptionsStore(hotId, assign({}, options), pinia, true);
-      hot._hotUpdate(newStore);
-      delete pinia.state.value[hotId];
-      pinia._s.delete(hotId);
-    }
-    if (IS_CLIENT) {
-      const currentInstance2 = getCurrentInstance();
-      if (currentInstance2 && currentInstance2.proxy && // avoid adding stores that are just built for hot module replacement
-      !hot) {
-        const vm = currentInstance2.proxy;
-        const cache = "_pStores" in vm ? vm._pStores : vm._pStores = {};
-        cache[id] = store;
-      }
-    }
-    return store;
-  }
-  useStore.$id = id;
-  return useStore;
-}
-let mapStoreSuffix = "Store";
-function setMapStoreSuffix(suffix) {
-  mapStoreSuffix = suffix;
-}
-function mapStores(...stores) {
-  if (Array.isArray(stores[0])) {
-    console.warn(`[🍍]: Directly pass all stores to "mapStores()" without putting them in an array:
-Replace
-	mapStores([useAuthStore, useCartStore])
-with
-	mapStores(useAuthStore, useCartStore)
-This will fail in production if not fixed.`);
-    stores = stores[0];
-  }
-  return stores.reduce((reduced, useStore) => {
-    reduced[useStore.$id + mapStoreSuffix] = function() {
-      return useStore(this.$pinia);
-    };
-    return reduced;
-  }, {});
-}
-function mapState(useStore, keysOrMapper) {
-  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
-    reduced[key] = function() {
-      return useStore(this.$pinia)[key];
-    };
-    return reduced;
-  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
-    reduced[key] = function() {
-      const store = useStore(this.$pinia);
-      const storeKey = keysOrMapper[key];
-      return typeof storeKey === "function" ? storeKey.call(this, store) : store[storeKey];
-    };
-    return reduced;
-  }, {});
-}
-const mapGetters = mapState;
-function mapActions(useStore, keysOrMapper) {
-  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
-    reduced[key] = function(...args) {
-      return useStore(this.$pinia)[key](...args);
-    };
-    return reduced;
-  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
-    reduced[key] = function(...args) {
-      return useStore(this.$pinia)[keysOrMapper[key]](...args);
-    };
-    return reduced;
-  }, {});
-}
-function mapWritableState(useStore, keysOrMapper) {
-  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
-    reduced[key] = {
-      get() {
-        return useStore(this.$pinia)[key];
-      },
-      set(value) {
-        return useStore(this.$pinia)[key] = value;
-      }
-    };
-    return reduced;
-  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
-    reduced[key] = {
-      get() {
-        return useStore(this.$pinia)[keysOrMapper[key]];
-      },
-      set(value) {
-        return useStore(this.$pinia)[keysOrMapper[key]] = value;
-      }
-    };
-    return reduced;
-  }, {});
-}
-function storeToRefs(store) {
-  {
-    store = toRaw(store);
-    const refs = {};
-    for (const key in store) {
-      const value = store[key];
-      if (isRef(value) || isReactive(value)) {
-        refs[key] = // ---
-        toRef(store, key);
-      }
-    }
-    return refs;
-  }
-}
-const PiniaVuePlugin = function(_Vue) {
-  _Vue.mixin({
-    beforeCreate() {
-      const options = this.$options;
-      if (options.pinia) {
-        const pinia = options.pinia;
-        if (!this._provided) {
-          const provideCache = {};
-          Object.defineProperty(this, "_provided", {
-            get: () => provideCache,
-            set: (v2) => Object.assign(provideCache, v2)
-          });
-        }
-        this._provided[piniaSymbol] = pinia;
-        if (!this.$pinia) {
-          this.$pinia = pinia;
-        }
-        pinia._a = this;
-        if (IS_CLIENT) {
-          setActivePinia(pinia);
-        }
-        if (USE_DEVTOOLS) {
-          registerPiniaDevtools(pinia._a);
-        }
-      } else if (!this.$pinia && options.parent && options.parent.$pinia) {
-        this.$pinia = options.parent.$pinia;
-      }
-    },
-    destroyed() {
-      delete this._pStores;
-    }
-  });
-};
-const Pinia = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  get MutationType() {
-    return MutationType;
-  },
-  PiniaVuePlugin,
-  acceptHMRUpdate,
-  createPinia,
-  defineStore,
-  getActivePinia,
-  mapActions,
-  mapGetters,
-  mapState,
-  mapStores,
-  mapWritableState,
-  setActivePinia,
-  setMapStoreSuffix,
-  skipHydrate,
-  storeToRefs
-}, Symbol.toStringTag, { value: "Module" }));
-var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
-function getDefaultExportFromCjs(x) {
-  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
-}
-var dayjs_min = { exports: {} };
-(function(module2, exports2) {
-  !function(t2, e2) {
-    module2.exports = e2();
-  }(commonjsGlobal, function() {
-    var t2 = 1e3, e2 = 6e4, n2 = 36e5, r2 = "millisecond", i2 = "second", s2 = "minute", u2 = "hour", a2 = "day", o2 = "week", c2 = "month", f2 = "quarter", h2 = "year", d2 = "date", l2 = "Invalid Date", $2 = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, y2 = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, M2 = { name: "en", weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"), months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"), ordinal: function(t3) {
-      var e3 = ["th", "st", "nd", "rd"], n3 = t3 % 100;
-      return "[" + t3 + (e3[(n3 - 20) % 10] || e3[n3] || e3[0]) + "]";
-    } }, m2 = function(t3, e3, n3) {
-      var r3 = String(t3);
-      return !r3 || r3.length >= e3 ? t3 : "" + Array(e3 + 1 - r3.length).join(n3) + t3;
-    }, v2 = { s: m2, z: function(t3) {
-      var e3 = -t3.utcOffset(), n3 = Math.abs(e3), r3 = Math.floor(n3 / 60), i3 = n3 % 60;
-      return (e3 <= 0 ? "+" : "-") + m2(r3, 2, "0") + ":" + m2(i3, 2, "0");
-    }, m: function t3(e3, n3) {
-      if (e3.date() < n3.date())
-        return -t3(n3, e3);
-      var r3 = 12 * (n3.year() - e3.year()) + (n3.month() - e3.month()), i3 = e3.clone().add(r3, c2), s3 = n3 - i3 < 0, u3 = e3.clone().add(r3 + (s3 ? -1 : 1), c2);
-      return +(-(r3 + (n3 - i3) / (s3 ? i3 - u3 : u3 - i3)) || 0);
-    }, a: function(t3) {
-      return t3 < 0 ? Math.ceil(t3) || 0 : Math.floor(t3);
-    }, p: function(t3) {
-      return { M: c2, y: h2, w: o2, d: a2, D: d2, h: u2, m: s2, s: i2, ms: r2, Q: f2 }[t3] || String(t3 || "").toLowerCase().replace(/s$/, "");
-    }, u: function(t3) {
-      return void 0 === t3;
-    } }, g2 = "en", D = {};
-    D[g2] = M2;
-    var p2 = "$isDayjsObject", S2 = function(t3) {
-      return t3 instanceof _2 || !(!t3 || !t3[p2]);
-    }, w2 = function t3(e3, n3, r3) {
-      var i3;
-      if (!e3)
-        return g2;
-      if ("string" == typeof e3) {
-        var s3 = e3.toLowerCase();
-        D[s3] && (i3 = s3), n3 && (D[s3] = n3, i3 = s3);
-        var u3 = e3.split("-");
-        if (!i3 && u3.length > 1)
-          return t3(u3[0]);
-      } else {
-        var a3 = e3.name;
-        D[a3] = e3, i3 = a3;
-      }
-      return !r3 && i3 && (g2 = i3), i3 || !r3 && g2;
-    }, O2 = function(t3, e3) {
-      if (S2(t3))
-        return t3.clone();
-      var n3 = "object" == typeof e3 ? e3 : {};
-      return n3.date = t3, n3.args = arguments, new _2(n3);
-    }, b2 = v2;
-    b2.l = w2, b2.i = S2, b2.w = function(t3, e3) {
-      return O2(t3, { locale: e3.$L, utc: e3.$u, x: e3.$x, $offset: e3.$offset });
-    };
-    var _2 = function() {
-      function M3(t3) {
-        this.$L = w2(t3.locale, null, true), this.parse(t3), this.$x = this.$x || t3.x || {}, this[p2] = true;
-      }
-      var m3 = M3.prototype;
-      return m3.parse = function(t3) {
-        this.$d = function(t4) {
-          var e3 = t4.date, n3 = t4.utc;
-          if (null === e3)
-            return /* @__PURE__ */ new Date(NaN);
-          if (b2.u(e3))
-            return /* @__PURE__ */ new Date();
-          if (e3 instanceof Date)
-            return new Date(e3);
-          if ("string" == typeof e3 && !/Z$/i.test(e3)) {
-            var r3 = e3.match($2);
-            if (r3) {
-              var i3 = r3[2] - 1 || 0, s3 = (r3[7] || "0").substring(0, 3);
-              return n3 ? new Date(Date.UTC(r3[1], i3, r3[3] || 1, r3[4] || 0, r3[5] || 0, r3[6] || 0, s3)) : new Date(r3[1], i3, r3[3] || 1, r3[4] || 0, r3[5] || 0, r3[6] || 0, s3);
-            }
-          }
-          return new Date(e3);
-        }(t3), this.init();
-      }, m3.init = function() {
-        var t3 = this.$d;
-        this.$y = t3.getFullYear(), this.$M = t3.getMonth(), this.$D = t3.getDate(), this.$W = t3.getDay(), this.$H = t3.getHours(), this.$m = t3.getMinutes(), this.$s = t3.getSeconds(), this.$ms = t3.getMilliseconds();
-      }, m3.$utils = function() {
-        return b2;
-      }, m3.isValid = function() {
-        return !(this.$d.toString() === l2);
-      }, m3.isSame = function(t3, e3) {
-        var n3 = O2(t3);
-        return this.startOf(e3) <= n3 && n3 <= this.endOf(e3);
-      }, m3.isAfter = function(t3, e3) {
-        return O2(t3) < this.startOf(e3);
-      }, m3.isBefore = function(t3, e3) {
-        return this.endOf(e3) < O2(t3);
-      }, m3.$g = function(t3, e3, n3) {
-        return b2.u(t3) ? this[e3] : this.set(n3, t3);
-      }, m3.unix = function() {
-        return Math.floor(this.valueOf() / 1e3);
-      }, m3.valueOf = function() {
-        return this.$d.getTime();
-      }, m3.startOf = function(t3, e3) {
-        var n3 = this, r3 = !!b2.u(e3) || e3, f3 = b2.p(t3), l3 = function(t4, e4) {
-          var i3 = b2.w(n3.$u ? Date.UTC(n3.$y, e4, t4) : new Date(n3.$y, e4, t4), n3);
-          return r3 ? i3 : i3.endOf(a2);
-        }, $3 = function(t4, e4) {
-          return b2.w(n3.toDate()[t4].apply(n3.toDate("s"), (r3 ? [0, 0, 0, 0] : [23, 59, 59, 999]).slice(e4)), n3);
-        }, y3 = this.$W, M4 = this.$M, m4 = this.$D, v3 = "set" + (this.$u ? "UTC" : "");
-        switch (f3) {
-          case h2:
-            return r3 ? l3(1, 0) : l3(31, 11);
-          case c2:
-            return r3 ? l3(1, M4) : l3(0, M4 + 1);
-          case o2:
-            var g3 = this.$locale().weekStart || 0, D2 = (y3 < g3 ? y3 + 7 : y3) - g3;
-            return l3(r3 ? m4 - D2 : m4 + (6 - D2), M4);
-          case a2:
-          case d2:
-            return $3(v3 + "Hours", 0);
-          case u2:
-            return $3(v3 + "Minutes", 1);
-          case s2:
-            return $3(v3 + "Seconds", 2);
-          case i2:
-            return $3(v3 + "Milliseconds", 3);
-          default:
-            return this.clone();
-        }
-      }, m3.endOf = function(t3) {
-        return this.startOf(t3, false);
-      }, m3.$set = function(t3, e3) {
-        var n3, o3 = b2.p(t3), f3 = "set" + (this.$u ? "UTC" : ""), l3 = (n3 = {}, n3[a2] = f3 + "Date", n3[d2] = f3 + "Date", n3[c2] = f3 + "Month", n3[h2] = f3 + "FullYear", n3[u2] = f3 + "Hours", n3[s2] = f3 + "Minutes", n3[i2] = f3 + "Seconds", n3[r2] = f3 + "Milliseconds", n3)[o3], $3 = o3 === a2 ? this.$D + (e3 - this.$W) : e3;
-        if (o3 === c2 || o3 === h2) {
-          var y3 = this.clone().set(d2, 1);
-          y3.$d[l3]($3), y3.init(), this.$d = y3.set(d2, Math.min(this.$D, y3.daysInMonth())).$d;
-        } else
-          l3 && this.$d[l3]($3);
-        return this.init(), this;
-      }, m3.set = function(t3, e3) {
-        return this.clone().$set(t3, e3);
-      }, m3.get = function(t3) {
-        return this[b2.p(t3)]();
-      }, m3.add = function(r3, f3) {
-        var d3, l3 = this;
-        r3 = Number(r3);
-        var $3 = b2.p(f3), y3 = function(t3) {
-          var e3 = O2(l3);
-          return b2.w(e3.date(e3.date() + Math.round(t3 * r3)), l3);
-        };
-        if ($3 === c2)
-          return this.set(c2, this.$M + r3);
-        if ($3 === h2)
-          return this.set(h2, this.$y + r3);
-        if ($3 === a2)
-          return y3(1);
-        if ($3 === o2)
-          return y3(7);
-        var M4 = (d3 = {}, d3[s2] = e2, d3[u2] = n2, d3[i2] = t2, d3)[$3] || 1, m4 = this.$d.getTime() + r3 * M4;
-        return b2.w(m4, this);
-      }, m3.subtract = function(t3, e3) {
-        return this.add(-1 * t3, e3);
-      }, m3.format = function(t3) {
-        var e3 = this, n3 = this.$locale();
-        if (!this.isValid())
-          return n3.invalidDate || l2;
-        var r3 = t3 || "YYYY-MM-DDTHH:mm:ssZ", i3 = b2.z(this), s3 = this.$H, u3 = this.$m, a3 = this.$M, o3 = n3.weekdays, c3 = n3.months, f3 = n3.meridiem, h3 = function(t4, n4, i4, s4) {
-          return t4 && (t4[n4] || t4(e3, r3)) || i4[n4].slice(0, s4);
-        }, d3 = function(t4) {
-          return b2.s(s3 % 12 || 12, t4, "0");
-        }, $3 = f3 || function(t4, e4, n4) {
-          var r4 = t4 < 12 ? "AM" : "PM";
-          return n4 ? r4.toLowerCase() : r4;
-        };
-        return r3.replace(y2, function(t4, r4) {
-          return r4 || function(t5) {
-            switch (t5) {
-              case "YY":
-                return String(e3.$y).slice(-2);
-              case "YYYY":
-                return b2.s(e3.$y, 4, "0");
-              case "M":
-                return a3 + 1;
-              case "MM":
-                return b2.s(a3 + 1, 2, "0");
-              case "MMM":
-                return h3(n3.monthsShort, a3, c3, 3);
-              case "MMMM":
-                return h3(c3, a3);
-              case "D":
-                return e3.$D;
-              case "DD":
-                return b2.s(e3.$D, 2, "0");
-              case "d":
-                return String(e3.$W);
-              case "dd":
-                return h3(n3.weekdaysMin, e3.$W, o3, 2);
-              case "ddd":
-                return h3(n3.weekdaysShort, e3.$W, o3, 3);
-              case "dddd":
-                return o3[e3.$W];
-              case "H":
-                return String(s3);
-              case "HH":
-                return b2.s(s3, 2, "0");
-              case "h":
-                return d3(1);
-              case "hh":
-                return d3(2);
-              case "a":
-                return $3(s3, u3, true);
-              case "A":
-                return $3(s3, u3, false);
-              case "m":
-                return String(u3);
-              case "mm":
-                return b2.s(u3, 2, "0");
-              case "s":
-                return String(e3.$s);
-              case "ss":
-                return b2.s(e3.$s, 2, "0");
-              case "SSS":
-                return b2.s(e3.$ms, 3, "0");
-              case "Z":
-                return i3;
-            }
-            return null;
-          }(t4) || i3.replace(":", "");
-        });
-      }, m3.utcOffset = function() {
-        return 15 * -Math.round(this.$d.getTimezoneOffset() / 15);
-      }, m3.diff = function(r3, d3, l3) {
-        var $3, y3 = this, M4 = b2.p(d3), m4 = O2(r3), v3 = (m4.utcOffset() - this.utcOffset()) * e2, g3 = this - m4, D2 = function() {
-          return b2.m(y3, m4);
-        };
-        switch (M4) {
-          case h2:
-            $3 = D2() / 12;
-            break;
-          case c2:
-            $3 = D2();
-            break;
-          case f2:
-            $3 = D2() / 3;
-            break;
-          case o2:
-            $3 = (g3 - v3) / 6048e5;
-            break;
-          case a2:
-            $3 = (g3 - v3) / 864e5;
-            break;
-          case u2:
-            $3 = g3 / n2;
-            break;
-          case s2:
-            $3 = g3 / e2;
-            break;
-          case i2:
-            $3 = g3 / t2;
-            break;
-          default:
-            $3 = g3;
-        }
-        return l3 ? $3 : b2.a($3);
-      }, m3.daysInMonth = function() {
-        return this.endOf(c2).$D;
-      }, m3.$locale = function() {
-        return D[this.$L];
-      }, m3.locale = function(t3, e3) {
-        if (!t3)
-          return this.$L;
-        var n3 = this.clone(), r3 = w2(t3, e3, true);
-        return r3 && (n3.$L = r3), n3;
-      }, m3.clone = function() {
-        return b2.w(this.$d, this);
-      }, m3.toDate = function() {
-        return new Date(this.valueOf());
-      }, m3.toJSON = function() {
-        return this.isValid() ? this.toISOString() : null;
-      }, m3.toISOString = function() {
-        return this.$d.toISOString();
-      }, m3.toString = function() {
-        return this.$d.toUTCString();
-      }, M3;
-    }(), k = _2.prototype;
-    return O2.prototype = k, [["$ms", r2], ["$s", i2], ["$m", s2], ["$H", u2], ["$W", a2], ["$M", c2], ["$y", h2], ["$D", d2]].forEach(function(t3) {
-      k[t3[1]] = function(e3) {
-        return this.$g(e3, t3[0], t3[1]);
-      };
-    }), O2.extend = function(t3, e3) {
-      return t3.$i || (t3(e3, _2, O2), t3.$i = true), O2;
-    }, O2.locale = w2, O2.isDayjs = S2, O2.unix = function(t3) {
-      return O2(1e3 * t3);
-    }, O2.en = D[g2], O2.Ls = D, O2.p = {}, O2;
-  });
-})(dayjs_min);
-var dayjs_minExports = dayjs_min.exports;
-const dayjs = /* @__PURE__ */ getDefaultExportFromCjs(dayjs_minExports);
 const pages = [
   {
     path: "pages/index/index",
@@ -9289,6 +8230,113 @@ const pages = [
     style: {
       navigationBarTitleText: "开始使用"
     }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/register/register",
+    style: {
+      navigationBarTitleText: "注册"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/login/login-withoutpwd",
+    style: {
+      navigationBarTitleText: "登录"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/login/login-withpwd",
+    style: {
+      navigationBarTitleText: "账号密码登录"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/login/login-smscode",
+    style: {
+      navigationBarTitleText: "手机验证码登录"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/userinfo",
+    style: {
+      navigationBarTitleText: "个人资料"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/bind-mobile/bind-mobile",
+    style: {
+      navigationBarTitleText: "绑定手机号码"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/cropImage/cropImage",
+    style: {
+      navigationBarTitleText: ""
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/register/register-by-email",
+    style: {
+      navigationBarTitleText: "邮箱验证码注册"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/retrieve/retrieve",
+    style: {
+      navigationBarTitleText: "重置密码"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/retrieve/retrieve-by-email",
+    style: {
+      navigationBarTitleText: "通过邮箱重置密码"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/common/webview/webview",
+    style: {
+      enablePullDownRefresh: false,
+      navigationBarTitleText: ""
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/change_pwd/change_pwd",
+    style: {
+      enablePullDownRefresh: false,
+      navigationBarTitleText: "修改密码"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/register/register-admin",
+    style: {
+      enablePullDownRefresh: false,
+      navigationBarTitleText: "注册管理员账号"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/set-pwd/set-pwd",
+    style: {
+      enablePullDownRefresh: false,
+      navigationBarTitleText: "设置密码"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/deactivate/deactivate",
+    style: {
+      navigationBarTitleText: "注销账号"
+    }
+  },
+  {
+    path: "uni_modules/uni-id-pages/pages/userinfo/realname-verify/realname-verify",
+    style: {
+      enablePullDownRefresh: false,
+      navigationBarTitleText: "实名认证"
+    }
+  },
+  {
+    path: "pages/config/config",
+    style: {
+      navigationBarTitleText: "配置"
+    }
   }
 ];
 const globalStyle = {
@@ -9296,6 +8344,15 @@ const globalStyle = {
   navigationBarTitleText: "🐟窝预约小程序",
   navigationBarBackgroundColor: "#F8F8F8",
   backgroundColor: "#F8F8F8"
+};
+const uniIdRouter = {
+  loginPage: "/uni_modules/uni-id-pages/pages/login/login-withpwd",
+  resToLogin: true,
+  needLogin: [
+    "pages/signIn/signIn",
+    "pages/user/user",
+    "pages/order/order"
+  ]
 };
 const tabBar = {
   color: "#000000",
@@ -9321,9 +8378,10 @@ const tabBar = {
     }
   ]
 };
-const e = {
+const pagesJson = {
   pages,
   globalStyle,
+  uniIdRouter,
   tabBar
 };
 var define_process_env_UNI_SECURE_NETWORK_CONFIG_default = [];
@@ -9651,7 +8709,7 @@ class S {
 function T(e2) {
   return e2 && "string" == typeof e2 ? JSON.parse(e2) : e2;
 }
-const b = true, E = "mp-weixin", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T(""), O = T("[]") || [];
+const b = true, E = "mp-weixin", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T('{"address":["127.0.0.1","26.147.134.231","192.168.6.50"],"servePort":7000,"debugPort":9000,"initialLaunchType":"local","skipFiles":["<node_internals>/**","D:/HBuilderX/plugins/unicloud/**/*.js"]}'), O = T('[{"provider":"aliyun","spaceName":"fish-cave-space","spaceId":"mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3","clientSecret":"Eaaj4ykQVAPxUmVJwmA1FA==","endpoint":"https://api.next.bspapp.com"}]') || [];
 let N = "";
 try {
   N = "__UNI__F851E77";
@@ -11572,8 +10630,8 @@ function _s(e2 = "", t2 = {}) {
   const n2 = t2.list, s2 = gs(e2);
   return n2.some((e3) => e3.pagePath === s2);
 }
-const ws = !!e.uniIdRouter;
-const { loginPage: vs, routerNeedLogin: Is, resToLogin: Ss, needLoginPage: Ts, notNeedLoginPage: bs, loginPageInTabBar: Es } = function({ pages: t2 = [], subPackages: n2 = [], uniIdRouter: s2 = {}, tabBar: r2 = {} } = e) {
+const ws = !!pagesJson.uniIdRouter;
+const { loginPage: vs, routerNeedLogin: Is, resToLogin: Ss, needLoginPage: Ts, notNeedLoginPage: bs, loginPageInTabBar: Es } = function({ pages: t2 = [], subPackages: n2 = [], uniIdRouter: s2 = {}, tabBar: r2 = {} } = pagesJson) {
   const { loginPage: i2, needLogin: o2 = [], resToLogin: a2 = true } = s2, { needLoginPage: c2, notNeedLoginPage: u2 } = fs(t2), { needLoginPage: h2, notNeedLoginPage: l2 } = function(e2 = []) {
     const t3 = [], n3 = [];
     return e2.forEach((e3) => {
@@ -12166,6 +11224,1070 @@ let Zs = new class {
     ;
 })();
 var er = Zs;
+var isVue2 = false;
+function set(target, key, val) {
+  if (Array.isArray(target)) {
+    target.length = Math.max(target.length, key);
+    target.splice(key, 1, val);
+    return val;
+  }
+  target[key] = val;
+  return val;
+}
+function del(target, key) {
+  if (Array.isArray(target)) {
+    target.splice(key, 1);
+    return;
+  }
+  delete target[key];
+}
+/*!
+ * pinia v2.1.7
+ * (c) 2023 Eduardo San Martin Morote
+ * @license MIT
+ */
+let activePinia;
+const setActivePinia = (pinia) => activePinia = pinia;
+const getActivePinia = () => hasInjectionContext() && inject(piniaSymbol) || activePinia;
+const piniaSymbol = Symbol("pinia");
+function isPlainObject(o2) {
+  return o2 && typeof o2 === "object" && Object.prototype.toString.call(o2) === "[object Object]" && typeof o2.toJSON !== "function";
+}
+var MutationType;
+(function(MutationType2) {
+  MutationType2["direct"] = "direct";
+  MutationType2["patchObject"] = "patch object";
+  MutationType2["patchFunction"] = "patch function";
+})(MutationType || (MutationType = {}));
+const IS_CLIENT = typeof window !== "undefined";
+const USE_DEVTOOLS = IS_CLIENT;
+const componentStateTypes = [];
+const getStoreType = (id) => "🍍 " + id;
+function registerPiniaDevtools(app, pinia) {
+}
+function addStoreToDevtools(app, store) {
+  if (!componentStateTypes.includes(getStoreType(store.$id))) {
+    componentStateTypes.push(getStoreType(store.$id));
+  }
+}
+function patchActionForGrouping(store, actionNames, wrapWithProxy) {
+  const actions = actionNames.reduce((storeActions, actionName) => {
+    storeActions[actionName] = toRaw(store)[actionName];
+    return storeActions;
+  }, {});
+  for (const actionName in actions) {
+    store[actionName] = function() {
+      const trackedStore = wrapWithProxy ? new Proxy(store, {
+        get(...args) {
+          return Reflect.get(...args);
+        },
+        set(...args) {
+          return Reflect.set(...args);
+        }
+      }) : store;
+      const retValue = actions[actionName].apply(trackedStore, arguments);
+      return retValue;
+    };
+  }
+}
+function devtoolsPlugin({ app, store, options }) {
+  if (store.$id.startsWith("__hot:")) {
+    return;
+  }
+  store._isOptionsAPI = !!options.state;
+  patchActionForGrouping(store, Object.keys(options.actions), store._isOptionsAPI);
+  const originalHotUpdate = store._hotUpdate;
+  toRaw(store)._hotUpdate = function(newStore) {
+    originalHotUpdate.apply(this, arguments);
+    patchActionForGrouping(store, Object.keys(newStore._hmrPayload.actions), !!store._isOptionsAPI);
+  };
+  addStoreToDevtools(
+    app,
+    // FIXME: is there a way to allow the assignment from Store<Id, S, G, A> to StoreGeneric?
+    store
+  );
+}
+function createPinia() {
+  const scope = effectScope(true);
+  const state = scope.run(() => ref({}));
+  let _p = [];
+  let toBeInstalled = [];
+  const pinia = markRaw({
+    install(app) {
+      setActivePinia(pinia);
+      {
+        pinia._a = app;
+        app.provide(piniaSymbol, pinia);
+        app.config.globalProperties.$pinia = pinia;
+        toBeInstalled.forEach((plugin2) => _p.push(plugin2));
+        toBeInstalled = [];
+      }
+    },
+    use(plugin2) {
+      if (!this._a && !isVue2) {
+        toBeInstalled.push(plugin2);
+      } else {
+        _p.push(plugin2);
+      }
+      return this;
+    },
+    _p,
+    // it's actually undefined here
+    // @ts-expect-error
+    _a: null,
+    _e: scope,
+    _s: /* @__PURE__ */ new Map(),
+    state
+  });
+  if (USE_DEVTOOLS && typeof Proxy !== "undefined") {
+    pinia.use(devtoolsPlugin);
+  }
+  return pinia;
+}
+const isUseStore = (fn) => {
+  return typeof fn === "function" && typeof fn.$id === "string";
+};
+function patchObject(newState, oldState) {
+  for (const key in oldState) {
+    const subPatch = oldState[key];
+    if (!(key in newState)) {
+      continue;
+    }
+    const targetValue = newState[key];
+    if (isPlainObject(targetValue) && isPlainObject(subPatch) && !isRef(subPatch) && !isReactive(subPatch)) {
+      newState[key] = patchObject(targetValue, subPatch);
+    } else {
+      {
+        newState[key] = subPatch;
+      }
+    }
+  }
+  return newState;
+}
+function acceptHMRUpdate(initialUseStore, hot) {
+  return (newModule) => {
+    const pinia = hot.data.pinia || initialUseStore._pinia;
+    if (!pinia) {
+      return;
+    }
+    hot.data.pinia = pinia;
+    for (const exportName in newModule) {
+      const useStore = newModule[exportName];
+      if (isUseStore(useStore) && pinia._s.has(useStore.$id)) {
+        const id = useStore.$id;
+        if (id !== initialUseStore.$id) {
+          console.warn(`The id of the store changed from "${initialUseStore.$id}" to "${id}". Reloading.`);
+          return hot.invalidate();
+        }
+        const existingStore = pinia._s.get(id);
+        if (!existingStore) {
+          console.log(`[Pinia]: skipping hmr because store doesn't exist yet`);
+          return;
+        }
+        useStore(pinia, existingStore);
+      }
+    }
+  };
+}
+const noop = () => {
+};
+function addSubscription(subscriptions, callback, detached, onCleanup = noop) {
+  subscriptions.push(callback);
+  const removeSubscription = () => {
+    const idx = subscriptions.indexOf(callback);
+    if (idx > -1) {
+      subscriptions.splice(idx, 1);
+      onCleanup();
+    }
+  };
+  if (!detached && getCurrentScope()) {
+    onScopeDispose(removeSubscription);
+  }
+  return removeSubscription;
+}
+function triggerSubscriptions(subscriptions, ...args) {
+  subscriptions.slice().forEach((callback) => {
+    callback(...args);
+  });
+}
+const fallbackRunWithContext = (fn) => fn();
+function mergeReactiveObjects(target, patchToApply) {
+  if (target instanceof Map && patchToApply instanceof Map) {
+    patchToApply.forEach((value, key) => target.set(key, value));
+  }
+  if (target instanceof Set && patchToApply instanceof Set) {
+    patchToApply.forEach(target.add, target);
+  }
+  for (const key in patchToApply) {
+    if (!patchToApply.hasOwnProperty(key))
+      continue;
+    const subPatch = patchToApply[key];
+    const targetValue = target[key];
+    if (isPlainObject(targetValue) && isPlainObject(subPatch) && target.hasOwnProperty(key) && !isRef(subPatch) && !isReactive(subPatch)) {
+      target[key] = mergeReactiveObjects(targetValue, subPatch);
+    } else {
+      target[key] = subPatch;
+    }
+  }
+  return target;
+}
+const skipHydrateSymbol = Symbol("pinia:skipHydration");
+function skipHydrate(obj) {
+  return Object.defineProperty(obj, skipHydrateSymbol, {});
+}
+function shouldHydrate(obj) {
+  return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
+}
+const { assign } = Object;
+function isComputed(o2) {
+  return !!(isRef(o2) && o2.effect);
+}
+function createOptionsStore(id, options, pinia, hot) {
+  const { state, actions, getters } = options;
+  const initialState = pinia.state.value[id];
+  let store;
+  function setup() {
+    if (!initialState && !hot) {
+      {
+        pinia.state.value[id] = state ? state() : {};
+      }
+    }
+    const localState = hot ? (
+      // use ref() to unwrap refs inside state TODO: check if this is still necessary
+      toRefs(ref(state ? state() : {}).value)
+    ) : toRefs(pinia.state.value[id]);
+    return assign(localState, actions, Object.keys(getters || {}).reduce((computedGetters, name) => {
+      if (name in localState) {
+        console.warn(`[🍍]: A getter cannot have the same name as another state property. Rename one of them. Found with "${name}" in store "${id}".`);
+      }
+      computedGetters[name] = markRaw(computed(() => {
+        setActivePinia(pinia);
+        const store2 = pinia._s.get(id);
+        return getters[name].call(store2, store2);
+      }));
+      return computedGetters;
+    }, {}));
+  }
+  store = createSetupStore(id, setup, options, pinia, hot, true);
+  return store;
+}
+function createSetupStore($id, setup, options = {}, pinia, hot, isOptionsStore) {
+  let scope;
+  const optionsForPlugin = assign({ actions: {} }, options);
+  if (!pinia._e.active) {
+    throw new Error("Pinia destroyed");
+  }
+  const $subscribeOptions = {
+    deep: true
+    // flush: 'post',
+  };
+  {
+    $subscribeOptions.onTrigger = (event) => {
+      if (isListening) {
+        debuggerEvents = event;
+      } else if (isListening == false && !store._hotUpdating) {
+        if (Array.isArray(debuggerEvents)) {
+          debuggerEvents.push(event);
+        } else {
+          console.error("🍍 debuggerEvents should be an array. This is most likely an internal Pinia bug.");
+        }
+      }
+    };
+  }
+  let isListening;
+  let isSyncListening;
+  let subscriptions = [];
+  let actionSubscriptions = [];
+  let debuggerEvents;
+  const initialState = pinia.state.value[$id];
+  if (!isOptionsStore && !initialState && !hot) {
+    {
+      pinia.state.value[$id] = {};
+    }
+  }
+  const hotState = ref({});
+  let activeListener;
+  function $patch(partialStateOrMutator) {
+    let subscriptionMutation;
+    isListening = isSyncListening = false;
+    {
+      debuggerEvents = [];
+    }
+    if (typeof partialStateOrMutator === "function") {
+      partialStateOrMutator(pinia.state.value[$id]);
+      subscriptionMutation = {
+        type: MutationType.patchFunction,
+        storeId: $id,
+        events: debuggerEvents
+      };
+    } else {
+      mergeReactiveObjects(pinia.state.value[$id], partialStateOrMutator);
+      subscriptionMutation = {
+        type: MutationType.patchObject,
+        payload: partialStateOrMutator,
+        storeId: $id,
+        events: debuggerEvents
+      };
+    }
+    const myListenerId = activeListener = Symbol();
+    nextTick$1().then(() => {
+      if (activeListener === myListenerId) {
+        isListening = true;
+      }
+    });
+    isSyncListening = true;
+    triggerSubscriptions(subscriptions, subscriptionMutation, pinia.state.value[$id]);
+  }
+  const $reset = isOptionsStore ? function $reset2() {
+    const { state } = options;
+    const newState = state ? state() : {};
+    this.$patch(($state) => {
+      assign($state, newState);
+    });
+  } : (
+    /* istanbul ignore next */
+    () => {
+      throw new Error(`🍍: Store "${$id}" is built using the setup syntax and does not implement $reset().`);
+    }
+  );
+  function $dispose() {
+    scope.stop();
+    subscriptions = [];
+    actionSubscriptions = [];
+    pinia._s.delete($id);
+  }
+  function wrapAction(name, action) {
+    return function() {
+      setActivePinia(pinia);
+      const args = Array.from(arguments);
+      const afterCallbackList = [];
+      const onErrorCallbackList = [];
+      function after(callback) {
+        afterCallbackList.push(callback);
+      }
+      function onError2(callback) {
+        onErrorCallbackList.push(callback);
+      }
+      triggerSubscriptions(actionSubscriptions, {
+        args,
+        name,
+        store,
+        after,
+        onError: onError2
+      });
+      let ret;
+      try {
+        ret = action.apply(this && this.$id === $id ? this : store, args);
+      } catch (error) {
+        triggerSubscriptions(onErrorCallbackList, error);
+        throw error;
+      }
+      if (ret instanceof Promise) {
+        return ret.then((value) => {
+          triggerSubscriptions(afterCallbackList, value);
+          return value;
+        }).catch((error) => {
+          triggerSubscriptions(onErrorCallbackList, error);
+          return Promise.reject(error);
+        });
+      }
+      triggerSubscriptions(afterCallbackList, ret);
+      return ret;
+    };
+  }
+  const _hmrPayload = /* @__PURE__ */ markRaw({
+    actions: {},
+    getters: {},
+    state: [],
+    hotState
+  });
+  const partialStore = {
+    _p: pinia,
+    // _s: scope,
+    $id,
+    $onAction: addSubscription.bind(null, actionSubscriptions),
+    $patch,
+    $reset,
+    $subscribe(callback, options2 = {}) {
+      const removeSubscription = addSubscription(subscriptions, callback, options2.detached, () => stopWatcher());
+      const stopWatcher = scope.run(() => watch(() => pinia.state.value[$id], (state) => {
+        if (options2.flush === "sync" ? isSyncListening : isListening) {
+          callback({
+            storeId: $id,
+            type: MutationType.direct,
+            events: debuggerEvents
+          }, state);
+        }
+      }, assign({}, $subscribeOptions, options2)));
+      return removeSubscription;
+    },
+    $dispose
+  };
+  const store = reactive(assign(
+    {
+      _hmrPayload,
+      _customProperties: markRaw(/* @__PURE__ */ new Set())
+      // devtools custom properties
+    },
+    partialStore
+    // must be added later
+    // setupStore
+  ));
+  pinia._s.set($id, store);
+  const runWithContext = pinia._a && pinia._a.runWithContext || fallbackRunWithContext;
+  const setupStore = runWithContext(() => pinia._e.run(() => (scope = effectScope()).run(setup)));
+  for (const key in setupStore) {
+    const prop = setupStore[key];
+    if (isRef(prop) && !isComputed(prop) || isReactive(prop)) {
+      if (hot) {
+        set(hotState.value, key, toRef(setupStore, key));
+      } else if (!isOptionsStore) {
+        if (initialState && shouldHydrate(prop)) {
+          if (isRef(prop)) {
+            prop.value = initialState[key];
+          } else {
+            mergeReactiveObjects(prop, initialState[key]);
+          }
+        }
+        {
+          pinia.state.value[$id][key] = prop;
+        }
+      }
+      {
+        _hmrPayload.state.push(key);
+      }
+    } else if (typeof prop === "function") {
+      const actionValue = hot ? prop : wrapAction(key, prop);
+      {
+        setupStore[key] = actionValue;
+      }
+      {
+        _hmrPayload.actions[key] = prop;
+      }
+      optionsForPlugin.actions[key] = prop;
+    } else {
+      if (isComputed(prop)) {
+        _hmrPayload.getters[key] = isOptionsStore ? (
+          // @ts-expect-error
+          options.getters[key]
+        ) : prop;
+        if (IS_CLIENT) {
+          const getters = setupStore._getters || // @ts-expect-error: same
+          (setupStore._getters = markRaw([]));
+          getters.push(key);
+        }
+      }
+    }
+  }
+  {
+    assign(store, setupStore);
+    assign(toRaw(store), setupStore);
+  }
+  Object.defineProperty(store, "$state", {
+    get: () => hot ? hotState.value : pinia.state.value[$id],
+    set: (state) => {
+      if (hot) {
+        throw new Error("cannot set hotState");
+      }
+      $patch(($state) => {
+        assign($state, state);
+      });
+    }
+  });
+  {
+    store._hotUpdate = markRaw((newStore) => {
+      store._hotUpdating = true;
+      newStore._hmrPayload.state.forEach((stateKey) => {
+        if (stateKey in store.$state) {
+          const newStateTarget = newStore.$state[stateKey];
+          const oldStateSource = store.$state[stateKey];
+          if (typeof newStateTarget === "object" && isPlainObject(newStateTarget) && isPlainObject(oldStateSource)) {
+            patchObject(newStateTarget, oldStateSource);
+          } else {
+            newStore.$state[stateKey] = oldStateSource;
+          }
+        }
+        set(store, stateKey, toRef(newStore.$state, stateKey));
+      });
+      Object.keys(store.$state).forEach((stateKey) => {
+        if (!(stateKey in newStore.$state)) {
+          del(store, stateKey);
+        }
+      });
+      isListening = false;
+      isSyncListening = false;
+      pinia.state.value[$id] = toRef(newStore._hmrPayload, "hotState");
+      isSyncListening = true;
+      nextTick$1().then(() => {
+        isListening = true;
+      });
+      for (const actionName in newStore._hmrPayload.actions) {
+        const action = newStore[actionName];
+        set(store, actionName, wrapAction(actionName, action));
+      }
+      for (const getterName in newStore._hmrPayload.getters) {
+        const getter = newStore._hmrPayload.getters[getterName];
+        const getterValue = isOptionsStore ? (
+          // special handling of options api
+          computed(() => {
+            setActivePinia(pinia);
+            return getter.call(store, store);
+          })
+        ) : getter;
+        set(store, getterName, getterValue);
+      }
+      Object.keys(store._hmrPayload.getters).forEach((key) => {
+        if (!(key in newStore._hmrPayload.getters)) {
+          del(store, key);
+        }
+      });
+      Object.keys(store._hmrPayload.actions).forEach((key) => {
+        if (!(key in newStore._hmrPayload.actions)) {
+          del(store, key);
+        }
+      });
+      store._hmrPayload = newStore._hmrPayload;
+      store._getters = newStore._getters;
+      store._hotUpdating = false;
+    });
+  }
+  if (USE_DEVTOOLS) {
+    const nonEnumerable = {
+      writable: true,
+      configurable: true,
+      // avoid warning on devtools trying to display this property
+      enumerable: false
+    };
+    ["_p", "_hmrPayload", "_getters", "_customProperties"].forEach((p2) => {
+      Object.defineProperty(store, p2, assign({ value: store[p2] }, nonEnumerable));
+    });
+  }
+  pinia._p.forEach((extender) => {
+    if (USE_DEVTOOLS) {
+      const extensions = scope.run(() => extender({
+        store,
+        app: pinia._a,
+        pinia,
+        options: optionsForPlugin
+      }));
+      Object.keys(extensions || {}).forEach((key) => store._customProperties.add(key));
+      assign(store, extensions);
+    } else {
+      assign(store, scope.run(() => extender({
+        store,
+        app: pinia._a,
+        pinia,
+        options: optionsForPlugin
+      })));
+    }
+  });
+  if (store.$state && typeof store.$state === "object" && typeof store.$state.constructor === "function" && !store.$state.constructor.toString().includes("[native code]")) {
+    console.warn(`[🍍]: The "state" must be a plain object. It cannot be
+	state: () => new MyClass()
+Found in store "${store.$id}".`);
+  }
+  if (initialState && isOptionsStore && options.hydrate) {
+    options.hydrate(store.$state, initialState);
+  }
+  isListening = true;
+  isSyncListening = true;
+  return store;
+}
+function defineStore(idOrOptions, setup, setupOptions) {
+  let id;
+  let options;
+  const isSetupStore = typeof setup === "function";
+  if (typeof idOrOptions === "string") {
+    id = idOrOptions;
+    options = isSetupStore ? setupOptions : setup;
+  } else {
+    options = idOrOptions;
+    id = idOrOptions.id;
+    if (typeof id !== "string") {
+      throw new Error(`[🍍]: "defineStore()" must be passed a store id as its first argument.`);
+    }
+  }
+  function useStore(pinia, hot) {
+    const hasContext = hasInjectionContext();
+    pinia = // in test mode, ignore the argument provided as we can always retrieve a
+    // pinia instance with getActivePinia()
+    pinia || (hasContext ? inject(piniaSymbol, null) : null);
+    if (pinia)
+      setActivePinia(pinia);
+    if (!activePinia) {
+      throw new Error(`[🍍]: "getActivePinia()" was called but there was no active Pinia. Are you trying to use a store before calling "app.use(pinia)"?
+See https://pinia.vuejs.org/core-concepts/outside-component-usage.html for help.
+This will fail in production.`);
+    }
+    pinia = activePinia;
+    if (!pinia._s.has(id)) {
+      if (isSetupStore) {
+        createSetupStore(id, setup, options, pinia);
+      } else {
+        createOptionsStore(id, options, pinia);
+      }
+      {
+        useStore._pinia = pinia;
+      }
+    }
+    const store = pinia._s.get(id);
+    if (hot) {
+      const hotId = "__hot:" + id;
+      const newStore = isSetupStore ? createSetupStore(hotId, setup, options, pinia, true) : createOptionsStore(hotId, assign({}, options), pinia, true);
+      hot._hotUpdate(newStore);
+      delete pinia.state.value[hotId];
+      pinia._s.delete(hotId);
+    }
+    if (IS_CLIENT) {
+      const currentInstance2 = getCurrentInstance();
+      if (currentInstance2 && currentInstance2.proxy && // avoid adding stores that are just built for hot module replacement
+      !hot) {
+        const vm = currentInstance2.proxy;
+        const cache = "_pStores" in vm ? vm._pStores : vm._pStores = {};
+        cache[id] = store;
+      }
+    }
+    return store;
+  }
+  useStore.$id = id;
+  return useStore;
+}
+let mapStoreSuffix = "Store";
+function setMapStoreSuffix(suffix) {
+  mapStoreSuffix = suffix;
+}
+function mapStores(...stores) {
+  if (Array.isArray(stores[0])) {
+    console.warn(`[🍍]: Directly pass all stores to "mapStores()" without putting them in an array:
+Replace
+	mapStores([useAuthStore, useCartStore])
+with
+	mapStores(useAuthStore, useCartStore)
+This will fail in production if not fixed.`);
+    stores = stores[0];
+  }
+  return stores.reduce((reduced, useStore) => {
+    reduced[useStore.$id + mapStoreSuffix] = function() {
+      return useStore(this.$pinia);
+    };
+    return reduced;
+  }, {});
+}
+function mapState(useStore, keysOrMapper) {
+  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
+    reduced[key] = function() {
+      return useStore(this.$pinia)[key];
+    };
+    return reduced;
+  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
+    reduced[key] = function() {
+      const store = useStore(this.$pinia);
+      const storeKey = keysOrMapper[key];
+      return typeof storeKey === "function" ? storeKey.call(this, store) : store[storeKey];
+    };
+    return reduced;
+  }, {});
+}
+const mapGetters = mapState;
+function mapActions(useStore, keysOrMapper) {
+  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
+    reduced[key] = function(...args) {
+      return useStore(this.$pinia)[key](...args);
+    };
+    return reduced;
+  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
+    reduced[key] = function(...args) {
+      return useStore(this.$pinia)[keysOrMapper[key]](...args);
+    };
+    return reduced;
+  }, {});
+}
+function mapWritableState(useStore, keysOrMapper) {
+  return Array.isArray(keysOrMapper) ? keysOrMapper.reduce((reduced, key) => {
+    reduced[key] = {
+      get() {
+        return useStore(this.$pinia)[key];
+      },
+      set(value) {
+        return useStore(this.$pinia)[key] = value;
+      }
+    };
+    return reduced;
+  }, {}) : Object.keys(keysOrMapper).reduce((reduced, key) => {
+    reduced[key] = {
+      get() {
+        return useStore(this.$pinia)[keysOrMapper[key]];
+      },
+      set(value) {
+        return useStore(this.$pinia)[keysOrMapper[key]] = value;
+      }
+    };
+    return reduced;
+  }, {});
+}
+function storeToRefs(store) {
+  {
+    store = toRaw(store);
+    const refs = {};
+    for (const key in store) {
+      const value = store[key];
+      if (isRef(value) || isReactive(value)) {
+        refs[key] = // ---
+        toRef(store, key);
+      }
+    }
+    return refs;
+  }
+}
+const PiniaVuePlugin = function(_Vue) {
+  _Vue.mixin({
+    beforeCreate() {
+      const options = this.$options;
+      if (options.pinia) {
+        const pinia = options.pinia;
+        if (!this._provided) {
+          const provideCache = {};
+          Object.defineProperty(this, "_provided", {
+            get: () => provideCache,
+            set: (v2) => Object.assign(provideCache, v2)
+          });
+        }
+        this._provided[piniaSymbol] = pinia;
+        if (!this.$pinia) {
+          this.$pinia = pinia;
+        }
+        pinia._a = this;
+        if (IS_CLIENT) {
+          setActivePinia(pinia);
+        }
+        if (USE_DEVTOOLS) {
+          registerPiniaDevtools(pinia._a);
+        }
+      } else if (!this.$pinia && options.parent && options.parent.$pinia) {
+        this.$pinia = options.parent.$pinia;
+      }
+    },
+    destroyed() {
+      delete this._pStores;
+    }
+  });
+};
+const Pinia = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  get MutationType() {
+    return MutationType;
+  },
+  PiniaVuePlugin,
+  acceptHMRUpdate,
+  createPinia,
+  defineStore,
+  getActivePinia,
+  mapActions,
+  mapGetters,
+  mapState,
+  mapStores,
+  mapWritableState,
+  setActivePinia,
+  setMapStoreSuffix,
+  skipHydrate,
+  storeToRefs
+}, Symbol.toStringTag, { value: "Module" }));
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
+function getDefaultExportFromCjs(x) {
+  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
+}
+var dayjs_min = { exports: {} };
+(function(module2, exports2) {
+  !function(t2, e2) {
+    module2.exports = e2();
+  }(commonjsGlobal, function() {
+    var t2 = 1e3, e2 = 6e4, n2 = 36e5, r2 = "millisecond", i2 = "second", s2 = "minute", u2 = "hour", a2 = "day", o2 = "week", c2 = "month", f2 = "quarter", h2 = "year", d2 = "date", l2 = "Invalid Date", $2 = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, y2 = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, M2 = { name: "en", weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"), months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"), ordinal: function(t3) {
+      var e3 = ["th", "st", "nd", "rd"], n3 = t3 % 100;
+      return "[" + t3 + (e3[(n3 - 20) % 10] || e3[n3] || e3[0]) + "]";
+    } }, m2 = function(t3, e3, n3) {
+      var r3 = String(t3);
+      return !r3 || r3.length >= e3 ? t3 : "" + Array(e3 + 1 - r3.length).join(n3) + t3;
+    }, v2 = { s: m2, z: function(t3) {
+      var e3 = -t3.utcOffset(), n3 = Math.abs(e3), r3 = Math.floor(n3 / 60), i3 = n3 % 60;
+      return (e3 <= 0 ? "+" : "-") + m2(r3, 2, "0") + ":" + m2(i3, 2, "0");
+    }, m: function t3(e3, n3) {
+      if (e3.date() < n3.date())
+        return -t3(n3, e3);
+      var r3 = 12 * (n3.year() - e3.year()) + (n3.month() - e3.month()), i3 = e3.clone().add(r3, c2), s3 = n3 - i3 < 0, u3 = e3.clone().add(r3 + (s3 ? -1 : 1), c2);
+      return +(-(r3 + (n3 - i3) / (s3 ? i3 - u3 : u3 - i3)) || 0);
+    }, a: function(t3) {
+      return t3 < 0 ? Math.ceil(t3) || 0 : Math.floor(t3);
+    }, p: function(t3) {
+      return { M: c2, y: h2, w: o2, d: a2, D: d2, h: u2, m: s2, s: i2, ms: r2, Q: f2 }[t3] || String(t3 || "").toLowerCase().replace(/s$/, "");
+    }, u: function(t3) {
+      return void 0 === t3;
+    } }, g2 = "en", D = {};
+    D[g2] = M2;
+    var p2 = "$isDayjsObject", S2 = function(t3) {
+      return t3 instanceof _2 || !(!t3 || !t3[p2]);
+    }, w2 = function t3(e3, n3, r3) {
+      var i3;
+      if (!e3)
+        return g2;
+      if ("string" == typeof e3) {
+        var s3 = e3.toLowerCase();
+        D[s3] && (i3 = s3), n3 && (D[s3] = n3, i3 = s3);
+        var u3 = e3.split("-");
+        if (!i3 && u3.length > 1)
+          return t3(u3[0]);
+      } else {
+        var a3 = e3.name;
+        D[a3] = e3, i3 = a3;
+      }
+      return !r3 && i3 && (g2 = i3), i3 || !r3 && g2;
+    }, O2 = function(t3, e3) {
+      if (S2(t3))
+        return t3.clone();
+      var n3 = "object" == typeof e3 ? e3 : {};
+      return n3.date = t3, n3.args = arguments, new _2(n3);
+    }, b2 = v2;
+    b2.l = w2, b2.i = S2, b2.w = function(t3, e3) {
+      return O2(t3, { locale: e3.$L, utc: e3.$u, x: e3.$x, $offset: e3.$offset });
+    };
+    var _2 = function() {
+      function M3(t3) {
+        this.$L = w2(t3.locale, null, true), this.parse(t3), this.$x = this.$x || t3.x || {}, this[p2] = true;
+      }
+      var m3 = M3.prototype;
+      return m3.parse = function(t3) {
+        this.$d = function(t4) {
+          var e3 = t4.date, n3 = t4.utc;
+          if (null === e3)
+            return /* @__PURE__ */ new Date(NaN);
+          if (b2.u(e3))
+            return /* @__PURE__ */ new Date();
+          if (e3 instanceof Date)
+            return new Date(e3);
+          if ("string" == typeof e3 && !/Z$/i.test(e3)) {
+            var r3 = e3.match($2);
+            if (r3) {
+              var i3 = r3[2] - 1 || 0, s3 = (r3[7] || "0").substring(0, 3);
+              return n3 ? new Date(Date.UTC(r3[1], i3, r3[3] || 1, r3[4] || 0, r3[5] || 0, r3[6] || 0, s3)) : new Date(r3[1], i3, r3[3] || 1, r3[4] || 0, r3[5] || 0, r3[6] || 0, s3);
+            }
+          }
+          return new Date(e3);
+        }(t3), this.init();
+      }, m3.init = function() {
+        var t3 = this.$d;
+        this.$y = t3.getFullYear(), this.$M = t3.getMonth(), this.$D = t3.getDate(), this.$W = t3.getDay(), this.$H = t3.getHours(), this.$m = t3.getMinutes(), this.$s = t3.getSeconds(), this.$ms = t3.getMilliseconds();
+      }, m3.$utils = function() {
+        return b2;
+      }, m3.isValid = function() {
+        return !(this.$d.toString() === l2);
+      }, m3.isSame = function(t3, e3) {
+        var n3 = O2(t3);
+        return this.startOf(e3) <= n3 && n3 <= this.endOf(e3);
+      }, m3.isAfter = function(t3, e3) {
+        return O2(t3) < this.startOf(e3);
+      }, m3.isBefore = function(t3, e3) {
+        return this.endOf(e3) < O2(t3);
+      }, m3.$g = function(t3, e3, n3) {
+        return b2.u(t3) ? this[e3] : this.set(n3, t3);
+      }, m3.unix = function() {
+        return Math.floor(this.valueOf() / 1e3);
+      }, m3.valueOf = function() {
+        return this.$d.getTime();
+      }, m3.startOf = function(t3, e3) {
+        var n3 = this, r3 = !!b2.u(e3) || e3, f3 = b2.p(t3), l3 = function(t4, e4) {
+          var i3 = b2.w(n3.$u ? Date.UTC(n3.$y, e4, t4) : new Date(n3.$y, e4, t4), n3);
+          return r3 ? i3 : i3.endOf(a2);
+        }, $3 = function(t4, e4) {
+          return b2.w(n3.toDate()[t4].apply(n3.toDate("s"), (r3 ? [0, 0, 0, 0] : [23, 59, 59, 999]).slice(e4)), n3);
+        }, y3 = this.$W, M4 = this.$M, m4 = this.$D, v3 = "set" + (this.$u ? "UTC" : "");
+        switch (f3) {
+          case h2:
+            return r3 ? l3(1, 0) : l3(31, 11);
+          case c2:
+            return r3 ? l3(1, M4) : l3(0, M4 + 1);
+          case o2:
+            var g3 = this.$locale().weekStart || 0, D2 = (y3 < g3 ? y3 + 7 : y3) - g3;
+            return l3(r3 ? m4 - D2 : m4 + (6 - D2), M4);
+          case a2:
+          case d2:
+            return $3(v3 + "Hours", 0);
+          case u2:
+            return $3(v3 + "Minutes", 1);
+          case s2:
+            return $3(v3 + "Seconds", 2);
+          case i2:
+            return $3(v3 + "Milliseconds", 3);
+          default:
+            return this.clone();
+        }
+      }, m3.endOf = function(t3) {
+        return this.startOf(t3, false);
+      }, m3.$set = function(t3, e3) {
+        var n3, o3 = b2.p(t3), f3 = "set" + (this.$u ? "UTC" : ""), l3 = (n3 = {}, n3[a2] = f3 + "Date", n3[d2] = f3 + "Date", n3[c2] = f3 + "Month", n3[h2] = f3 + "FullYear", n3[u2] = f3 + "Hours", n3[s2] = f3 + "Minutes", n3[i2] = f3 + "Seconds", n3[r2] = f3 + "Milliseconds", n3)[o3], $3 = o3 === a2 ? this.$D + (e3 - this.$W) : e3;
+        if (o3 === c2 || o3 === h2) {
+          var y3 = this.clone().set(d2, 1);
+          y3.$d[l3]($3), y3.init(), this.$d = y3.set(d2, Math.min(this.$D, y3.daysInMonth())).$d;
+        } else
+          l3 && this.$d[l3]($3);
+        return this.init(), this;
+      }, m3.set = function(t3, e3) {
+        return this.clone().$set(t3, e3);
+      }, m3.get = function(t3) {
+        return this[b2.p(t3)]();
+      }, m3.add = function(r3, f3) {
+        var d3, l3 = this;
+        r3 = Number(r3);
+        var $3 = b2.p(f3), y3 = function(t3) {
+          var e3 = O2(l3);
+          return b2.w(e3.date(e3.date() + Math.round(t3 * r3)), l3);
+        };
+        if ($3 === c2)
+          return this.set(c2, this.$M + r3);
+        if ($3 === h2)
+          return this.set(h2, this.$y + r3);
+        if ($3 === a2)
+          return y3(1);
+        if ($3 === o2)
+          return y3(7);
+        var M4 = (d3 = {}, d3[s2] = e2, d3[u2] = n2, d3[i2] = t2, d3)[$3] || 1, m4 = this.$d.getTime() + r3 * M4;
+        return b2.w(m4, this);
+      }, m3.subtract = function(t3, e3) {
+        return this.add(-1 * t3, e3);
+      }, m3.format = function(t3) {
+        var e3 = this, n3 = this.$locale();
+        if (!this.isValid())
+          return n3.invalidDate || l2;
+        var r3 = t3 || "YYYY-MM-DDTHH:mm:ssZ", i3 = b2.z(this), s3 = this.$H, u3 = this.$m, a3 = this.$M, o3 = n3.weekdays, c3 = n3.months, f3 = n3.meridiem, h3 = function(t4, n4, i4, s4) {
+          return t4 && (t4[n4] || t4(e3, r3)) || i4[n4].slice(0, s4);
+        }, d3 = function(t4) {
+          return b2.s(s3 % 12 || 12, t4, "0");
+        }, $3 = f3 || function(t4, e4, n4) {
+          var r4 = t4 < 12 ? "AM" : "PM";
+          return n4 ? r4.toLowerCase() : r4;
+        };
+        return r3.replace(y2, function(t4, r4) {
+          return r4 || function(t5) {
+            switch (t5) {
+              case "YY":
+                return String(e3.$y).slice(-2);
+              case "YYYY":
+                return b2.s(e3.$y, 4, "0");
+              case "M":
+                return a3 + 1;
+              case "MM":
+                return b2.s(a3 + 1, 2, "0");
+              case "MMM":
+                return h3(n3.monthsShort, a3, c3, 3);
+              case "MMMM":
+                return h3(c3, a3);
+              case "D":
+                return e3.$D;
+              case "DD":
+                return b2.s(e3.$D, 2, "0");
+              case "d":
+                return String(e3.$W);
+              case "dd":
+                return h3(n3.weekdaysMin, e3.$W, o3, 2);
+              case "ddd":
+                return h3(n3.weekdaysShort, e3.$W, o3, 3);
+              case "dddd":
+                return o3[e3.$W];
+              case "H":
+                return String(s3);
+              case "HH":
+                return b2.s(s3, 2, "0");
+              case "h":
+                return d3(1);
+              case "hh":
+                return d3(2);
+              case "a":
+                return $3(s3, u3, true);
+              case "A":
+                return $3(s3, u3, false);
+              case "m":
+                return String(u3);
+              case "mm":
+                return b2.s(u3, 2, "0");
+              case "s":
+                return String(e3.$s);
+              case "ss":
+                return b2.s(e3.$s, 2, "0");
+              case "SSS":
+                return b2.s(e3.$ms, 3, "0");
+              case "Z":
+                return i3;
+            }
+            return null;
+          }(t4) || i3.replace(":", "");
+        });
+      }, m3.utcOffset = function() {
+        return 15 * -Math.round(this.$d.getTimezoneOffset() / 15);
+      }, m3.diff = function(r3, d3, l3) {
+        var $3, y3 = this, M4 = b2.p(d3), m4 = O2(r3), v3 = (m4.utcOffset() - this.utcOffset()) * e2, g3 = this - m4, D2 = function() {
+          return b2.m(y3, m4);
+        };
+        switch (M4) {
+          case h2:
+            $3 = D2() / 12;
+            break;
+          case c2:
+            $3 = D2();
+            break;
+          case f2:
+            $3 = D2() / 3;
+            break;
+          case o2:
+            $3 = (g3 - v3) / 6048e5;
+            break;
+          case a2:
+            $3 = (g3 - v3) / 864e5;
+            break;
+          case u2:
+            $3 = g3 / n2;
+            break;
+          case s2:
+            $3 = g3 / e2;
+            break;
+          case i2:
+            $3 = g3 / t2;
+            break;
+          default:
+            $3 = g3;
+        }
+        return l3 ? $3 : b2.a($3);
+      }, m3.daysInMonth = function() {
+        return this.endOf(c2).$D;
+      }, m3.$locale = function() {
+        return D[this.$L];
+      }, m3.locale = function(t3, e3) {
+        if (!t3)
+          return this.$L;
+        var n3 = this.clone(), r3 = w2(t3, e3, true);
+        return r3 && (n3.$L = r3), n3;
+      }, m3.clone = function() {
+        return b2.w(this.$d, this);
+      }, m3.toDate = function() {
+        return new Date(this.valueOf());
+      }, m3.toJSON = function() {
+        return this.isValid() ? this.toISOString() : null;
+      }, m3.toISOString = function() {
+        return this.$d.toISOString();
+      }, m3.toString = function() {
+        return this.$d.toUTCString();
+      }, M3;
+    }(), k = _2.prototype;
+    return O2.prototype = k, [["$ms", r2], ["$s", i2], ["$m", s2], ["$H", u2], ["$W", a2], ["$M", c2], ["$y", h2], ["$D", d2]].forEach(function(t3) {
+      k[t3[1]] = function(e3) {
+        return this.$g(e3, t3[0], t3[1]);
+      };
+    }), O2.extend = function(t3, e3) {
+      return t3.$i || (t3(e3, _2, O2), t3.$i = true), O2;
+    }, O2.locale = w2, O2.isDayjs = S2, O2.unix = function(t3) {
+      return O2(1e3 * t3);
+    }, O2.en = D[g2], O2.Ls = D, O2.p = {}, O2;
+  });
+})(dayjs_min);
+var dayjs_minExports = dayjs_min.exports;
+const dayjs = /* @__PURE__ */ getDefaultExportFromCjs(dayjs_minExports);
 exports.Pinia = Pinia;
 exports._export_sfc = _export_sfc;
 exports.createPinia = createPinia;
@@ -12173,19 +12295,24 @@ exports.createSSRApp = createSSRApp;
 exports.dayjs = dayjs;
 exports.defineComponent = defineComponent;
 exports.defineStore = defineStore;
-exports.e = e$1;
+exports.e = e;
 exports.er = er;
 exports.f = f$1;
+exports.getCurrentInstance = getCurrentInstance;
 exports.index = index;
 exports.initVueI18n = initVueI18n;
 exports.n = n$1;
 exports.o = o$1;
+exports.onMounted = onMounted;
 exports.p = p$1;
+exports.pagesJson = pagesJson;
 exports.r = r$1;
 exports.reactive = reactive;
 exports.ref = ref;
 exports.resolveComponent = resolveComponent;
 exports.s = s$1;
+exports.sr = sr;
 exports.t = t$1;
 exports.unref = unref;
+exports.wx$1 = wx$1;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/common/vendor.js.map

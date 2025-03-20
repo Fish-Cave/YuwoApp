@@ -29,3 +29,9 @@
 		width: 90%;
 		justify-content: space-between;
 }
+.option {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+}

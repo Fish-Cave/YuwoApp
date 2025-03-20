@@ -17,14 +17,18 @@ module.exports = {
 			"capacity":true,
 			"status":true,
 			"machinenum":true,
+			"description":true,
 		}).get()
 	},
 	GetMachinesInfo:function(content){
 		const collection = db.collection('machines');
 		return collection.field({
-			
+			"name":true,
+			"type":true,
+			"capacity":true,
+			"status":true,
 		}).where({
-			
+			_id:content,
 		}).get()
 	},
 	
@@ -56,7 +60,7 @@ module.exports = {
 			"startTime" : true,
 		}).where({
 			userId : content,
-		}).limit(2).orderBy("startTime", "desc").get()
+		}).orderBy("startTime", "desc").get()
 	},
 	
 	GetUserInfo: function(content){

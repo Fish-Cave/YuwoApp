@@ -1,1 +1,1 @@
-<view><wu-calendar wx:if="{{b}}" bindchange="{{a}}" u-i="c052bcf2-0" bind:__l="__l" u-p="{{b}}"/></view><view><usage u-i="c052bcf2-1" bind:__l="__l"></usage></view>
+<view><view><wu-calendar wx:if="{{b}}" bindchange="{{a}}" u-i="c052bcf2-0" bind:__l="__l" u-p="{{b}}"/></view><view><usage u-i="c052bcf2-1" bind:__l="__l"></usage><button wx:if="{{c}}" bindtap="{{d}}">配置</button></view></view>

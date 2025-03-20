@@ -1,5 +1,5 @@
 
-.bt{
+.bt {
 		padding-top: 20rpx;
 		display: flex;
 		justify-content: center;
@@ -9,7 +9,7 @@
 		height: 70rpx;
 		width: 270rpx;
 }
-.icon{
+.icon {
 		padding-top: 20rpx;
 		display: flex;
 		justify-content: center;

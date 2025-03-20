@@ -17,40 +17,71 @@ if (!Math) {
 const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
   __name: "usage",
   setup(__props) {
-    function goOrder() {
-      common_vendor.index.__f__("log", "at pages/index/usage.vue:44", "test");
+    const todo = common_vendor.er.importObject("todo");
+    function goOrder(machineName, machineID) {
+      common_vendor.index.__f__("log", "at pages/index/usage.vue:58", "test");
       common_vendor.index.navigateTo({
-        url: "/pages/order/order"
+        url: "/pages/order/order",
+        success: function(res) {
+          res.eventChannel.emit("acceptDataFromOpenerPage", { "name": machineName, "id": machineID });
+        }
       });
     }
+    const machines = common_vendor.ref([]);
+    async function loadMachines() {
+      try {
+        let res = await todo.Machines_List();
+        machines.value = res.data;
+      } catch {
+      }
+    }
+    common_vendor.onMounted(() => {
+      loadMachines();
+    });
     return (_ctx, _cache) => {
       return {
-        a: common_vendor.p({
+        a: common_vendor.f(machines.value, (machine, k0, i0) => {
+          return {
+            a: "03c61254-3-" + i0 + "," + ("03c61254-2-" + i0),
+            b: "03c61254-2-" + i0 + "," + ("03c61254-1-" + i0),
+            c: common_vendor.t(machine.name),
+            d: "03c61254-4-" + i0 + "," + ("03c61254-1-" + i0),
+            e: "03c61254-6-" + i0 + "," + ("03c61254-5-" + i0),
+            f: "03c61254-5-" + i0 + "," + ("03c61254-1-" + i0),
+            g: "03c61254-1-" + i0 + "," + ("03c61254-0-" + i0),
+            h: "03c61254-7-" + i0 + "," + ("03c61254-0-" + i0),
+            i: "03c61254-8-" + i0 + "," + ("03c61254-0-" + i0),
+            j: common_vendor.o(($event) => goOrder(machine.name, machine._id), machine.machinenum),
+            k: common_vendor.t(machine._id),
+            l: "03c61254-0-" + i0,
+            m: machine.machinenum
+          };
+        }),
+        b: common_vendor.p({
           type: "headphones",
           size: "30"
         }),
-        b: common_vendor.p({
+        c: common_vendor.p({
           span: 4
         }),
-        c: common_vendor.p({
+        d: common_vendor.p({
           span: 16
         }),
-        d: common_vendor.p({
+        e: common_vendor.p({
           type: "heart",
           size: "30"
         }),
-        e: common_vendor.p({
+        f: common_vendor.p({
           span: 4
         }),
-        f: common_vendor.p({
+        g: common_vendor.p({
           type: "staff",
           size: "30"
         }),
-        g: common_vendor.p({
+        h: common_vendor.p({
           type: "personadd",
           size: "30"
         }),
-        h: common_vendor.o(($event) => goOrder()),
         i: common_vendor.p({
           ["is-shadow"]: false
         })

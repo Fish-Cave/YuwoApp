@@ -41,8 +41,9 @@
 				<text class="segment-label">预约类型:</text>
 			</view>
 			<view class="segmented-control-container">
-				<uni-segmented-control :values="segmentedValues" :current="segmentedCurrent"
-					style-type="button" active-color="#f9cb14" @clickItem="onSegmentChange"></uni-segmented-control>
+				<uni-segmented-control :values="segmentedValues" 
+				:current="segmentedCurrent" style-type="button"
+					active-color="#f9cb14" @clickItem="onSegmentChange"></uni-segmented-control>
 			</view>
 
 
@@ -50,7 +51,9 @@
 				<view class="time-selection">
 					<uni-row class="attention-box">
 						<uni-col :span="4">
-							<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
+							<uni-icons type="checkbox" 
+							size="30" 
+							style="padding-left: 20rpx;"></uni-icons>
 						</uni-col>
 						<uni-col :span="14">预计时长：包夜！</uni-col>
 						<uni-col :span="6">费用：¥{{price}}</uni-col>
@@ -84,7 +87,9 @@
 				<view>
 					<uni-row class="attention-box">
 						<uni-col :span="4">
-							<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
+							<uni-icons type="checkbox" 
+							size="30" 
+							style="padding-left: 20rpx;"></uni-icons>
 						</uni-col>
 						<uni-col :span="14">预计时长：{{totalTimeText}}</uni-col>
 						<uni-col :span="6">费用：¥{{price}}</uni-col>
@@ -98,17 +103,19 @@
 			<text>{{Data}}</text>
 		</view>
 
-		<view class="divider" />
-		<view class="footer">
-			<view class="price-summary">
-				<text>预计费用 </text>
-				<text class="price-amount">¥{{price}}</text>
-			</view>
-			<view class="submit-button" @click="submitOrder()">
-				<text>确认预约</text>
-			</view>
-		</view>
+
 	</scroll-view>
+	<view class="divider" />
+	<view class="footer">
+		<view class="price-summary">
+			<text>预计费用 </text>
+			<text class="price-amount">¥{{price}}</text>
+		</view>
+		<view class="submit-button" @click="submitOrder()">
+			<text>确认预约</text>
+		</view>
+	</view>
+
 </template>
 
 <script setup lang="ts">
@@ -132,13 +139,13 @@
 	const minDate = computed(() => dayjs().format('YYYY-MM-DD'));
 
 	interface reservationData {
-		"userId": string;
-		"machineId": string;
-		"startTime": number;
-		"endTime": number;
-		"isOvernight": boolean;
-		"status": string;
-		"notes": string;
+		"userId" : string;
+		"machineId" : string;
+		"startTime" : number;
+		"endTime" : number;
+		"isOvernight" : boolean;
+		"status" : number;
+		"notes" : string;
 	}
 
 	const Data = reactive<reservationData>({
@@ -147,7 +154,7 @@
 		"startTime": 0,
 		"endTime": 0,
 		"isOvernight": false,
-		"status": "pending",
+		"status": 0,
 		"notes": ""
 	});
 
@@ -304,7 +311,7 @@
 		}
 
 
-		Data.status = "confirmed";
+		Data.status = 1;
 
 		try {
 			const res = await todo.Reservation_Add(Data);
@@ -413,31 +420,38 @@
 	.segment-container {
 		/* display: flex;  */
 		/* align-items: center; */
-		margin: 30rpx 0 10rpx 0; /* 调整 margin-bottom */
+		margin: 30rpx 0 10rpx 0;
+		/* 调整 margin-bottom */
 	}
 
 	.segment-label {
 		font-size: 32rpx;
 		margin-right: 20rpx;
-		display: block; /*  让 label 独占一行 */
-		margin-bottom: 10rpx; /*  label 与 segmentedControl 之间添加间距 */
+		display: block;
+		/*  让 label 独占一行 */
+		margin-bottom: 10rpx;
+		/*  label 与 segmentedControl 之间添加间距 */
 	}
 
 	/*  segmentedControl 容器样式，用于拉伸 */
 	.segmented-control-container {
 		width: 100%;
-		padding: 0; /*  去除 padding */
+		padding: 0;
+		/*  去除 padding */
 	}
 
 	/*  segmentedControl 组件样式，需要覆盖默认样式才能撑满容器 */
 	.uni-segmented-control {
 		width: 100%;
 	}
+
 	.uni-segmented-control__track {
 		width: 100%;
 	}
+
 	.uni-segmented-control__item {
-		flex: 1; /*  让 item 平分宽度 */
+		flex: 1;
+		/*  让 item 平分宽度 */
 	}
 
 

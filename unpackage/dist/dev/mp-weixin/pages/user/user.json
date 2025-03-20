@@ -5,6 +5,7 @@
     "uni-row": "../../uni_modules/uni-row/components/uni-row/uni-row",
     "uni-card": "../../uni_modules/uni-card/components/uni-card/uni-card",
     "uni-list-item": "../../uni_modules/uni-list/components/uni-list-item/uni-list-item",
-    "uni-list": "../../uni_modules/uni-list/components/uni-list/uni-list"
+    "uni-list": "../../uni_modules/uni-list/components/uni-list/uni-list",
+    "uni-dateformat": "../../uni_modules/uni-dateformat/components/uni-dateformat/uni-dateformat"
   }
 }

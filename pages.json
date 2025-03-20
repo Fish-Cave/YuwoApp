@@ -121,6 +121,20 @@
 			{
 				"navigationBarTitleText" : "配置"
 			}
+		},
+		{
+			"path" : "pages/reservationList/reservationList",
+			"style" : 
+			{
+				"navigationBarTitleText" : "已经预约的订单！"
+			}
+		},
+		{
+			"path" : "pages/usageDetail/usageDetail",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {
