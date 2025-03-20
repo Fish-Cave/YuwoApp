@@ -55,7 +55,6 @@
 						<text @click="goOrder(machineData.machineInfo.name,machineData.machineInfo._id)">预约</text>
 					</view>
 				</view>
-				<text>{{machineData.machineInfo._id}}</text>
 			</uni-card>
 		</view>
 	</view>

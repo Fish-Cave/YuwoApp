@@ -45,6 +45,18 @@ module.exports = {
 			"description": true,
 		}).get()
 	},
+	//根据角色返回对应的价格表
+	GetPriceInfoByRole: function(content){
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		return dbJQL.collection("prices").where({
+			role : content, 
+		}).field({
+			"_id":true,
+			"price":true
+		}).get()
+	},
 
 	Reservation_Add: function(content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo

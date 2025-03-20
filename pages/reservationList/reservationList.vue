@@ -35,11 +35,6 @@
 		status:number; 
 		startTime:string;
 	}
-	interface machine {
-		_id:string;
-		name:string;
-	}
-	const machineInfo = ref<machine[]>([])
 	const Data = ref<reservationData[]>([])
 	async function getReservationData() {
 		try {

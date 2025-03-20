@@ -10,7 +10,7 @@
 				<uni-col :span="16">
 					<view class="machine-info">
 						<text class="machine-name">{{machineName}}</text>
-						<text class="price-rate">5元/半时</text>
+						<text class="price-rate">{{singlePrice}}元/半小时</text>
 					</view>
 				</uni-col>
 			</uni-row>
@@ -36,13 +36,8 @@
 					<span>24:00</span>
 				</view>
 				<view class="timeline-bar">
-					<view
-						v-for="(reservation, index) in reservations"
-						:key="index"
-						class="timeline-segment"
-						:style="calculateSegmentStyle(reservation)"
-						@click="showReservationInfo(reservation)"
-					></view>
+					<view v-for="(reservation, index) in reservations" :key="index" class="timeline-segment"
+						:style="calculateSegmentStyle(reservation)" @click="showReservationInfo(reservation)"></view>
 				</view>
 			</view>
 
@@ -73,8 +68,7 @@
 				<text class="segment-label">预约类型:</text>
 			</view>
 			<view class="segmented-control-container">
-				<uni-segmented-control :values="segmentedValues"
-				:current="segmentedCurrent" style-type="button"
+				<uni-segmented-control :values="segmentedValues" :current="segmentedCurrent" style-type="button"
 					active-color="#f9cb14" @clickItem="onSegmentChange"></uni-segmented-control>
 			</view>
 
@@ -83,9 +77,7 @@
 				<view class="time-selection">
 					<uni-row class="attention-box">
 						<uni-col :span="4">
-							<uni-icons type="checkbox"
-							size="30"
-							style="padding-left: 20rpx;"></uni-icons>
+							<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
 						</uni-col>
 						<uni-col :span="14">预计时长：包夜！</uni-col>
 						<uni-col :span="6">费用：¥{{price}}</uni-col>
@@ -119,9 +111,7 @@
 				<view>
 					<uni-row class="attention-box">
 						<uni-col :span="4">
-							<uni-icons type="checkbox"
-							size="30"
-							style="padding-left: 20rpx;"></uni-icons>
+							<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
 						</uni-col>
 						<uni-col :span="14">预计时长：{{totalTimeText}}</uni-col>
 						<uni-col :span="6">费用：¥{{price}}</uni-col>
@@ -132,7 +122,8 @@
 
 		<view class="order-detail" v-if="debug">
 			<text>订单详情</text><br />
-			<text>{{Data}}</text>
+			<text>{{Data}}</text><br />
+			<text>单价:{{singlePrice}} 过夜价:{{overnightPrice}}</text>
 		</view>
 
 
@@ -152,11 +143,34 @@
 
 <script setup lang="ts">
 	import dayjs from 'dayjs';
-	import { ref, getCurrentInstance, onMounted, reactive, computed, watch } from 'vue';
+	import { ref, getCurrentInstance, onMounted, reactive, computed, watch, toRaw } from 'vue';
 
 	const todo = uniCloud.importObject('todo')
 	const machineName = ref("")
 	const debug = ref(false);
+	//通过在本地缓存的token来获取用户信息
+	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	console.log(res)
+
+	//价格相关
+	//pricelist是一个包含两个对象的价格表数组
+	interface priceList {
+		_id : string;
+		price : number
+	}
+	const pricelist = ref<priceList[]>([])
+	const singlePrice = ref(5)
+	const overnightPrice = ref(50)
+	async function getPriceList() {
+		try {
+			if (res.role.includes("superUser")||res.role.includes("admin")) {
+				const result = await todo.GetPriceInfoByRole("superUser")
+				pricelist.value = result.data
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+			}
+		} catch { }
+	}
 
 	// 新增 - 显示已有预约的相关变量和函数
 	const reservations = ref([]);
@@ -275,7 +289,7 @@
 	// 计算总时长和价格
 	function calculateTotalTimeAndPrice() {
 		if (Data.isOvernight) {
-			price.value = 50;
+			price.value = overnightPrice.value;
 			return;
 		}
 
@@ -290,9 +304,13 @@
 			}
 
 			totalTime.value = parseFloat(diffHours.toFixed(1));
-
-			// 计算价格：5元/半小时
-			price.value = Math.ceil(totalTime.value / 0.5) * 5;
+			console.log("totalTime = " + totalTime.value)
+			price.value = overnightPrice.value
+			//五小时以上一律50元！
+			if (totalTime.value < 5) {
+				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
+			}
+			// 计算价格：5元/半小时	
 		} else {
 			totalTime.value = 0;
 			price.value = 0;
@@ -484,39 +502,41 @@
 		}
 
 		Data.status = 1;
-		
-				try {
-					uni.showLoading({
-						title: '提交中...'
-					});
-		
-					const res = await todo.Reservation_Add(Data);
-		
-					uni.hideLoading();
-		
-					if (res && res.errCode) { // Check for error response from cloud function
-						uni.showToast({
-							title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
-							icon: 'none'
-						});
-					} else {
-						uni.showToast({
-							title: '预约成功',
-							icon: 'success'
-						});
-						// **在这里调用 getReservationsForDate 函数刷新预约条**
-						getReservationsForDate(Data.machineId, selectedDate.value);
-					}
-		
-		
-				} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
-					uni.hideLoading();
-					uni.showToast({
-						title: '预约失败: 网络错误或未知错误',
-						icon: 'none'
-					});
-					console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
-				}
+
+		try {
+			uni.showLoading({
+				title: '提交中...'
+			});
+
+			const res = await todo.Reservation_Add(Data);
+
+			uni.hideLoading();
+
+			if (res && res.errCode) { // Check for error response from cloud function
+				uni.showToast({
+					title: '预约失败: ' + (res.errMsg || '未知错误'),
+					// Display error message from cloud function
+					icon: 'none'
+				});
+			} else {
+				uni.showToast({
+					title: '预约成功',
+					icon: 'success'
+				});
+				// **在这里调用 getReservationsForDate 函数刷新预约条**
+				getReservationsForDate(Data.machineId, selectedDate.value);
+				uni.navigateBack()
+			}
+
+
+		} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
+			uni.hideLoading();
+			uni.showToast({
+				title: '预约失败: 网络错误或未知错误',
+				icon: 'none'
+			});
+			console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
+		}
 	}
 
 	// 处理日历变化
@@ -544,6 +564,7 @@
 		const eventChannel = instance.getOpenerEventChannel();
 		const res = uniCloud.getCurrentUserInfo('uni_id_token');
 
+		getPriceList()
 		eventChannel.on('acceptDataFromOpenerPage', function (data) {
 			console.log('acceptDataFromOpenerPage', data);
 			machineName.value = data.name;
@@ -766,7 +787,8 @@
 		font-size: 24rpx;
 		color: #999;
 		position: relative;
-		z-index: 1; /* 确保小时刻度在条形图上方 */
+		z-index: 1;
+		/* 确保小时刻度在条形图上方 */
 	}
 
 	.timeline-hours span {
@@ -785,7 +807,8 @@
 	}
 
 	.timeline-hours span:first-child::before {
-		display: none; /* 隐藏 0:00 前面的刻度 */
+		display: none;
+		/* 隐藏 0:00 前面的刻度 */
 	}
 
 	.timeline-bar {
@@ -796,7 +819,8 @@
 		height: 100%;
 		display: flex;
 		align-items: center;
-		overflow: hidden; /* 裁剪超出容器的 segment */
+		overflow: hidden;
+		/* 裁剪超出容器的 segment */
 	}
 
 	.timeline-segment {
@@ -805,7 +829,8 @@
 		bottom: 10rpx;
 		background-color: #FDE68A;
 		border-radius: 5rpx;
-		min-width: 2rpx; /* 保证 segment 可见 */
+		min-width: 2rpx;
+		/* 保证 segment 可见 */
 	}
 
 	.timeline-legend {

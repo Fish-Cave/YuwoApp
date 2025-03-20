@@ -123,21 +123,38 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref } from 'vue'
+	import { onMounted, reactive, ref, toRaw } from 'vue'
 	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
 	import { useProfileStore } from '@/stores/userProfileStore'
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const profile = ref({})
-	console.log(res)
+	console.log(res.role[0])
 	interface reservationData {
-		_id:String;
-		machineId:String;
-		isOvernight:Boolean;
-		status:String;
-		startTime:String;
+		_id:string;
+		machineId:string;
+		isOvernight:boolean;
+		status:string;
+		startTime:string;
 	}
 	const Data = ref<reservationData[]>([])
+	
+	interface priceList{
+		_id:string;
+		price:number
+	}
+	const pricelist = ref<priceList[]>([])
+	const price = ref(5)
+	const priceOvernight = ref(50)
+	async function getPriceList(){
+		try{
+			const result = await todo.GetPriceInfoByRole('superUser')
+			pricelist.value = result.data
+			console.log(toRaw(pricelist.value[0]))
+			price.value = toRaw(pricelist.value[0]).price
+			priceOvernight.value = toRaw(pricelist.value[1]).price
+		}catch{}
+	}
 	
 	async function getReservationData() {
 		try {
@@ -147,7 +164,7 @@
 		} catch {}
 	}
 	
-	const uniIdCo = uniCloud.importObject('uni-id-co')
+	
 	//这是测试用的订单信息
 	const testOrderData = reactive([
 		{
@@ -172,6 +189,9 @@
 			url: '/pages/reservationList/reservationList'
 		});
 	}
+	
+	//登出
+	const uniIdCo = uniCloud.importObject('uni-id-co')
 	async function logOut() {
 		try {
 			await uniIdCo.logout()
@@ -193,6 +213,8 @@
 		} catch { }
 	}
 	onMounted(() => {
+		getPriceList()
+		console.log("单价" + price.value + "过夜" + priceOvernight.value)
 	})
 </script>
 

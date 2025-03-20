@@ -3,10 +3,10 @@
 	"required": ["_id", "venueId", "weekdays", "price", "unit"],
 	"permission": {
 		"read": true,
-		"create": false, 
-		"update": false, 
-		"delete": false, 
-		"count": false 
+		"create": false,
+		"update": false,
+		"delete": false,
+		"count": false
 	},
 	"properties": {
 		"_id": {
@@ -41,6 +41,11 @@
 			"bsonType": "string",
 			"description": "价格类型 (例如: '普通', '会员')",
 			"enum": ["normal", "member"]
+		},
+		"role": {
+			"bsonType": "string",
+			"description": "用户角色等级",
+			"foreignKey": "uni-id-roles.role_id"
 		},
 		"description": {
 			"bsonType": "string",
