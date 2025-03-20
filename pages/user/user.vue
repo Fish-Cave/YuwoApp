@@ -125,7 +125,7 @@
 <script setup lang="ts">
 	import { onMounted, reactive, ref } from 'vue'
 	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
-	import { useProfileStroe } from '@/stores/userProfileStore'
+	import { useProfileStore } from '@/stores/userProfileStore'
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const profile = ref({})

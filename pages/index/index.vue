@@ -20,8 +20,8 @@
 	import { ref, onMounted, computed, reactive } from 'vue';
 	import dayjs from 'dayjs';
 	import usage from './usage';
-	import { useProfileStroe } from '../../stores/userProfileStore';
-	const userProfile = useProfileStroe()
+	import { useProfileStore } from '../../stores/userProfileStore';
+	const userProfile = useProfileStore()
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const isAdmin = res.role.includes("admin")
 	function goToConfig(){
