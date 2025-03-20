@@ -1,1 +1,0 @@
-<view class="uni-title__box" style="{{'align-items:' + d}}"><text class="{{['uni-title__base', b]}}" style="{{'color:' + c}}">{{a}}</text></view>
