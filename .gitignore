@@ -1,1 +1,5 @@
-unpackage/
+/unpackage
+/uniCloud/cloudfunctions/common/uni-config-center/uni-id/config.json
+/.hbuilderx
+uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-id/config.json
+uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-id/config.json

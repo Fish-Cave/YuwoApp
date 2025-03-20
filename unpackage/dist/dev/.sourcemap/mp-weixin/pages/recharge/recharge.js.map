@@ -1,1 +1,0 @@
-{"version":3,"file":"recharge.js","sources":["../../HBuilderX/plugins/uniapp-cli-vite/uniPage:/cGFnZXMvcmVjaGFyZ2UvcmVjaGFyZ2UudnVl"],"sourcesContent":["import MiniProgramPage from 'D:/Project/YuwoApp/pages/recharge/recharge.vue'\nwx.createPage(MiniProgramPage)"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AACA,GAAG,WAAW,eAAe;"}
