@@ -48,8 +48,8 @@
 <script setup lang="ts">
 	import { reactive, ref } from 'vue'
 	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
-	import { useProfileStroe } from '@/stores/userProfileStore'
-	const userProfile = useProfileStroe()
+	import { useProfileStore } from '@/stores/userProfileStore'
+	const userProfile = useProfileStore()
 	const textData = [
 		"请在预约时间前15分钟内完成签到",
 		"超时未签到将自动取消预约",
