@@ -485,37 +485,38 @@
 
 		Data.status = 1;
 		
-		    try {
-		        uni.showLoading({
-		            title: '提交中...'
-		        });
+				try {
+					uni.showLoading({
+						title: '提交中...'
+					});
 		
-		        const res = await todo.Reservation_Add(Data);
+					const res = await todo.Reservation_Add(Data);
 		
-		        uni.hideLoading();
+					uni.hideLoading();
 		
-		        if (res && res.errCode) { // Check for error response from cloud function
-		            uni.showToast({
-		                title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
-		                icon: 'none'
-		            });
-		        } else {
-		            uni.showToast({
-		                title: '预约成功',
-		                icon: 'success'
-		            });
-		            // Refresh reservation info ...
-		        }
+					if (res && res.errCode) { // Check for error response from cloud function
+						uni.showToast({
+							title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
+							icon: 'none'
+						});
+					} else {
+						uni.showToast({
+							title: '预约成功',
+							icon: 'success'
+						});
+						// **在这里调用 getReservationsForDate 函数刷新预约条**
+						getReservationsForDate(Data.machineId, selectedDate.value);
+					}
 		
 		
-		    } catch (error) { // Catch network errors or other unexpected issues in calling cloud function
-		        uni.hideLoading();
-		        uni.showToast({
-		            title: '预约失败: 网络错误或未知错误',
-		            icon: 'none'
-		        });
-		        console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
-		    }
+				} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
+					uni.hideLoading();
+					uni.showToast({
+						title: '预约失败: 网络错误或未知错误',
+						icon: 'none'
+					});
+					console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
+				}
 	}
 
 	// 处理日历变化
