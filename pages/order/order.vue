@@ -25,9 +25,6 @@
 		<view class="divider" />
 		<view class="chart-container">
 			<uni-title type="h1" title="已有预约时段"></uni-title>
-
-			<!-- 替换神秘条形图为实际的时间轴条形图 -->
-			<view class="timeline-container mb-4">
 				<view class="timeline-hours">
 					<span>0:00</span>
 					<span>6:00</span>
@@ -35,6 +32,9 @@
 					<span>18:00</span>
 					<span>24:00</span>
 				</view>
+			<!-- 替换神秘条形图为实际的时间轴条形图 -->
+			<view class="timeline-container mb-4">
+
 				<view class="timeline-bar">
 					<view v-for="(reservation, index) in reservations" :key="index" class="timeline-segment"
 						:style="calculateSegmentStyle(reservation)" @click="showReservationInfo(reservation)"></view>
@@ -916,7 +916,7 @@
 /* timeline chart 样式 */
 .timeline-container {
 	position: relative;
-	height: 60rpx;
+	height: 20px;
 	background-color: #f0f0f0;
 	border-radius: 10rpx;
 	overflow: hidden;
