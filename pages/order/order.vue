@@ -25,16 +25,16 @@
 		<view class="divider" />
 		<view class="chart-container">
 			<uni-title type="h1" title="已有预约时段"></uni-title>
-			<view class="timeline-hours">
-				<span>0:00</span>
-				<span>6:00</span>
-				<span>12:00</span>
-				<span>18:00</span>
-				<span>24:00</span>
-			</view>
+
 			<!-- 替换神秘条形图为实际的时间轴条形图 -->
 			<view class="timeline-container mb-4">
-
+				<view class="timeline-hours">
+					<span>0:00</span>
+					<span>6:00</span>
+					<span>12:00</span>
+					<span>18:00</span>
+					<span>24:00</span>
+				</view>
 				<view class="timeline-bar">
 					<view v-for="(reservation, index) in reservations" :key="index" class="timeline-segment"
 						:style="calculateSegmentStyle(reservation)" @click="showReservationInfo(reservation)"></view>
@@ -94,11 +94,6 @@
 			<view v-else>
 				<view class="time-selection">
 				</view>
-				<view style="display: flex; justify-content: space-between;">
-					<!--Data.isPlay指示是否游玩机台-->
-					<text>要不要玩机台呢？</text>
-					<switch :checked="Data.isPlay" @change="isPlayChange" /><br />
-				</view>
 				<view class="time-range">
 					<view class="option">
 						<text class="option-label">开始时间</text>
@@ -106,9 +101,7 @@
 							<text>{{ selectedStartTime || '请选择时间' }}</text>
 							<uni-icons type="down" size="16"></uni-icons>
 						</view>
-						<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time"
-							:minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter"
-							@confirm="confirmStartTime"></uv-datetime-picker>
+						<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
 					</view>
 					<view class="option">
 						<text class="option-label">结束时间</text>
@@ -116,9 +109,7 @@
 							<text>{{ selectedEndTime || '请选择时间' }}</text>
 							<uni-icons type="down" size="16"></uni-icons>
 						</view>
-						<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time"
-							:minHour="minEndTimeHour" :maxHour="maxEndTimeHour" :filter="timeFilter"
-							:minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
+						<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour" :maxHour="maxEndTimeHour"  :filter="timeFilter" :minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
 					</view>
 				</view>
 				<view>
@@ -136,9 +127,7 @@
 		<view class="order-detail" v-if="debug">
 			<text>订单详情</text><br />
 			<text>{{Data}}</text><br />
-			<text>单价:{{singlePrice}}
-				过夜价:{{overnightPrice}}
-				不游玩机台单价:{{singlePriceNoplay}}</text>
+			<text>单价:{{singlePrice}} 过夜价:{{overnightPrice}}</text>
 		</view>
 
 
@@ -146,11 +135,7 @@
 	<view class="divider" />
 	<view class="footer">
 		<view class="price-summary">
-			<view>
-				<text>预计费用 </text>
-				<text v-if="Data.isPlay || Data.isOvernight">(游玩机台)</text>
-				<text v-else>(不游玩机台)</text>
-			</view>
+			<text>预计费用 </text>
 			<text class="price-amount">¥{{price}}</text>
 		</view>
 		<view class="submit-button" @click="submitOrder()">
@@ -166,29 +151,26 @@
 
 	const todo = uniCloud.importObject('todo')
 	const machineName = ref("")
-	const debug = ref(false)
+	const debug = ref(false);
 	//通过在本地缓存的token来获取用户信息
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
 
 	//价格相关
-	//pricelist是一个包含三个对象的价格表数组
+	//pricelist是一个包含两个对象的价格表数组
 	interface priceList {
 		_id : string;
 		price : number
-		noplayprice : number
 	}
 	const pricelist = ref<priceList[]>([])
 	const singlePrice = ref(5)
-	const singlePriceNoplay = ref(1)
 	const overnightPrice = ref(50)
 	async function getPriceList() {
 		try {
-			if (res.role.includes("superUser") || res.role.includes("admin")) {
+			if (res.role.includes("superUser")||res.role.includes("admin")) {
 				const result = await todo.GetPriceInfoByRole("superUser")
 				pricelist.value = result.data
 				singlePrice.value = toRaw(pricelist.value[0]).price
-				singlePriceNoplay.value = toRaw(pricelist.value[0]).noplayprice
 				overnightPrice.value = toRaw(pricelist.value[1]).price
 			}
 		} catch { }
@@ -242,7 +224,6 @@
 		"startTime" : number;
 		"endTime" : number;
 		"isOvernight" : boolean;
-		"isPlay" : boolean;
 		"status" : number;
 		"notes" : string;
 	}
@@ -253,7 +234,6 @@
 		"startTime": 0,
 		"endTime": 0,
 		"isOvernight": false,
-		"isPlay": true,
 		"status": 0,
 		"notes": ""
 	});
@@ -262,10 +242,6 @@
 	const totalTime = ref(0);
 
 	// 处理debug开关变化
-	//我觉得这个玩不玩机台也是一种debug开关
-	function isPlayChange(e) {
-		Data.isPlay = e.detail.value;
-	}
 	function debugSwitchChange(e) {
 		debug.value = e.detail.value;
 	}
@@ -337,7 +313,7 @@
 	});
 
 	// 监听时间戳变化，计算总时长和价格
-	watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight,() => Data.isPlay], () => {
+	watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight], () => {
 		calculateTotalTimeAndPrice();
 	});
 
@@ -376,17 +352,12 @@
 
 			totalTime.value = parseFloat(diffHours.toFixed(1));
 			console.log("totalTime = " + totalTime.value)
-			//假如玩机器
-			if (Data.isPlay == true) {
-				//五小时以上一律50元！
-				price.value = overnightPrice.value
-				if (totalTime.value < 5) {
-					// 计算价格：5元/半小时
-					price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
-				}
-			} else {
-				price.value = Math.ceil(totalTime.value / 0.5) * singlePriceNoplay.value;
+			price.value = overnightPrice.value
+			//五小时以上一律50元！
+			if (totalTime.value < 5) {
+				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
 			}
+			// 计算价格：5元/半小时
 		} else {
 			totalTime.value = 0;
 			price.value = 0;
@@ -420,7 +391,7 @@
 
 
 	// 时间过滤器函数
-	function timeFilter(type : string, options : number[]) {
+	function timeFilter(type: string, options: number[]) {
 		if (type === 'minute') {
 			return options.filter((option) => option % 30 === 0);
 		}
@@ -543,7 +514,7 @@
 	}
 
 	// 更新最小开始时间
-	function updateMinStartTime(dateStr ?: string) { // dateStr 参数为可选
+	function updateMinStartTime(dateStr?: string) { // dateStr 参数为可选
 		const now = dayjs();
 		let targetDate = dayjs(); // 默认为今天
 
@@ -622,11 +593,6 @@
 		}
 	}
 
-	function submitOrder() {
-
-	}
-
-
 	onMounted(() => {
 		const instance = getCurrentInstance().proxy;
 		const eventChannel = instance.getOpenerEventChannel();
@@ -652,274 +618,381 @@
 
 		Data.userId = res.uid;
 	});
+
+
+	// 提交订单
+	async function submitOrder() {
+		// 验证开始时间 (普通预约需要选择开始时间)
+		if (!Data.isOvernight && !selectedStartTime.value) {
+			uni.showToast({
+				title: '请选择开始时间',
+				icon: 'none'
+			});
+			return;
+		}
+
+		// 确保时间戳已更新
+		updateStartTimestamp();
+		// 普通预约需要结束时间
+		if (!Data.isOvernight) {
+			if (!selectedEndTime.value) {
+				uni.showToast({
+					title: '请选择结束时间',
+					icon: 'none'
+				});
+				return;
+			}
+			updateEndTimestamp();
+		} else {
+			// 过夜预约，默认结束时间为第二天早上8点 (假设)
+			const startTimeDayjs = dayjs(Data.startTime);
+			Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
+		}
+
+
+		// 验证当前时间
+		const now = Date.now();
+		if (Data.startTime < now) {
+			uni.showToast({
+				title: '开始时间不能早于当前时间',
+				icon: 'none'
+			});
+			return;
+		}
+
+		// 验证结束时间在开始时间之后 (仅普通预约)
+		if (!Data.isOvernight && Data.endTime <= Data.startTime) {
+			uni.showToast({
+				title: '结束时间必须晚于开始时间',
+				icon: 'none'
+			});
+			return;
+		}
+
+		// 检查时间冲突
+		const hasConflict = checkTimeConflict();
+		if (hasConflict) {
+			uni.showToast({
+				title: '所选时间段与已有预约冲突',
+				icon: 'none'
+			});
+			return;
+		}
+
+		Data.status = 1;
+
+		try {
+			uni.showLoading({
+				title: '提交中...'
+			});
+
+			const res = await todo.Reservation_Add(Data);
+
+			uni.hideLoading();
+
+			if (res && res.errCode) { // Check for error response from cloud function
+				uni.showToast({
+					title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
+					icon: 'none'
+				});
+			} else {
+				uni.showToast({
+					title: '预约成功',
+					icon: 'success'
+				});
+				// **在这里调用 getReservationsForDate 函数刷新预约条**
+				getReservationsForDate(Data.machineId, selectedDate.value);
+			}
+
+
+		} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
+			uni.hideLoading();
+			uni.showToast({
+				title: '预约失败: 网络错误或未知错误',
+				icon: 'none'
+			});
+			console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
+		}
+	}
 </script>
+
 <style>
-	.header-container {
-		padding: 20rpx;
-	}
+/* 样式代码 (如果之前有样式，请保留) */
+.booking-time-warning {
+	background-color: rgb(253, 242, 225);
+	color: #f9cb14;
+	border: 1rpx solid #f9cb14;
+	border-radius: 10rpx;
+	padding: 10rpx 20rpx;
+	margin-top: 10rpx;
+	font-size: 28rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+/* 优化后的样式 */
+.header-container {
+	padding: 20rpx;
+}
 
-	.machine-info {
-		display: flex;
-		flex-direction: column;
-		padding-left: 20rpx;
-	}
+.machine-info {
+	display: flex;
+	flex-direction: column;
+	padding-left: 20rpx;
+}
 
-	.machine-name {
-		font-weight: bold;
-		font-size: 35rpx;
-	}
+.machine-name {
+	font-weight: bold;
+	font-size: 35rpx;
+}
 
-	.price-rate {
-		font-size: 28rpx;
-		color: #666;
-	}
+.price-rate {
+	font-size: 28rpx;
+	color: #666;
+}
 
-	.divider {
-		height: 2rpx;
-		background-color: rgb(242, 242, 242);
-		margin: 20rpx 0;
-	}
+.divider {
+	height: 2rpx;
+	background-color: rgb(242, 242, 242);
+	margin: 20rpx 0;
+}
 
-	.calendar-container {
-		margin-bottom: 15rpx;
-	}
+.calendar-container {
+	margin-bottom: 15rpx;
+}
 
-	.chart-container {
-		padding: 0 20rpx;
-		margin-bottom: 15rpx;
-	}
+.chart-container {
+	padding: 0 20rpx;
+	margin-bottom: 15rpx;
+}
 
-	.chart-placeholder {
-		font-weight: bold;
-		font-size: 50rpx;
-		color: #ccc;
-		display: block;
-		text-align: center;
-		padding: 30rpx 0;
-	}
+.chart-placeholder {
+	font-weight: bold;
+	font-size: 50rpx;
+	color: #ccc;
+	display: block;
+	text-align: center;
+	padding: 30rpx 0;
+}
 
-	.booking-container {
-		padding: 0 20rpx;
-		margin-bottom: 15rpx;
-	}
+.booking-container {
+	padding: 0 20rpx;
+	margin-bottom: 15rpx;
+}
 
-	/* 移除 segment-container 的 flex 布局 */
-	.segment-container {
-		/* display: flex;  */
-		/* align-items: center; */
-		margin: 30rpx 0 10rpx 0;
-		/* 调整 margin-bottom */
-	}
+/* 移除 segment-container 的 flex 布局 */
+.segment-container {
+	/* display: flex;  */
+	/* align-items: center; */
+	margin: 30rpx 0 10rpx 0;
+	/* 调整 margin-bottom */
+}
 
-	.segment-label {
-		font-size: 32rpx;
-		margin-right: 20rpx;
-		display: block;
-		/*  让 label 独占一行 */
-		margin-bottom: 10rpx;
-		/*  label 与 segmentedControl 之间添加间距 */
-	}
+.segment-label {
+	font-size: 32rpx;
+	margin-right: 20rpx;
+	display: block;
+	/*  让 label 独占一行 */
+	margin-bottom: 10rpx;
+	/*  label 与 segmentedControl 之间添加间距 */
+}
 
-	/*  segmentedControl 容器样式，用于拉伸 */
-	.segmented-control-container {
-		width: 100%;
-		padding: 0;
-		/*  去除 padding */
-	}
+/*  segmentedControl 容器样式，用于拉伸 */
+.segmented-control-container {
+	width: 100%;
+	padding: 0;
+	/*  去除 padding */
+}
 
-	/*  segmentedControl 组件样式，需要覆盖默认样式才能撑满容器 */
-	.uni-segmented-control {
-		width: 100%;
-	}
+/*  segmentedControl 组件样式，需要覆盖默认样式才能撑满容器 */
+.uni-segmented-control {
+	width: 100%;
+}
 
-	.uni-segmented-control__track {
-		width: 100%;
-	}
+.uni-segmented-control__track {
+	width: 100%;
+}
 
-	.uni-segmented-control__item {
-		flex: 1;
-		/*  让 item 平分宽度 */
-	}
+.uni-segmented-control__item {
+	flex: 1;
+	/*  让 item 平分宽度 */
+}
 
 
-	.time-selection {
-		margin-top: 20rpx;
-	}
+.time-selection {
+	margin-top: 20rpx;
+}
 
-	.time-range {
-		display: flex;
-		justify-content: space-between;
-		margin-top: 20rpx;
-	}
+.time-range {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 20rpx;
+}
 
-	.option {
-		display: flex;
-		flex-direction: column;
-		margin-bottom: 30rpx;
-		width: 48%;
-	}
+.option {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 30rpx;
+	width: 48%;
+}
 
-	.option-label {
-		font-size: 28rpx;
-		color: #333;
-		margin-bottom: 10rpx;
-	}
+.option-label {
+	font-size: 28rpx;
+	color: #333;
+	margin-bottom: 10rpx;
+}
 
-	.picker-view {
-		height: 80rpx;
-		line-height: 80rpx;
-		padding: 0 30rpx;
-		background-color: #f8f8f8;
-		border-radius: 10rpx;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		min-width: 200rpx;
-	}
+.picker-view {
+	height: 80rpx;
+	line-height: 80rpx;
+	padding: 0 30rpx;
+	background-color: #f8f8f8;
+	border-radius: 10rpx;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 200rpx;
+}
 
-	.attention-box {
-		background-color: rgb(253, 251, 231);
-		display: flex;
-		align-items: center;
-		border-radius: 20rpx;
-		height: 90rpx;
-		padding: 0 10rpx;
-		margin: 10rpx 0 30rpx 0;
-		box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
-	}
+.attention-box {
+	background-color: rgb(253, 251, 231);
+	display: flex;
+	align-items: center;
+	border-radius: 20rpx;
+	height: 90rpx;
+	padding: 0 10rpx;
+	margin: 10rpx 0 30rpx 0;
+	box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+}
 
-	.order-detail {
-		padding: 20rpx;
-		background-color: #f8f8f8;
-		border-radius: 10rpx;
-		margin: 20rpx;
-		font-size: 24rpx;
-	}
+.order-detail {
+	padding: 20rpx;
+	background-color: #f8f8f8;
+	border-radius: 10rpx;
+	margin: 20rpx;
+	font-size: 24rpx;
+}
 
-	.footer {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 20rpx 0 40rpx 0;
-	}
+.footer {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 20rpx 0 40rpx 0;
+}
 
-	.price-summary {
-		display: flex;
-		width: 90%;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 20rpx;
-	}
+.price-summary {
+	display: flex;
+	width: 90%;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 20rpx;
+}
 
-	.price-amount {
-		font-weight: bold;
-		font-size: 40rpx;
-		color: #f9cb14;
-	}
+.price-amount {
+	font-weight: bold;
+	font-size: 40rpx;
+	color: #f9cb14;
+}
 
-	.submit-button {
-		background-color: #f9cb14;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		border-radius: 20rpx;
-		width: 80%;
-		height: 90rpx;
-		font-weight: bold;
-		box-shadow: 0 4rpx 12rpx rgba(249, 203, 20, 0.3);
-		transition: all 0.3s;
-	}
+.submit-button {
+	background-color: #f9cb14;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: 20rpx;
+	width: 80%;
+	height: 90rpx;
+	font-weight: bold;
+	box-shadow: 0 4rpx 12rpx rgba(249, 203, 20, 0.3);
+	transition: all 0.3s;
+}
 
-	.submit-button:active {
-		transform: scale(0.98);
-		box-shadow: 0 2rpx 6rpx rgba(249, 203, 20, 0.3);
-	}
+.submit-button:active {
+	transform: scale(0.98);
+	box-shadow: 0 2rpx 6rpx rgba(249, 203, 20, 0.3);
+}
 
-	/* timeline chart 样式 */
-	.timeline-container {
-		position: relative;
-		height: 50rpx;
-		background-color: #f0f0f0;
-		border-radius: 10rpx;
-		overflow: hidden;
-	}
+/* timeline chart 样式 */
+.timeline-container {
+	position: relative;
+	height: 60rpx;
+	background-color: #f0f0f0;
+	border-radius: 10rpx;
+	overflow: hidden;
+}
 
-	.timeline-hours {
-		display: flex;
-		justify-content: space-between;
-		padding: 0 10rpx;
-		font-size: 24rpx;
-		color: #999;
-		position: relative;
-		z-index: 1;
-		/* 确保小时刻度在条形图上方 */
-	}
+.timeline-hours {
+	display: flex;
+	justify-content: space-between;
+	padding: 0 10rpx;
+	font-size: 24rpx;
+	color: #999;
+	position: relative;
+	z-index: 1; /* 确保小时刻度在条形图上方 */
+}
 
-	.timeline-hours span {
-		position: relative;
-	}
+.timeline-hours span {
+	position: relative;
+}
 
-	.timeline-hours span::before {
-		content: '';
-		position: absolute;
-		left: 50%;
-		top: 25rpx;
-		transform: translateX(-50%);
-		width: 2rpx;
-		height: 10rpx;
-		background-color: #ccc;
-	}
+.timeline-hours span::before {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 25rpx;
+	transform: translateX(-50%);
+	width: 2rpx;
+	height: 10rpx;
+	background-color: #ccc;
+}
 
-	.timeline-hours span:first-child::before {
-		display: none;
-		/* 隐藏 0:00 前面的刻度 */
-	}
+.timeline-hours span:first-child::before {
+	display: none; /* 隐藏 0:00 前面的刻度 */
+}
 
-	.timeline-bar {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		overflow: hidden;
-		/* 裁剪超出容器的 segment */
-	}
+.timeline-bar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	overflow: hidden; /* 裁剪超出容器的 segment */
+}
 
-	.timeline-segment {
-		position: absolute;
-		top: 10rpx;
-		bottom: 10rpx;
-		background-color: #FDE68A;
-		border-radius: 5rpx;
-		min-width: 2rpx;
-		/* 保证 segment 可见 */
-	}
+.timeline-segment {
+	position: absolute;
+	top: 10rpx;
+	bottom: 10rpx;
+	background-color: #FDE68A;
+	border-radius: 5rpx;
+	min-width: 2rpx; /* 保证 segment 可见 */
+}
 
-	.timeline-legend {
-		display: flex;
-		justify-content: flex-end;
-		margin-top: 10rpx;
-		font-size: 24rpx;
-		color: #666;
-	}
+.timeline-legend {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	color: #666;
+}
 
-	.legend-item {
-		display: flex;
-		align-items: center;
-		margin-left: 20rpx;
-	}
+.legend-item {
+	display: flex;
+	align-items: center;
+	margin-left: 20rpx;
+}
 
-	.legend-color {
-		width: 20rpx;
-		height: 20rpx;
-		border-radius: 50%;
-		margin-right: 10rpx;
-	}
+.legend-color {
+	width: 20rpx;
+	height: 20rpx;
+	border-radius: 50%;
+	margin-right: 10rpx;
+}
 
-	.mb-4 {
-		margin-bottom: 15rpx;
-	}
+.mb-4 {
+	margin-bottom: 15rpx;
+}
 </style>
