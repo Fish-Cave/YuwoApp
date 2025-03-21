@@ -50,9 +50,13 @@
 						<uni-icons type="staff" size="30"></uni-icons>
 						<text>查看预约</text>
 					</view>
-					<view class="bt" style="background-color: rgb(249, 203, 20);">
+					<view v-if="machineData.machineInfo.status == 0" class="bt" style="background-color: rgb(249, 203, 20);">
 						<uni-icons type="personadd" size="30"></uni-icons>
 						<text @click="goOrder(machineData.machineInfo.name,machineData.machineInfo._id)">预约</text>
+					</view>
+					<view v-else class="bt" style="background-color: rgb(221, 82, 77);">
+						<uni-icons type="close" size="30" @click="unuseable()"></uni-icons>
+						<text>机台故障</text>
 					</view>
 				</view>
 			</uni-card>
@@ -68,7 +72,7 @@
 		"_id": string;
 		"name" : string;
 		"capacity" : number;
-		"status" : string;
+		"status" : number;
 		"machinenum" : number;
 		"description": string;
 	}
@@ -79,6 +83,12 @@
 		"status": string;
 		"startTime": number;
 		"endTime": number;
+	}
+	function unuseable(){
+		uni.showToast({
+			icon : "error",
+			title : "机台故障",
+		})
 	}
 
 // 接收父组件传递的时间戳 props
@@ -144,6 +154,7 @@
 		// if (props.startTime && props.endTime) {
 		// 	loadMachineReservations()
 		// }
+		console.log(machineReservationData.value)
 	})
 
 

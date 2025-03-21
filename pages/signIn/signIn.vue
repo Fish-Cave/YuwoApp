@@ -11,27 +11,33 @@
 					</view>
 				</uni-col>
 				<uni-col :span="16" style="display: flex; flex-direction: column;">
-					<text>{{userProfile.userName}}</text>
-					<text>UID:{{userProfile.userID}}</text>
-					<text>剩余时长:{{userProfile.time}}</text>
+					<text>{{}}</text>
+					<text>UID:{{}}</text>
+					<text>剩余时长:{{}}</text>
 				</uni-col>
 			</uni-row>
 		</uni-group>
 
-		<!--这一堆是现在预约的订单信息，我还没想好怎么弄，可以先不用管-->
-		<uni-group mode="card" style="background-color: orange;">
+		<uni-card style="">
 			<uni-row>
-				<uni-col :span="20" style="display: flex; flex-direction: column;">
-					<text>{{orderDate.machine}}</text>
-					<text>预约时间:{{orderDate.orderTime}}</text>
-					<text>订单号:{{orderDate.orderId}}</text>
+				<uni-col :span="11">
+					<view class="reserving" @click="goToreservationList()">
+						<uni-icons type="calendar" size="40"></uni-icons>
+						<text>预约中</text>
+					</view>
 				</uni-col>
-				<!--签到“按钮”的样式要调一下，按这个按钮可以跳转start页-->
-				<uni-col :span="4">
-					<navigator url="/pages/start/start">签到</navigator>
+				<uni-col :span="2">
+					<view class="vertical-divider">
+					</view>
+				</uni-col>
+				<uni-col :span="11">
+					<view class="using">
+						<uni-icons type="paperplane" size="40"></uni-icons>
+						<text>使用中</text>
+					</view>
 				</uni-col>
 			</uni-row>
-		</uni-group>
+		</uni-card>
 
 		<!--使用说明，调下字体和间距-->
 		<uni-card title="使用说明">
@@ -60,6 +66,11 @@
 		orderTime: "",
 		orderId: "",
 	})
+	function goToreservationList(){
+		uni.navigateTo({
+			url: '/pages/reservationList/reservationList'
+		});
+	}
 
 	//测试用，给上面那个对象赋值
 	function init() {
@@ -96,5 +107,25 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+	}
+	.reserving{
+		display: flex;
+		flex-direction: column;
+		justify-content: space-around;
+		align-items: center;
+		height: 140rpx;
+	}
+	.using{
+		display: flex;
+		flex-direction: column;
+		justify-content: space-around;
+		align-items: center;
+		height: 140rpx;
+	}
+	.vertical-divider {
+	  width: 2rpx;
+	  height: 140rpx; /* 高度可根据需求调整 */
+	  background-color: #ccc; /* 颜色可自定义 */
+	  margin: 0 10px; /* 添加左右外边距避免贴紧其他元素 */
 	}
 </style>

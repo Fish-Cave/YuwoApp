@@ -54,7 +54,8 @@ module.exports = {
 			role : content, 
 		}).field({
 			"_id":true,
-			"price":true
+			"price":true,
+			"noplayprice":true,
 		}).get()
 	},
 
@@ -88,7 +89,7 @@ module.exports = {
 			clientInfo: this.getClientInfo()
 		});
 		const collectionJQL = dbJQL.collection('reservation-log');
-		const machines = await dbJQL.collection('machines').field("_id,name,machinenum").get() // 获取机台信息，用于后续关联
+		const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get() // 获取机台信息，用于后续关联
 
 		const reservationData = await collectionJQL.where(`startTime >= ${startTime} && endTime <= ${endTime}`)
 			.field({

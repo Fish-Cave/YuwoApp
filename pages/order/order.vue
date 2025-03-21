@@ -34,7 +34,7 @@
 			</view>
 			<!-- 替换神秘条形图为实际的时间轴条形图 -->
 			<view class="timeline-container mb-4">
-				
+
 				<view class="timeline-bar">
 					<view v-for="(reservation, index) in reservations" :key="index" class="timeline-segment"
 						:style="calculateSegmentStyle(reservation)" @click="showReservationInfo(reservation)"></view>
@@ -94,6 +94,11 @@
 			<view v-else>
 				<view class="time-selection">
 				</view>
+				<view style="display: flex; justify-content: space-between;">
+					<!--Data.isPlay指示是否游玩机台-->
+					<text>要不要玩机台呢？</text>
+					<switch :checked="Data.isPlay" @change="isPlayChange" /><br />
+				</view>
 				<view class="time-range">
 					<view class="option">
 						<text class="option-label">开始时间</text>
@@ -101,7 +106,9 @@
 							<text>{{ selectedStartTime || '请选择时间' }}</text>
 							<uni-icons type="down" size="16"></uni-icons>
 						</view>
-						<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
+						<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time"
+							:minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter"
+							@confirm="confirmStartTime"></uv-datetime-picker>
 					</view>
 					<view class="option">
 						<text class="option-label">结束时间</text>
@@ -109,7 +116,9 @@
 							<text>{{ selectedEndTime || '请选择时间' }}</text>
 							<uni-icons type="down" size="16"></uni-icons>
 						</view>
-						<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour" :maxHour="maxEndTimeHour"  :filter="timeFilter" :minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
+						<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time"
+							:minHour="minEndTimeHour" :maxHour="maxEndTimeHour" :filter="timeFilter"
+							:minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
 					</view>
 				</view>
 				<view>
@@ -127,7 +136,9 @@
 		<view class="order-detail" v-if="debug">
 			<text>订单详情</text><br />
 			<text>{{Data}}</text><br />
-			<text>单价:{{singlePrice}} 过夜价:{{overnightPrice}}</text>
+			<text>单价:{{singlePrice}}
+				过夜价:{{overnightPrice}}
+				不游玩机台单价:{{singlePriceNoplay}}</text>
 		</view>
 
 
@@ -135,7 +146,11 @@
 	<view class="divider" />
 	<view class="footer">
 		<view class="price-summary">
-			<text>预计费用 </text>
+			<view>
+				<text>预计费用 </text>
+				<text v-if="Data.isPlay || Data.isOvernight">(游玩机台)</text>
+				<text v-else>(不游玩机台)</text>
+			</view>
 			<text class="price-amount">¥{{price}}</text>
 		</view>
 		<view class="submit-button" @click="submitOrder()">
@@ -151,26 +166,29 @@
 
 	const todo = uniCloud.importObject('todo')
 	const machineName = ref("")
-	const debug = ref(false);
+	const debug = ref(false)
 	//通过在本地缓存的token来获取用户信息
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
 
 	//价格相关
-	//pricelist是一个包含两个对象的价格表数组
+	//pricelist是一个包含三个对象的价格表数组
 	interface priceList {
 		_id : string;
 		price : number
+		noplayprice : number
 	}
 	const pricelist = ref<priceList[]>([])
 	const singlePrice = ref(5)
+	const singlePriceNoplay = ref(1)
 	const overnightPrice = ref(50)
 	async function getPriceList() {
 		try {
-			if (res.role.includes("superUser")||res.role.includes("admin")) {
+			if (res.role.includes("superUser") || res.role.includes("admin")) {
 				const result = await todo.GetPriceInfoByRole("superUser")
 				pricelist.value = result.data
 				singlePrice.value = toRaw(pricelist.value[0]).price
+				singlePriceNoplay.value = toRaw(pricelist.value[0]).noplayprice
 				overnightPrice.value = toRaw(pricelist.value[1]).price
 			}
 		} catch { }
@@ -224,6 +242,7 @@
 		"startTime" : number;
 		"endTime" : number;
 		"isOvernight" : boolean;
+		"isPlay" : boolean;
 		"status" : number;
 		"notes" : string;
 	}
@@ -234,6 +253,7 @@
 		"startTime": 0,
 		"endTime": 0,
 		"isOvernight": false,
+		"isPlay": true,
 		"status": 0,
 		"notes": ""
 	});
@@ -242,6 +262,10 @@
 	const totalTime = ref(0);
 
 	// 处理debug开关变化
+	//我觉得这个玩不玩机台也是一种debug开关
+	function isPlayChange(e) {
+		Data.isPlay = e.detail.value;
+	}
 	function debugSwitchChange(e) {
 		debug.value = e.detail.value;
 	}
@@ -313,7 +337,7 @@
 	});
 
 	// 监听时间戳变化，计算总时长和价格
-	watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight], () => {
+	watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight,() => Data.isPlay], () => {
 		calculateTotalTimeAndPrice();
 	});
 
@@ -352,12 +376,17 @@
 
 			totalTime.value = parseFloat(diffHours.toFixed(1));
 			console.log("totalTime = " + totalTime.value)
-			price.value = overnightPrice.value
-			//五小时以上一律50元！
-			if (totalTime.value < 5) {
-				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
+			//假如玩机器
+			if (Data.isPlay == true) {
+				//五小时以上一律50元！
+				price.value = overnightPrice.value
+				if (totalTime.value < 5) {
+					// 计算价格：5元/半小时
+					price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
+				}
+			} else {
+				price.value = Math.ceil(totalTime.value / 0.5) * singlePriceNoplay.value;
 			}
-			// 计算价格：5元/半小时
 		} else {
 			totalTime.value = 0;
 			price.value = 0;
@@ -391,7 +420,7 @@
 
 
 	// 时间过滤器函数
-	function timeFilter(type: string, options: number[]) {
+	function timeFilter(type : string, options : number[]) {
 		if (type === 'minute') {
 			return options.filter((option) => option % 30 === 0);
 		}
@@ -514,7 +543,7 @@
 	}
 
 	// 更新最小开始时间
-	function updateMinStartTime(dateStr?: string) { // dateStr 参数为可选
+	function updateMinStartTime(dateStr ?: string) { // dateStr 参数为可选
 		const now = dayjs();
 		let targetDate = dayjs(); // 默认为今天
 
@@ -593,6 +622,10 @@
 		}
 	}
 
+	function submitOrder() {
+
+	}
+
 
 	onMounted(() => {
 		const instance = getCurrentInstance().proxy;
@@ -621,7 +654,6 @@
 	});
 </script>
 <style>
-
 	.header-container {
 		padding: 20rpx;
 	}
