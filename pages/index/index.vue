@@ -18,70 +18,72 @@
 </template>
 
 <script lang="ts" setup>
-	import { ref, onMounted, computed, reactive } from 'vue';
-	import dayjs from 'dayjs';
-	import usage from './usage';
-	import { useProfileStore } from '../../stores/userProfileStore';
-	const userProfile = useProfileStore()
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
-	const isAdmin = res.role.includes("admin")
-	const todayDate = computed(() => {
-			return dayjs().format('YYYY-MM-DD');
-		});
-	// 用于存储选中的日期的开始和结束时间戳
-	const selectedStartTime = ref<number | null>(null);
-	const selectedEndTime = ref<number | null>(null);
-
-	// calendarChange 事件处理函数
-	function calendarChange(e: any) {
-	    console.log('wu-calendar change event e:', e); // 保留打印 e 对象，方便观察
-	
-	    if (e.fulldate) { // 检查 e 对象中是否存在 fulldate 属性
-	        const selectedDate = e.fulldate; // 获取日期字符串，例如 "2025-03-21"
-	
-	        // 使用 dayjs 计算 startTime (当天 00:00:00) 和 endTime (次日 00:00:00) 的时间戳
-	        const startTime = dayjs(selectedDate).startOf('day').valueOf();   // 当天 00:00:00 时间戳
-	        const endTime = dayjs(selectedDate).endOf('day').valueOf();     // 当天 23:59:59 时间戳 （或者使用 .add(1, 'day').startOf('day').valueOf() 获取次日 00:00:00）
-	
-	        selectedStartTime.value = startTime;
-	        selectedEndTime.value = endTime;
-	
-	        console.log('startTime:', startTime, 'endTime:', endTime); // 打印计算出的时间戳
-	    } else {
-	        console.warn('wu-calendar change event 没有 fulldate 属性', e); // 如果没有 fulldate，打印警告信息
-	    }
-	}
-
-
-	function goToConfig(){
-		uni.navigateTo({
-			url: "/pages/config/config"
-		})
-	}
-
-	uni.$on("uni-id-pages-login-success",function(){
-		const res = uniCloud.getCurrentUserInfo('uni_id_token')
-		userProfile._id = res.uid
-		userProfile.role = res.role
-		userProfile.permission = res.permission
-	})
-	
-	onMounted(() => {
-	    // 初始化为当天日期
-	    const today = dayjs().format('YYYY-MM-DD');
-	    const startTime = dayjs(today).startOf('day').valueOf();
-	    const endTime = dayjs(today).endOf('day').valueOf();
-	    
-	    selectedStartTime.value = startTime;
-	    selectedEndTime.value = endTime;
-	    
-	    console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
-		
-		// 获取用户信息
-		uniCloud.getCurrentUserInfo('uni_id_token').then(res => {
-			isAdmin.value = res.role.includes("admin"); // 设置 isAdmin 的值
-		});
+import { ref, onMounted, computed, reactive } from 'vue';
+import dayjs from 'dayjs';
+import usage from './usage';
+import { useProfileStore } from '../../stores/userProfileStore';
+const userProfile = useProfileStore()
+const res = uniCloud.getCurrentUserInfo('uni_id_token')
+const isAdmin = res.role.includes("admin")
+const todayDate = computed(() => {
+		return dayjs().format('YYYY-MM-DD');
 	});
+// 用于存储选中的日期的开始和结束时间戳
+const selectedStartTime = ref<number | null>(null);
+const selectedEndTime = ref<number | null>(null);
+
+// calendarChange 事件处理函数
+function calendarChange(e: any) {
+    console.log('wu-calendar change event e:', e); // 保留打印 e 对象，方便观察
+
+    if (e.fulldate) { // 检查 e 对象中是否存在 fulldate 属性
+        const selectedDate = e.fulldate; // 获取日期字符串，例如 "2025-03-21"
+
+        // 使用 dayjs 计算 startTime (当天 00:00:00) 和 endTime (次日 00:00:00) 的时间戳
+        const startTime = dayjs(selectedDate).startOf('day').valueOf();   // 当天 00:00:00 时间戳
+        const endTime = dayjs(selectedDate).endOf('day').valueOf();     // 当天 23:59:59 时间戳 （或者使用 .add(1, 'day').startOf('day').valueOf() 获取次日 00:00:00）
+
+        selectedStartTime.value = startTime;
+        selectedEndTime.value = endTime;
+
+        console.log('startTime:', startTime, 'endTime:', endTime); // 打印计算出的时间戳
+    } else {
+        console.warn('wu-calendar change event 没有 fulldate 属性', e); // 如果没有 fulldate，打印警告信息
+    }
+}
+
+
+function goToConfig(){
+	uni.navigateTo({
+		url: "/pages/config/config"
+	})
+}
+
+uni.$on("uni-id-pages-login-success",function(){
+	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	userProfile._id = res.uid
+	userProfile.role = res.role
+	userProfile.permission = res.permission
+})
+
+onMounted(() => {
+    // 初始化为当天日期
+    const today = dayjs().format('YYYY-MM-DD');
+    const startTime = dayjs(today).startOf('day').valueOf();
+    const endTime = dayjs(today).endOf('day').valueOf();
+    
+    selectedStartTime.value = startTime;
+    selectedEndTime.value = endTime;
+    
+    console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
+	
+	// 获取用户信息
+	uniCloud.getCurrentUserInfo('uni_id_token').then(res => {
+		isAdmin.value = res.role.includes("admin"); // 设置 isAdmin 的值
+	});
+});
+
+
 	
 </script>
 

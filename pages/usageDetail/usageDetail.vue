@@ -67,6 +67,11 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 去预约按钮 -->
+		<button class="reserve-button glass-card" @click="goToReserve(machineInfo.name, machineInfo._id)">
+			去预约
+		</button>
 	</view>
 </template>
 
@@ -200,6 +205,15 @@ function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: numb
 		right: `${segmentRightPercentage}%`,
 		backgroundColor: '#FFC107', 
 	};
+}
+
+function goToReserve(machineName: String, machineID: String) {
+	uni.navigateTo({
+		url: '/pages/order/order', // 替换为你的预约页面路径
+		success: function (res) {
+			res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
+		}
+	});
 }
 </script>
 
@@ -424,6 +438,31 @@ function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: numb
 	box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
+/* 去预约按钮样式 */
+.reserve-button {
+	position: fixed;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 80%;
+	max-width: 400px; /* 限制最大宽度 */
+	padding: 12px 24px;
+	background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+	color: #fff;
+	font-size: 16px;
+	font-weight: 600;
+	border-radius: 24px;
+	box-shadow: 0 4px 12px rgba(255, 193, 7, 0.5);
+	z-index: 10;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	border: none;
+}
+
+.reserve-button:active {
+	transform: translateX(-50%) translateY(2px);
+	box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+}
+
 /* 媒体查询：针对不同尺寸设备的响应式样式 */
 /* 小屏幕设备 */
 @media screen and (max-width: 375px) {
@@ -450,6 +489,12 @@ function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: numb
 		right: 16px;
 		width: 40px;
 		height: 40px;
+	}
+
+	.reserve-button {
+		font-size: 14px;
+		padding: 10px 20px;
+		border-radius: 20px;
 	}
 }
 
@@ -500,5 +545,10 @@ function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: numb
 		font-size: 14px;
 	}
 	
+	.reserve-button {
+		font-size: 18px;
+		padding: 14px 28px;
+		border-radius: 28px;
+	}
 }
 </style>

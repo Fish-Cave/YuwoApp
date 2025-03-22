@@ -1,5 +1,6 @@
 <template>
-	<scroll-view>
+	<view class="container">
+	<scroll-view scroll-y class="scroll-view">
 		<view class="header-container">
 			<uni-row>
 				<uni-col :span="4">
@@ -18,7 +19,7 @@
 
 		<view class="divider" />
 		<view class="calendar-container">
-			<wu-calendar :insert="true" type="week" :fold="false" startWeek="mon" color="#f9cb14"
+			<wu-calendar :insert="true" type="week" :fold="false" startWeek="mon" color="#f59e0b"
 				@change="calendarChange"></wu-calendar>
 		</view>
 
@@ -129,10 +130,8 @@
 			<text>{{Data}}</text><br />
 			<text>单价:{{singlePrice}} 过夜价:{{overnightPrice}}</text>
 		</view>
-
-
 	</scroll-view>
-	<view class="divider" />
+	
 	<view class="footer">
 		<view class="price-summary">
 			<text>预计费用 </text>
@@ -141,6 +140,7 @@
 		<view class="submit-button" @click="submitOrder()">
 			<text>确认预约</text>
 		</view>
+	</view>
 	</view>
 
 </template>
@@ -621,378 +621,537 @@
 
 
 	// 提交订单
-	async function submitOrder() {
-		// 验证开始时间 (普通预约需要选择开始时间)
-		if (!Data.isOvernight && !selectedStartTime.value) {
-			uni.showToast({
-				title: '请选择开始时间',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 确保时间戳已更新
-		updateStartTimestamp();
-		// 普通预约需要结束时间
-		if (!Data.isOvernight) {
-			if (!selectedEndTime.value) {
-				uni.showToast({
-					title: '请选择结束时间',
-					icon: 'none'
-				});
-				return;
-			}
-			updateEndTimestamp();
-		} else {
-			// 过夜预约，默认结束时间为第二天早上8点 (假设)
-			const startTimeDayjs = dayjs(Data.startTime);
-			Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
-		}
-
-
-		// 验证当前时间
-		const now = Date.now();
-		if (Data.startTime < now) {
-			uni.showToast({
-				title: '开始时间不能早于当前时间',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 验证结束时间在开始时间之后 (仅普通预约)
-		if (!Data.isOvernight && Data.endTime <= Data.startTime) {
-			uni.showToast({
-				title: '结束时间必须晚于开始时间',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 检查时间冲突
-		const hasConflict = checkTimeConflict();
-		if (hasConflict) {
-			uni.showToast({
-				title: '所选时间段与已有预约冲突',
-				icon: 'none'
-			});
-			return;
-		}
-
-		Data.status = 1;
-
-		try {
-			uni.showLoading({
-				title: '提交中...'
-			});
-
-			const res = await todo.Reservation_Add(Data);
-
-			uni.hideLoading();
-
-			if (res && res.errCode) { // Check for error response from cloud function
-				uni.showToast({
-					title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
-					icon: 'none'
-				});
-			} else {
-				uni.showToast({
-					title: '预约成功',
-					icon: 'success'
-				});
-				// **在这里调用 getReservationsForDate 函数刷新预约条**
-				getReservationsForDate(Data.machineId, selectedDate.value);
-			}
-
-
-		} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
-			uni.hideLoading();
-			uni.showToast({
-				title: '预约失败: 网络错误或未知错误',
-				icon: 'none'
-			});
-			console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
-		}
+// 提交订单
+async function submitOrder() {
+	// 验证开始时间 (普通预约需要选择开始时间)
+	if (!Data.isOvernight && !selectedStartTime.value) {
+		uni.showToast({
+			title: '请选择开始时间',
+			icon: 'none'
+		});
+		return;
 	}
-</script>
 
-<style>
-/* 样式代码 (如果之前有样式，请保留) */
-.booking-time-warning {
-	background-color: rgb(253, 242, 225);
-	color: #f9cb14;
-	border: 1rpx solid #f9cb14;
-	border-radius: 10rpx;
-	padding: 10rpx 20rpx;
-	margin-top: 10rpx;
-	font-size: 28rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	// 确保时间戳已更新
+	updateStartTimestamp();
+	// 普通预约需要结束时间
+	if (!Data.isOvernight) {
+		if (!selectedEndTime.value) {
+			uni.showToast({
+				title: '请选择结束时间',
+				icon: 'none'
+			});
+			return;
+		}
+		updateEndTimestamp();
+	} else {
+		// 过夜预约，默认结束时间为第二天早上8点 (假设)
+		const startTimeDayjs = dayjs(Data.startTime);
+		Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
+	}
+
+
+	// 验证当前时间
+	const now = Date.now();
+	if (Data.startTime < now) {
+		uni.showToast({
+			title: '开始时间不能早于当前时间',
+			icon: 'none'
+		});
+		return;
+	}
+
+	// 验证结束时间在开始时间之后 (仅普通预约)
+	if (!Data.isOvernight && Data.endTime <= Data.startTime) {
+		uni.showToast({
+			title: '结束时间必须晚于开始时间',
+			icon: 'none'
+		});
+		return;
+	}
+
+	// 检查时间冲突
+	const hasConflict = checkTimeConflict();
+	if (hasConflict) {
+		uni.showToast({
+			title: '所选时间段与已有预约冲突',
+			icon: 'none'
+		});
+		return;
+	}
+
+	Data.status = 1;
+
+	try {
+		uni.showLoading({
+			title: '提交中...'
+		});
+
+		const res = await todo.Reservation_Add(Data);
+
+		uni.hideLoading();
+
+		if (res && res.errCode !== 0) { // 修改判断条件
+			uni.showToast({
+				title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
+				icon: 'none'
+			});
+		} else {
+			uni.showToast({
+				title: '预约成功',
+				icon: 'success'
+			});
+			uni.navigateBack(); // 返回到之前的页面
+		}
+
+
+	} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
+		uni.hideLoading();
+		uni.showToast({
+			title: '预约失败: 网络错误或未知错误',
+			icon: 'none'
+		});
+		console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
+	}
 }
-/* 优化后的样式 */
+
+</script>
+<style>
+/* 全局样式 */
+.container {
+    width: 100%;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 20px; /* 全局内边距 */
+    position: relative; /* 确保定位正确 */
+}
+
+/* 滚动视图样式 */
+.scroll-view {
+    width: 100%;
+    box-sizing: border-box;
+    padding-bottom: 120px; /* 底部内边距，为固定底部区域留出空间 */
+}
+
+/* 玻璃拟态卡片 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: visible; /* 确保阴影不被裁剪 */
+    padding: 16px;
+    margin-bottom: 20px;
+		margin-left: 10px; /* 阴影显示完整 */
+		margin-right: 10px; /* 阴影显示完整 */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:active {
+    transform: translateY(2px);
+    box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
+}
+
+/* 头部容器样式 */
 .header-container {
-	padding: 20rpx;
+    display: flex;
+    align-items: center;
+    padding: 16px;
+}
+
+.icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    margin-right: 300px; 
 }
 
 .machine-info {
-	display: flex;
-	flex-direction: column;
-	padding-left: 20rpx;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .machine-name {
-	font-weight: bold;
-	font-size: 35rpx;
+    font-weight: bold;
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 4px;
 }
 
 .price-rate {
-	font-size: 28rpx;
-	color: #666;
+    font-size: 13px;
+    color: #6b7280;
+    background: rgba(255, 193, 7, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    align-self: flex-start;
 }
 
+/* 分隔线 */
 .divider {
-	height: 2rpx;
-	background-color: rgb(242, 242, 242);
-	margin: 20rpx 0;
+    height: 1px;
+    background-color: rgba(242, 242, 242, 0.8);
+    margin: 2px 0;
 }
 
+/* 日历容器 */
 .calendar-container {
-	margin-bottom: 15rpx;
+    margin: 0;
 }
 
+/* 图表容器 */
 .chart-container {
-	padding: 0 20rpx;
-	margin-bottom: 15rpx;
+    margin: 0;
 }
 
-.chart-placeholder {
-	font-weight: bold;
-	font-size: 50rpx;
-	color: #ccc;
-	display: block;
-	text-align: center;
-	padding: 30rpx 0;
-}
-
-.booking-container {
-	padding: 0 20rpx;
-	margin-bottom: 15rpx;
-}
-
-/* 移除 segment-container 的 flex 布局 */
-.segment-container {
-	/* display: flex;  */
-	/* align-items: center; */
-	margin: 30rpx 0 10rpx 0;
-	/* 调整 margin-bottom */
-}
-
-.segment-label {
-	font-size: 32rpx;
-	margin-right: 20rpx;
-	display: block;
-	/*  让 label 独占一行 */
-	margin-bottom: 10rpx;
-	/*  label 与 segmentedControl 之间添加间距 */
-}
-
-/*  segmentedControl 容器样式，用于拉伸 */
-.segmented-control-container {
-	width: 100%;
-	padding: 0;
-	/*  去除 padding */
-}
-
-/*  segmentedControl 组件样式，需要覆盖默认样式才能撑满容器 */
-.uni-segmented-control {
-	width: 100%;
-}
-
-.uni-segmented-control__track {
-	width: 100%;
-}
-
-.uni-segmented-control__item {
-	flex: 1;
-	/*  让 item 平分宽度 */
-}
-
-
-.time-selection {
-	margin-top: 20rpx;
-}
-
-.time-range {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 20rpx;
-}
-
-.option {
-	display: flex;
-	flex-direction: column;
-	margin-bottom: 30rpx;
-	width: 48%;
-}
-
-.option-label {
-	font-size: 28rpx;
-	color: #333;
-	margin-bottom: 10rpx;
-}
-
-.picker-view {
-	height: 80rpx;
-	line-height: 80rpx;
-	padding: 0 30rpx;
-	background-color: #f8f8f8;
-	border-radius: 10rpx;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	min-width: 200rpx;
-}
-
-.attention-box {
-	background-color: rgb(253, 251, 231);
-	display: flex;
-	align-items: center;
-	border-radius: 20rpx;
-	height: 90rpx;
-	padding: 0 10rpx;
-	margin: 10rpx 0 30rpx 0;
-	box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
-}
-
-.order-detail {
-	padding: 20rpx;
-	background-color: #f8f8f8;
-	border-radius: 10rpx;
-	margin: 20rpx;
-	font-size: 24rpx;
-}
-
-.footer {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	padding: 20rpx 0 40rpx 0;
-}
-
-.price-summary {
-	display: flex;
-	width: 90%;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 20rpx;
-}
-
-.price-amount {
-	font-weight: bold;
-	font-size: 40rpx;
-	color: #f9cb14;
-}
-
-.submit-button {
-	background-color: #f9cb14;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	border-radius: 20rpx;
-	width: 80%;
-	height: 90rpx;
-	font-weight: bold;
-	box-shadow: 0 4rpx 12rpx rgba(249, 203, 20, 0.3);
-	transition: all 0.3s;
-}
-
-.submit-button:active {
-	transform: scale(0.98);
-	box-shadow: 0 2rpx 6rpx rgba(249, 203, 20, 0.3);
-}
-
-/* timeline chart 样式 */
-.timeline-container {
-	position: relative;
-	height: 20px;
-	background-color: #f0f0f0;
-	border-radius: 10rpx;
-	overflow: hidden;
-}
-
+/* 时间轴样式 */
 .timeline-hours {
-	display: flex;
-	justify-content: space-between;
-	padding: 0 10rpx;
-	font-size: 24rpx;
-	color: #999;
-	position: relative;
-	z-index: 1; /* 确保小时刻度在条形图上方 */
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
 
 .timeline-hours span {
-	position: relative;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 500;
+    position: relative;
 }
 
 .timeline-hours span::before {
-	content: '';
-	position: absolute;
-	left: 50%;
-	top: 25rpx;
-	transform: translateX(-50%);
-	width: 2rpx;
-	height: 10rpx;
-	background-color: #ccc;
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 15px;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 5px;
+    background-color: #ccc;
 }
 
-.timeline-hours span:first-child::before {
-	display: none; /* 隐藏 0:00 前面的刻度 */
+.timeline-container {
+    position: relative;
+    margin: 16px 0;
 }
 
 .timeline-bar {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	overflow: hidden; /* 裁剪超出容器的 segment */
+    height: 12px;
+    width: 100%;
+    background-color: rgba(243, 244, 246, 0.7);
+    border-radius: 6px;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
 }
 
 .timeline-segment {
-	position: absolute;
-	top: 10rpx;
-	bottom: 10rpx;
-	background-color: #FDE68A;
-	border-radius: 5rpx;
-	min-width: 2rpx; /* 保证 segment 可见 */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+    overflow: hidden;
 }
 
+/* 时间轴图例 */
 .timeline-legend {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	color: #666;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
 }
 
 .legend-item {
-	display: flex;
-	align-items: center;
-	margin-left: 20rpx;
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .legend-color {
-	width: 20rpx;
-	height: 20rpx;
-	border-radius: 50%;
-	margin-right: 10rpx;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.mb-4 {
-	margin-bottom: 15rpx;
+/* 预约容器 */
+.booking-container {
+    margin: 0;
 }
+
+/* 预约类型 */
+.segment-label {
+    font-size: 14px;
+    color: #4b5563;
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.segmented-control-container {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+/* 预约时间警告 */
+.booking-time-warning {
+    background-color: rgba(253, 242, 225, 0.7);
+    color: #f59e0b;
+    border: 1px solid rgba(249, 203, 20, 0.5);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 8px rgba(249, 203, 20, 0.15);
+}
+
+/* 时间选择区域 */
+.time-selection {
+    margin-top: 10px;
+}
+
+.time-range {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+}
+
+.option {
+    display: flex;
+    flex-direction: column;
+    width: 48%;
+}
+
+.option-label {
+    font-size: 13px;
+    color: #4b5563;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.picker-view {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    background-color: rgba(243, 244, 246, 0.7);
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: all 0.2s ease;
+}
+
+.picker-view:active {
+    background-color: rgba(229, 231, 235, 0.7);
+    transform: translateY(1px);
+}
+
+/* 提示框 */
+.attention-box {
+    background: rgba(253, 251, 231, 0.7);
+    border-radius: 8px;
+    height: 45px;
+    margin: 8px 0;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 12px rgba(249, 203, 20, 0.2);
+    border: 1px solid rgba(253, 230, 138, 0.5);
+}
+
+/* Debug信息区域 */
+.order-detail {
+    background: rgba(243, 244, 246, 0.7);
+    backdrop-filter: blur(5px);
+    border-radius: 6px;
+    margin: 8px 0;
+    padding: 8px;
+    font-size: 12px;
+    color: #6b7280;
+    border: 1px solid rgba(209, 213, 219, 0.5);
+}
+
+/* 底部区域 */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 10px 0;
+    border-top: 1px solid rgba(229, 231, 235, 0.8);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+}
+
+.price-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 12px;
+}
+
+.price-amount {
+    font-weight: bold;
+    font-size: 20px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.submit-button {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 8px;
+    width: 80%;
+    height: 50px !important; 
+    min-height: 45px; 
+    line-height: 45px; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+    font-weight: bold;
+    color: white;
+    font-size: 15px;
+    box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.submit-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
+}
+
+.submit-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.submit-button:active::after {
+    left: 100%;
+}
+
+/* 媒体查询：针对不同尺寸设备的响应式样式 */
+/* 小屏幕设备 */
+@media screen and (max-width: 375px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .machine-name {
+        font-size: 16px;
+    }
+    
+    .icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .submit-button {
+        height: 40px;
+        font-size: 14px;
+    }
+}
+
+/* 大屏幕设备 */
+@media screen and (min-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    .machine-name {
+        font-size: 20px;
+    }
+    
+    .icon {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .submit-button {
+        width: 70%;
+        height: 50px;
+        font-size: 16px;
+    }
+}
+
+/* 添加的一些交互增强效果 */
+@keyframes glow {
+  0% { box-shadow: 0 0 3px rgba(249, 203, 20, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(249, 203, 20, 0.5); }
+  100% { box-shadow: 0 0 3px rgba(249, 203, 20, 0.3); }
+}
+
+.submit-button:hover {
+  animation: glow 2s infinite;
+}
+
+/* Fix for card shadow clipping - use internal shadows and padding instead */
+.header-container,
+.calendar-container,
+.chart-container,
+.booking-container,
+.order-detail {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    /* Replace external shadow with inset shadow and border effect */
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 
+                inset 0 2px 8px rgba(255, 255, 255, 0.7), 
+                inset 0 -2px 8px rgba(31, 38, 135, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+/* Add subtle border highlight for depth effect */
+.header-container::after,
+.calendar-container::after,
+.chart-container::after,
+.booking-container::after,
+.order-detail::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, 
+                transparent, 
+                rgba(31, 38, 135, 0.1), 
+                transparent);
+}
+
 </style>
+
+

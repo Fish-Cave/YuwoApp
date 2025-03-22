@@ -1,212 +1,216 @@
 <template>
-    <view class="container">
-        <view v-for="machineData in machineReservationData" :key="machineData.machineInfo.machinenum" class="machine-item">
-            <view class="glass-card">
-                <!-- 机台信息区域 -->
-                <view class="card-header">
-                    <view class="icon-container">
-                        <uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
-                    </view>
-                    <view class="machine-info">
-                        <text class="machine-name">{{ machineData.machineInfo.name }}</text>
-                        <view class="price-status-container">
-                            <text class="machine-price">5元/半时</text>
-                            <view class="status-label" :class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
-                                {{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
-                            </view>
-                        </view>
-                    </view>
-                    <view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
-                        <uni-icons type="heart" size="24" color="#f472b6"></uni-icons>
-                    </view>
-                </view>
-
-                <!-- 时间轴区域 -->
-                <view class="timeline-section">
-                    <view class="timeline-hours">
-                        <text class="time-label">0:00</text>
-                        <text class="time-label">6:00</text>
-                        <text class="time-label">12:00</text>
-                        <text class="time-label">18:00</text>
-                        <text class="time-label">24:00</text>
-                    </view>
-                    <view class="timeline-container">
-                        <view class="timeline-bar">
-                            <view
-                                v-for="(reservation, index) in machineData.reservations"
-                                :key="index"
-                                class="timeline-segment"
-                                :style="calculateSegmentStyle(reservation, startTime, endTime)"
-                            >
-                                <view class="timeline-segment-pulse"></view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
-
-
-                <!-- 按钮区域 -->
-                <view class="button-group">
-                    <view class="action-button view-button" @click="viewReservations(machineData)">
-                        <uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
-                        <text class="button-text">查看预约</text>
-                    </view>
-                    <view
-                        v-if="machineData.machineInfo.status == 0"
-                        class="action-button reserve-button"
-                        @click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)"
-                    >
-                        <uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
-                        <text class="button-text reserve-text">预约</text>
-                    </view>
-                    <view v-else class="action-button error-button" @click="unuseable()">
-                        <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-                        <text class="button-text error-text">机台故障</text>
-                    </view>
-                </view>
+  <view class="container">
+    <view v-for="machineData in machineReservationData" :key="machineData.machineInfo.machinenum" class="machine-item">
+      <view class="glass-card">
+        <!-- 机台信息区域 -->
+        <view class="card-header">
+          <view class="icon-container">
+            <uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
+          </view>
+          <view class="machine-info">
+            <text class="machine-name">{{ machineData.machineInfo.name }}</text>
+            <view class="price-status-container">
+              <text class="machine-price">5元/半时</text>
+              <view class="status-label" :class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
+                {{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
+              </view>
             </view>
+          </view>
+          <view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
+            <uni-icons
+              :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
+              size="24"
+              color="#f472b6"
+            ></uni-icons>
+          </view>
         </view>
+        <!-- 时间轴区域 -->
+        <view class="timeline-section">
+          <view class="timeline-hours">
+            <text class="time-label">0:00</text>
+            <text class="time-label">6:00</text>
+            <text class="time-label">12:00</text>
+            <text class="time-label">18:00</text>
+            <text class="time-label">24:00</text>
+          </view>
+          <view class="timeline-container">
+            <view class="timeline-bar">
+              <view
+                v-for="(reservation, index) in machineData.reservations"
+                :key="index"
+                class="timeline-segment"
+                :style="calculateSegmentStyle(reservation, startTime, endTime)"
+              >
+                <view class="timeline-segment-pulse"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 按钮区域 -->
+        <view class="button-group">
+          <view class="action-button view-button" @click="viewReservations(machineData)">
+            <uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
+            <text class="button-text">查看预约</text>
+          </view>
+          <view
+            v-if="machineData.machineInfo.status == 0"
+            class="action-button reserve-button"
+            @click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)"
+          >
+            <uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text reserve-text">预约</text>
+          </view>
+          <view v-else class="action-button error-button" @click="unuseable()">
+            <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text error-text">机台故障</text>
+          </view>
+        </view>
+      </view>
     </view>
+  </view>
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch } from 'vue';
-	import dayjs from 'dayjs';
-	const todo = uniCloud.importObject('todo')
-	interface machine {
-		"_id": string;
-		"name" : string;
-		"capacity" : number;
-		"status" : number;
-		"machinenum" : number;
-		"description": string;
-	}
-	interface Reservation {
-		"_id": string;
-		"machineId": string;
-		"isOvernight": boolean;
-		"status": string;
-		"startTime": number;
-		"endTime": number;
-	}
-	
-	// 新增：用于控制收藏状态
-	const favorites = ref<Set<string>>(new Set());
-	
-	function toggleFavorite(machineId: string) {
-		if (favorites.value.has(machineId)) {
-			favorites.value.delete(machineId);
-		} else {
-			favorites.value.add(machineId);
-		}
-		// 这里可以实现持久化存储逻辑
-		uni.showToast({
-			icon: 'success',
-			title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
-			duration: 1500
-		});
-	}
-	
-	function unuseable(){
-		uni.showToast({
-			icon : "error",
-			title : "机台故障",
-		})
-	}
+import { onMounted, reactive, ref, watch, onShow } from 'vue';
+import dayjs from 'dayjs';
 
-	function viewReservations(machineData) {
-	    console.log("查看预约信息：", machineData);
-	    uni.navigateTo({
-	        url: '/pages/usageDetail/usageDetail',
-	        success: function (res) {
-	            res.eventChannel.emit('acceptDataFromOpenerPage', {
-	                GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-	            });
-	        }
-	    });
-	}
+const todo = uniCloud.importObject('todo')
+interface machine {
+  "_id": string;
+  "name": string;
+  "capacity": number;
+  "status": number;
+  "machinenum": number;
+  "description": string;
+}
+interface Reservation {
+  "_id": string;
+  "machineId": string;
+  "isOvernight": boolean;
+  "status": string;
+  "startTime": number;
+  "endTime": number;
+}
+
+// 新增：用于控制收藏状态
+const favorites = ref<Set<string>>(new Set());
+
+function toggleFavorite(machineId: string) {
+  if (favorites.value.has(machineId)) {
+    favorites.value.delete(machineId);
+  } else {
+    favorites.value.add(machineId);
+  }
+  // 这里可以实现持久化存储逻辑
+  uni.showToast({
+    icon: 'success',
+    title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
+    duration: 1500
+  });
+}
+
+function unuseable() {
+  uni.showToast({
+    icon: "error",
+    title: "机台故障",
+  })
+}
+
+function viewReservations(machineData) {
+  console.log("查看预约信息：", machineData);
+  uni.navigateTo({
+    url: '/pages/usageDetail/usageDetail',
+    success: function (res) {
+      res.eventChannel.emit('acceptDataFromOpenerPage', {
+        GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
+      });
+    }
+  });
+}
 
 
-	// 接收父组件传递的时间戳 props
-	const props = defineProps({
-		startTime: {
-			type: Number,
-			required: true
-		},
-		endTime: {
-			type: Number,
-			required: true
-		}
-	})
+// 接收父组件传递的时间戳 props
+const props = defineProps({
+  startTime: {
+    type: Number,
+    required: true
+  },
+  endTime: {
+    type: Number,
+    required: true
+  }
+})
 
-	function goOrder(machineName : String, machineID : String) {
-		uni.navigateTo({
-			url: '/pages/order/order',
-			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
-			}
-		});
-	}
+function goOrder(machineName: String, machineID: String) {
+  uni.navigateTo({
+    url: '/pages/order/order',
+    success: function (res) {
+      res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
+    }
+  });
+}
 
-	const machineReservationData = ref<Array<{ machineInfo: machine, reservations: Reservation[] }>>([]) // 初始化为空数组
+const machineReservationData = ref<Array<{ machineInfo: machine, reservations: Reservation[] }>>([]) // 初始化为空数组
 
-	async function loadMachineReservations() {
-	    try {
-	        if (!props.startTime || !props.endTime) {
-	            console.log("startTime 或 endTime 为空，不加载数据");
-	            return;
-	        }
-	        console.log("准备调用 GetMachineReservationInfo 云函数");
-	        let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
-	        console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
-	    
-	        if (Array.isArray(res)) {
-	            machineReservationData.value = res;
-	        } else if (res && res.result) {
-	            machineReservationData.value = res.result;
-	        } else {
-	            console.error("返回的数据格式不正确:", res);
-	            machineReservationData.value = []; // 设置为空数组避免渲染错误
-	        }
-	        
-	        console.log("machineReservationData.value 赋值后:", machineReservationData.value);
-	    } catch (e) {
-	        console.error("加载机台预约信息失败:", e);
-	    }
-	}
+async function loadMachineReservations() {
+  try {
+    if (!props.startTime || !props.endTime) {
+      console.log("startTime 或 endTime 为空，不加载数据");
+      return;
+    }
+    console.log("准备调用 GetMachineReservationInfo 云函数");
+    let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
+    console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
 
-	// 监听 startTime 和 endTime 的变化，重新加载预约数据
-	watch(() => [props.startTime, props.endTime], ([newStartTime, newEndTime]) => {
-		console.log("watch 监听器被触发，startTime:", newStartTime, "endTime:", newEndTime);
-		if (newStartTime && newEndTime) {
-			loadMachineReservations();
-		}
-	})
+    if (Array.isArray(res)) {
+      machineReservationData.value = res;
+    } else if (res && res.result) {
+      machineReservationData.value = res.result;
+    } else {
+      console.error("返回的数据格式不正确:", res);
+      machineReservationData.value = []; // 设置为空数组避免渲染错误
+    }
 
-	onMounted(() => {
-		console.log("usage 组件 onMounted");
-		if (props.startTime && props.endTime) {
-			loadMachineReservations();
-		}
-		console.log(machineReservationData.value);
-	})
+    console.log("machineReservationData.value 赋值后:", machineReservationData.value);
+  } catch (e) {
+    console.error("加载机台预约信息失败:", e);
+  }
+}
 
-	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
-		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
-		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
-		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;   // 预约结束时间在一天中的偏移量
+// 监听 startTime 和 endTime 的变化，重新加载预约数据
+watch(() => [props.startTime, props.endTime], ([newStartTime, newEndTime]) => {
+  console.log("watch 监听器被触发，startTime:", newStartTime, "endTime:", newEndTime);
+  if (newStartTime && newEndTime) {
+    loadMachineReservations();
+  }
+})
 
-		const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
-		const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
+onMounted(() => {
+  console.log("usage 组件 onMounted");
+  if (props.startTime && props.endTime) {
+    loadMachineReservations();
+  }
+  console.log(machineReservationData.value);
+})
 
-		return {
-			left: `${segmentLeftPercentage}%`,
-			right: `${segmentRightPercentage}%`,
-			background: 'linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%)'
-		};
-	}
+// 计算条形图 segment 的样式
+function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
+  const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
+  const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
+  const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;   // 预约结束时间在一天中的偏移量
+
+  const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
+  const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
+
+  return {
+    left: `${segmentLeftPercentage}%`,
+    right: `${segmentRightPercentage}%`,
+    background: 'linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%)'
+  };
+}
 </script>
+
 <style>
 /* 基础容器样式 */
 .container {
