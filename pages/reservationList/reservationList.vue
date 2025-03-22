@@ -18,10 +18,13 @@
 						<view style="display: flex;flex-direction: column;">
 							<text v-if="data.status == 2" style="color: greenyellow;">已完成</text>
 							<text v-else-if="data.status == 1" style="color: red;">未完成</text>
-							<text v-else-if="data.status == 3" style="color: red;">使用中</text>
+							<text v-else-if="data.status == 3" style="color: grey;">已过期</text>
 						</view>
+						<view v-if="data.isPlay">Mark</view>
 						<view style="padding-top: 50rpx;">
-							<view v-if="data.status == 1" class="signInBt" @click="goToStart()">
+							<view v-if="data.status == 1" 
+							class="signInBt" 
+							@click="goToStart(data.machineId[0].name,data.startTime,data._id,data.isOvernight,data.isPlay)">
 								<text>签到</text>
 							</view>
 						</view>
@@ -40,8 +43,9 @@
 		_id : string;
 		machineId : string;
 		isOvernight : boolean;
+		isPlay : boolean;
 		status : number;
-		startTime : string;
+		startTime : number;
 	}
 	const Data = ref<reservationData[]>([])
 	async function getReservationData() {
@@ -51,9 +55,18 @@
 			console.log(result.data)
 		} catch { }
 	}
-	function goToStart(){
+	function goToStart(machineName:string,startTime:number,reservationID:string,isOvernight:boolean,isPlay:boolean){
 		uni.navigateTo({
-			url: "/pages/start/start"
+			url: "/pages/start/start",
+			success: (res) => {
+				res.eventChannel.emit('acceptDataFromOpenerPage', {
+					"machineName" : machineName,
+					"startTime" : startTime,
+					"reservationID" : reservationID,
+					"isOvernight" : isOvernight,
+					"isPlay" : isPlay
+				})
+			}
 		})
 	}
 	onMounted(() => {

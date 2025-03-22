@@ -1,6 +1,6 @@
 {
 	"bsonType": "object",
-	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "status", "createTime", "updateTime"],
+	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime","updateTime"],
 	"permission": {
 		"read": true,
 		"create": true,
@@ -37,10 +37,6 @@
 			"bsonType": "boolean",
 			"description": "是否过夜"
 		},
-		"isPlay": {
-			"bsonType": "boolean",
-			"description": "是否游玩机台"
-		},
 		"priceId": {
 			"bsonType": "string",
 			"description": "价格ID，关联价格表 (prices)，用于查找预约时段对应的价格",
@@ -55,6 +51,10 @@
 			"bsonType": "number",
 			"description": "预约状态 (0表示'待确认',1表示 '已确认', 2表示 '已完成', 3表示'已过期')",
 			"enum": [0, 1, 2, 3]
+		},
+		"isPlay": {
+			"bsonType": "boolean",
+			"description": "玩不玩机台"
 		},
 		"notes": {
 			"bsonType": "string",

@@ -81,6 +81,7 @@ module.exports = {
 			"isOvernight": true,
 			"status": true,
 			"startTime": true,
+			"isPlay":true
 		}).orderBy("startTime", "desc").get()
 	},
 
@@ -125,5 +126,13 @@ module.exports = {
 		}).where({
 			_id: content
 		}).get()
+	},
+	
+	SignIn_Add: function(content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const signin = dbJQL.collection('signin')
+		signin.add(content)
 	}
 }
