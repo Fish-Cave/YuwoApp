@@ -6,7 +6,7 @@
 			slideSwitchMode="none"
 			:fold="false"
 			startWeek="mon"
-			color="#f9cb14"
+			color="#f59e0b"
 			:startDate="todayDate" />
 		</view>
 		<view>
