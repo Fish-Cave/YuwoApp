@@ -9,6 +9,9 @@
 			color="#f59e0b"
 			:startDate="todayDate" />
 		</view>
+		<view style="padding: 0 15px; font-size: 15px; color: #666; text-align: center; margin-bottom: 10px;">
+					登录后如果为会员将会自动显示会员价格
+				</view>
 		<view>
 			<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
 			<usage :startTime="selectedStartTime" :endTime="selectedEndTime"></usage>
