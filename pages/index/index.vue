@@ -76,6 +76,11 @@
 	    selectedEndTime.value = endTime;
 	    
 	    console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
+		
+		// 获取用户信息
+		uniCloud.getCurrentUserInfo('uni_id_token').then(res => {
+			isAdmin.value = res.role.includes("admin"); // 设置 isAdmin 的值
+		});
 	});
 	
 </script>
