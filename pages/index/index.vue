@@ -7,7 +7,7 @@
 			:fold="false"
 			startWeek="mon"
 			color="#f9cb14"
-			startDate="2025-01-01" />
+			:startDate="todayDate" />
 		</view>
 		<view>
 			<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
@@ -25,7 +25,9 @@
 	const userProfile = useProfileStore()
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const isAdmin = res.role.includes("admin")
-
+	const todayDate = computed(() => {
+			return dayjs().format('YYYY-MM-DD');
+		});
 	// 用于存储选中的日期的开始和结束时间戳
 	const selectedStartTime = ref<number | null>(null);
 	const selectedEndTime = ref<number | null>(null);
