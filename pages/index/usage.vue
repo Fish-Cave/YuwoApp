@@ -11,7 +11,7 @@
                         <text class="machine-name">{{ machineData.machineInfo.name }}</text>
                         <view class="price-status-container">
                             <text class="machine-price">5元/半时</text>
-                            <view class="status-label" :class="{ 'status-error': machineData.machineInfo.status !== 0 }">
+                            <view class="status-label" :class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
                                 {{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
                             </view>
                         </view>
@@ -306,18 +306,24 @@
 	background: rgba(252, 165, 165, 0.2);
 }
 
-/* 状态标签 */
 .status-label {
-    /* position: absolute; 移除绝对定位 */
-    /* top: 20rpx; */
-    /* right: 20rpx; */
     background: rgba(59, 130, 246, 0.15);
     color: #3b82f6;
     padding: 4rpx 16rpx;
     border-radius: 12rpx;
     font-size: 24rpx;
     font-weight: 600;
-    margin-left: 10rpx; /* 增加左边距，使其与价格标签分开 */
+    margin-left: 10rpx;
+}
+
+.status-available {
+    background-color: rgba(76, 175, 80, 0.2); /* 浅绿色背景 */
+    color: #4CAF50; /* 绿色文字 */
+}
+
+.status-error {
+    background-color: rgba(244, 67, 54, 0.2); /* 浅红色背景 */
+    color: #f44336; /* 红色文字 */
 }
 
 /* 时间轴样式 */
