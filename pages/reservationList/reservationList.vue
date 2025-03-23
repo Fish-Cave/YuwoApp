@@ -11,6 +11,7 @@
 					<view style="display: flex;flex-direction: column;">
 						<text>{{data.machineId[0].name}}</text>
 						<uni-dateformat :date='data.startTime'></uni-dateformat>
+						
 					</view>
 				</uni-col>
 				<uni-col :span="4">
@@ -19,6 +20,7 @@
 							<text v-if="data.status == 2" style="color: greenyellow;">已完成</text>
 							<text v-else-if="data.status == 1" style="color: red;">未完成</text>
 							<text v-else-if="data.status == 3" style="color: grey;">已过期</text>
+							<text v-else-if="data.status == 4" style="color: #f9cb14;">正使用</text>
 						</view>
 						<view v-if="data.isPlay">Mark</view>
 						<view style="padding-top: 50rpx;">
@@ -31,6 +33,7 @@
 					</view>
 				</uni-col>
 			</uni-row>
+			<text>{{data._id}}</text>
 		</uni-card>
 	</view>
 </template>

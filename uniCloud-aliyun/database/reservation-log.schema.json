@@ -1,6 +1,8 @@
 {
 	"bsonType": "object",
-	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime","updateTime"],
+	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime",
+		"updateTime"
+	],
 	"permission": {
 		"read": true,
 		"create": true,
@@ -49,12 +51,13 @@
 		},
 		"status": {
 			"bsonType": "number",
-			"description": "预约状态 (0表示'待确认',1表示 '已确认', 2表示 '已完成', 3表示'已过期')",
-			"enum": [0, 1, 2, 3]
+			"description": "预约状态 (0表示'待确认',1表示 '已确认', 2表示 '已完成', 3表示'已过期', 4表示'使用中')",
+			"enum": [0, 1, 2, 3, 4]
 		},
 		"isPlay": {
 			"bsonType": "boolean",
-			"description": "玩不玩机台"
+			"description": "玩不玩机台",
+			"defaultValue": true
 		},
 		"notes": {
 			"bsonType": "string",

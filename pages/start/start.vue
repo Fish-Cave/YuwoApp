@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 	import dayjs from 'dayjs';
-    import { onMounted, reactive, getCurrentInstance, ref } from 'vue';
+	import { onMounted, reactive, getCurrentInstance, ref } from 'vue';
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const todo = uniCloud.importObject('todo')
 	interface signInData {
@@ -116,18 +116,47 @@
 	}
 
 	async function submit() {
-		Data.starttime = dayjs().unix() * 1000
-		console.log(Data.starttime)
-		if(Data.reservationid != ""){
-			const res = await todo.SignIn_Add(Data)
+		console.log(res.uid)
+		try {
+			const result = await todo.SignIn_Search(res.uid)
+			if (result.data.length == 0) {
+				console.log(result.data[0])
+				pushData()
+				uni.redirectTo({
+					url:"/pages/using/using"
+				})
+			} else if (result.data.length > 0) {
+				uni.showToast({
+					title: "同时只能签到一次!",
+					icon: "error"
+				})
+			}
+		} catch { }
+	}
+
+	async function pushData() {
+		try {
+			Data.starttime = dayjs().unix() * 1000
+			console.log(Data.starttime)
+			if (Data.reservationid != "") {
+				const res = await todo.SignIn_Add(Data)
+				console.log(res)
+				updateReservation(Data.reservationid, 4)
+				
+			} else {
+				uni.showToast({
+					icon: "error",
+					title: "未找到订单"
+				})
+			}
+		} catch { }
+	}
+
+	async function updateReservation(content : string, status : number) {
+		try {
+			const res = await todo.Reservation_Update(content, status)
 			console.log(res)
-			uni.navigateBack()
-		}else{
-			uni.showToast({
-				icon : "error",
-				title : "未找到订单"
-			})
-		}
+		} catch { }
 	}
 
 	onMounted(() => {

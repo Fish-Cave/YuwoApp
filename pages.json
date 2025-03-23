@@ -133,6 +133,13 @@
 			"path" : "pages/usageDetail/usageDetail",
 			"style" : 
 			{
+				"navigationBarTitleText" : "机台使用情况"
+			}
+		},
+		{
+			"path" : "pages/using/using",
+			"style" : 
+			{
 				"navigationBarTitleText" : ""
 			}
 		}

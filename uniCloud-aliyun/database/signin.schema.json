@@ -29,7 +29,8 @@
 		},
 		"isPlay": {
 			"bsonType": "boolean",
-			"description": "本次签到玩不玩机器 0 不玩 1 玩"
+			"description": "本次签到玩不玩机器 0 不玩 1 玩",
+			"defaultValue":false
 		},
 		"starttime": {
 			"bsonType": "timestamp",

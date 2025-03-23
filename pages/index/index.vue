@@ -60,10 +60,9 @@ function goToConfig(){
 }
 
 uni.$on("uni-id-pages-login-success",function(){
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
-	userProfile._id = res.uid
-	userProfile.role = res.role
-	userProfile.permission = res.permission
+	uni.switchTab({
+		url: "pages/index/index"
+	})
 })
 
 onMounted(() => {
