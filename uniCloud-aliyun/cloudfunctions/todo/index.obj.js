@@ -65,17 +65,6 @@ module.exports = {
 		})
 		dbJQL.collection('reservation-log').add(content)
 	},
-	
-	Reservation_Update: function(content,statusnumber) {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		dbJQL.collection('reservation-log').where({
-				_id : content
-		}).update({
-			status : statusnumber
-		})
-	},
 
 	GetReservationInfo: function(content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
@@ -145,22 +134,5 @@ module.exports = {
 		})
 		const signin = dbJQL.collection('signin')
 		signin.add(content)
-	},
-	
-	SignIn_Search: function(content) {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		const signin = dbJQL.collection('signin')
-		return signin.where({
-			userid : content,
-			status : 0
-		}).field({
-			"id" : true,
-			"status": true,
-			"reservationid": true,
-			"isPlay" : true,
-			"starttime" : true
-		}).get()
 	}
 }

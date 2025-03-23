@@ -1,156 +1,335 @@
 <template>
-	<view style="display: flex; flex-direction: column;">
-		<!--这一堆是最顶上那个个人信息，要调一下字体和间距应该-->
-		<uni-group mode="card">
-			<uni-row style="margin-top: 20rpx;">
-				<!--这一堆是头像，我觉得头像我已经调好了-->
-				<uni-col :span="7">
-					<view class="avatar">
-						<!--我看了一下他这个src是支持绝对位置、相对位置、base64-->
-						<image :src=userProfile.avatar mode="aspectFill"></image>
-					</view>
-				</uni-col>
-				<uni-col :span="16" style="display: flex; flex-direction: column;">
-					<text>{{}}</text>
-					<text>UID:{{}}</text>
-					<text>剩余时长:{{}}</text>
-				</uni-col>
-			</uni-row>
-		</uni-group>
-
-		<uni-card style="">
-			<uni-row>
-				<uni-col :span="11">
-					<view class="reserving" @click="goToreservationList()">
-						<uni-icons type="calendar" size="40"></uni-icons>
-						<text>预约中</text>
-					</view>
-				</uni-col>
-				<uni-col :span="2">
-					<view class="vertical-divider">
-					</view>
-				</uni-col>
-				<uni-col :span="11">
-					<view class="using" @click="goTousing()">
-						<uni-icons type="paperplane" size="40"></uni-icons>
-						<text>使用中</text>
-					</view>
-				</uni-col>
-			</uni-row>
-		</uni-card>
-
-		<!--使用说明，调下字体和间距-->
-		<uni-card title="使用说明">
-			<view v-for="(text,value) in textData" :key="value">
-				<view style="display: flex; margin-top: 20rpx;">
-					<view class="array"><text>{{value + 1}}</text></view>
-					<text>{{text}}</text>
+	<view class="container">
+		<!-- 个人信息卡片 -->
+		<view class="user-info-card glass-card">
+			<view class="user-info-header">
+				<view class="avatar-container">
+					<!-- 使用 uni-id-pages-avatar 组件显示头像 -->
+					<uni-id-pages-avatar width="160rpx" height="160rpx"></uni-id-pages-avatar>
+				</view>
+				<view class="user-details">
+					<text class="nickname">{{ userInfo.nickname || '未设置昵称' }}</text>
+					<text class="user-id">UID: {{ userInfo._id }}</text>
 				</view>
 			</view>
-		</uni-card>
+		</view>
+
+		<!-- 功能按钮卡片 -->
+		<view class="function-card glass-card">
+			<view class="function-buttons">
+				<view class="function-button" @click="goToreservationList()">
+					<view class="icon-container">
+						<uni-icons type="calendar" size="30" color="#ffffff"></uni-icons>
+					</view>
+					<text class="function-text">预约中</text>
+				</view>
+				
+				<view class="vertical-divider"></view>
+				
+				<view class="function-button" @click="goTousing()">
+					<view class="icon-container">
+						<uni-icons type="paperplane" size="30" color="#ffffff"></uni-icons>
+					</view>
+					<text class="function-text">使用中</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 使用说明卡片 -->
+		<view class="instructions-card glass-card">
+			<view class="card-title">
+				<text>使用说明</text>
+			</view>
+			
+			<view class="instructions-list">
+				<view class="instruction-item" v-for="(text, value) in textData" :key="value">
+					<view class="instruction-number">
+						<text>{{value + 1}}</text>
+					</view>
+					<text class="instruction-text">{{text}}</text>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="ts">
-	import { reactive, ref } from 'vue'
-	//我把测试用的用户信息用pinia存上了，详情看那个ts文件
-	import { useProfileStore } from '@/stores/userProfileStore'
-	const todo = uniCloud.importObject('todo')
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
-	console.log(res)
-	const textData = [
-		"请在预约时间前15分钟内完成签到",
-		"超时未签到将自动取消预约",
-		"游玩结束后请关闭机台",
-	]
-	const orderDate = reactive({
-		machine: "",
-		orderTime: "",
-		orderId: "",
-	})
-	function goToreservationList() {
-		uni.navigateTo({
-			url: '/pages/reservationList/reservationList'
-		});
-	}
-	async function goTousing() {
-		console.log(res.uid)
-		try {
-			const result = await todo.SignIn_Search(res.uid)
-			if (result.data.length == 1) {
-				console.log(result.data[0])
-				uni.navigateTo({
-					url:"/pages/using/using"
-				})
-			} else {
-				uni.showToast({
-					title: "未找到签到信息"
-				})
-			}
-		} catch { }
-	}
+import { reactive, ref, computed, onMounted } from 'vue'
+// 引入 uni-id-pages 的 store
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+const todo = uniCloud.importObject('todo')
+const res = uniCloud.getCurrentUserInfo('uni_id_token')
 
-	//测试用，给上面那个对象赋值
-	function init() {
-		orderDate.machine = "SDVX"
-		orderDate.orderTime = "0:00 - 24:00"
-		orderDate.orderId = "12345543211234567"
-	}
-	init()
+const textData = [
+	"请在预约时间前15分钟内完成签到",
+	"超时未签到将自动取消预约",
+	"游玩结束后请关闭机台",
+]
+
+// 使用计算属性获取用户信息
+const userInfo = computed(() => store.userInfo)
+
+function goToreservationList() {
+	uni.navigateTo({
+		url: '/pages/reservationList/reservationList'
+	});
+}
+
+async function goTousing() {
+	console.log(res.uid)
+	try {
+		const result = await todo.SignIn_Search(res.uid)
+		if (result.data.length == 1) {
+			console.log(result.data[0])
+			uni.navigateTo({
+				url:"/pages/using/using"
+			})
+		} else {
+			uni.showToast({
+				title: "未找到签到信息"
+			})
+		}
+	} catch { }
+}
 </script>
 
-<style>
-	.avatar {
-		width: 160rpx;
-		/* 宽度与高度需相同 */
-		height: 160rpx;
-		/* 高度与宽度需相同 */
-		border-radius: 50%;
-		/* 关键属性 */
-		overflow: hidden;
-		/* 确保内容被裁剪为圆形 */
-	}
+<style scoped>
+/* 全局样式 */
+.container {
+	padding: 20px;
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+	min-height: 100vh;
+	position: relative;
+}
 
-	image {
-		width: 160rpx;
-		/* 宽度与高度需相同 */
-		height: 160rpx;
-		/* 高度与宽度需相同 */
-	}
+/* 玻璃拟态卡片 */
+.glass-card {
+	background: rgba(255, 255, 255, 0.7);
+	backdrop-filter: blur(10px);
+	border-radius: 20px;
+	box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	overflow: hidden;
+	padding: 16px;
+	margin-bottom: 20px;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-	.array {
-		border-radius: 50%;
-		width: 50rpx;
-		height: 50rpx;
-		background-color: rgb(254, 236, 212);
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
+.glass-card:active {
+	transform: translateY(2px);
+	box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
+}
 
-	.reserving {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-around;
-		align-items: center;
-		height: 140rpx;
-	}
+/* 用户信息卡片 */
+.user-info-card {
+	margin-bottom: 24px;
+}
 
-	.using {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-around;
-		align-items: center;
-		height: 140rpx;
-	}
+.user-info-header {
+	display: flex;
+	align-items: center;
+	padding: 8px;
+}
 
-	.vertical-divider {
-		width: 2rpx;
-		height: 140rpx;
-		/* 高度可根据需求调整 */
-		background-color: #ccc;
-		/* 颜色可自定义 */
-		margin: 0 10px;
-		/* 添加左右外边距避免贴紧其他元素 */
+.avatar-container {
+	width: 160rpx;
+	height: 160rpx;
+	border-radius: 50%;
+	overflow: hidden;
+	border: 2px solid #fff;
+	box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+	margin-right: 16px;
+}
+
+.user-details {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.nickname {
+	font-size: 36rpx;
+	font-weight: bold;
+	margin-bottom: 8px;
+	color: #333;
+}
+
+.user-id {
+	font-size: 24rpx;
+	color: #6b7280;
+	background: rgba(243, 244, 246, 0.7);
+	padding: 4px 10px;
+	border-radius: 12px;
+	align-self: flex-start;
+}
+
+/* 功能按钮卡片 */
+.function-card {
+	margin-bottom: 24px;
+}
+
+.function-buttons {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px;
+}
+
+.function-button {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 16px 0;
+	transition: transform 0.2s ease;
+}
+
+.function-button:active {
+	transform: scale(0.95);
+}
+
+.icon-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+	width: 60px;
+	height: 60px;
+	border-radius: 16px;
+	margin-bottom: 12px;
+	box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
+
+.function-text {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333;
+}
+
+.vertical-divider {
+	width: 1px;
+	height: 80px;
+	background: rgba(107, 114, 128, 0.2);
+}
+
+/* 使用说明卡片 */
+.instructions-card {
+	margin-bottom: 24px;
+}
+
+.card-title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+	padding: 8px 4px 16px 4px;
+	border-bottom: 1px solid rgba(107, 114, 128, 0.1);
+	margin-bottom: 16px;
+}
+
+.instructions-list {
+	padding: 0 4px;
+}
+
+.instruction-item {
+	display: flex;
+	align-items: center;
+	margin-bottom: 16px;
+}
+
+.instruction-number {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: rgba(255, 193, 7, 0.1);
+	color: #FF9800;
+	font-size: 14px;
+	font-weight: 600;
+	margin-right: 12px;
+}
+
+.instruction-text {
+	font-size: 28rpx;
+	color: #4b5563;
+	line-height: 1.5;
+}
+
+/* 媒体查询：针对不同尺寸设备的响应式样式 */
+/* 小屏幕设备 */
+@media screen and (max-width: 375px) {
+	.container {
+		padding: 16px;
 	}
+	
+	.nickname {
+		font-size: 32rpx;
+	}
+	
+	.user-id {
+		font-size: 22rpx;
+	}
+	
+	.icon-container {
+		width: 50px;
+		height: 50px;
+	}
+	
+	.function-text {
+		font-size: 26rpx;
+	}
+	
+	.instruction-number {
+		width: 22px;
+		height: 22px;
+	}
+	
+	.instruction-text {
+		font-size: 26rpx;
+	}
+}
+
+/* 大屏幕设备 */
+@media screen and (min-width: 768px) {
+	.container {
+		padding: 24px;
+	}
+	
+	.glass-card {
+		padding: 20px;
+		border-radius: 24px;
+	}
+	
+	.nickname {
+		font-size: 40rpx;
+	}
+	
+	.user-id {
+		font-size: 26rpx;
+	}
+	
+	.icon-container {
+		width: 70px;
+		height: 70px;
+		border-radius: 20px;
+	}
+	
+	.function-text {
+		font-size: 30rpx;
+	}
+	
+	.card-title {
+		font-size: 20px;
+	}
+	
+	.instruction-number {
+		width: 28px;
+		height: 28px;
+	}
+	
+	.instruction-text {
+		font-size: 30rpx;
+	}
+}
 </style>
