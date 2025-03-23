@@ -47,9 +47,15 @@
 
 				<!-- 按钮区域 -->
 				<view class="button-group">
-					<view class="action-button view-button" @click="viewReservations(machineData)">
+					<view v-if="(isSuperUser || isUser)"
+						class="action-button view-button" @click="viewReservations(machineData)">
 						<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
 						<text class="button-text">查看预约</text>
+					</view>
+					<view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
+						class="action-button needlog-button" @click="unlogin()">
+						<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+						<text class="button-text error-text">登陆后查看</text>
 					</view>
 					<view v-if="machineData.machineInfo.status == 0 &&(isSuperUser || isUser)"
 						class="action-button reserve-button"
@@ -65,7 +71,7 @@
 					<view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
 						class="action-button needlog-button" @click="unlogin()">
 						<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text error-text">请先登录</text>
+						<text class="button-text error-text">登陆后预约</text>
 					</view>
 				</view>
 			</view>
