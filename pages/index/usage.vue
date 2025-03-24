@@ -82,11 +82,12 @@
 <script setup lang="ts">
 	import { onMounted, reactive, ref, watch, onShow } from 'vue';
 	import dayjs from 'dayjs';
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
-	console.log(res)
+	import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const isSuperUser = ref(false)
 	const isUser = ref(false)
 	function roleJudge() {
+		const res = uniCloud.getCurrentUserInfo('uni_id_token')
 		if (res.role.includes("admin") || res.role.includes("superUser")) {
 			isSuperUser.value = true
 		} else if (res.role.includes("user")) {
@@ -94,7 +95,9 @@
 			isUser.value = true
 		}
 	}
-
+	uni.$on('uni-id-pages-login-success', () => {
+	    roleJudge();
+	});
 	const todo = uniCloud.importObject('todo')
 	interface machine {
 		"_id" : string;
@@ -239,8 +242,12 @@
 		roleJudge();
 	})
 	uni.$on('onShow', () => {
-	  loadData(); // 每次页面显示时刷新
+	  loadMachineReservations(); // 每次页面显示时刷新
+	  
 	});
+	uni.$on('reservationSuccess', () => {
+	        loadMachineReservations(); 
+	    });
 
 	// 计算条形图 segment 的样式
 	function calculateSegmentStyle(reservation : Reservation, dayStartTime : number, dayEndTime : number) {
