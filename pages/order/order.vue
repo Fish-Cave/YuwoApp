@@ -399,28 +399,6 @@
 	}
 
 
-	// 检查时间冲突
-	function checkTimeConflict() {
-		// 检查所选时间是否与已有预约冲突
-		for (const reservation of reservations.value) {
-			// 跳过状态为取消的预约
-			if (reservation.status === 0) continue;
-
-			// 检查是否有重叠
-			const hasOverlap = (
-				(Data.startTime >= reservation.startTime && Data.startTime < reservation.endTime) ||
-				(Data.endTime > reservation.startTime && Data.endTime <= reservation.endTime) ||
-				(Data.startTime <= reservation.startTime && Data.endTime >= reservation.endTime)
-			);
-
-			if (hasOverlap) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	// 获取某一天的机器预约信息
 	async function getReservationsForDate(machineId, date) {
 		try {
@@ -669,17 +647,7 @@ async function submitOrder() {
 		});
 		return;
 	}
-
-	// 检查时间冲突
-	const hasConflict = checkTimeConflict();
-	if (hasConflict) {
-		uni.showToast({
-			title: '所选时间段与已有预约冲突',
-			icon: 'none'
-		});
-		return;
-	}
-
+	
 	Data.status = 1;
 
 	try {
@@ -687,41 +655,40 @@ async function submitOrder() {
 	            title: '提交中...'
 	        });
 	
-	        const res = await todo.Reservation_Add(Data);
+	        const res = await todo.Reservation_Add(Data); // **直接调用云函数，不再进行前端时间冲突检查**
 	
 	        uni.hideLoading();
 	
 	        if (res && res.errCode === 'CAPACITY_EXCEEDED') {
-	            uni.showToast({
-	                title: res.errMsg, // 显示云对象返回的错误信息 (包含 capacity 上限)
-	                icon: 'none',
-	                duration: 3000
-	            });
-	        } else if (res && res.errCode === 'TIME_CONFLICT') {
-	            uni.showToast({
-	                title: res.errMsg,
-	                icon: 'none',
-	                duration: 3000
-	            });
-	        }  else if (res && res.errCode === 'MACHINE_NOT_FOUND') {
-	            uni.showToast({
-	                title: res.errMsg,
-	                icon: 'none',
-	                duration: 3000
-	            });
-	        } else if (res && res.errCode !== 0) {
-	            uni.showToast({
-	                title: '预约失败: ' + (res.errMsg || '未知错误'),
-	                icon: 'none'
-	            });
-	        } else {
-	            uni.showToast({
-	                title: '预约成功',
-	                icon: 'success'
-	            });
-	            uni.navigateBack();
-	        }
-	
+				uni.showToast({
+					title: res.errMsg,
+					icon: 'none',
+					duration: 3000
+				});
+			} else if (res && res.errCode === 'TIME_CONFLICT') {
+				uni.showToast({
+					title: res.errMsg,
+					icon: 'none',
+					duration: 3000
+				});
+			}  else if (res && res.errCode === 'MACHINE_NOT_FOUND') {
+				uni.showToast({
+					title: res.errMsg,
+					icon: 'none',
+					duration: 3000
+				});
+			} else if (res && res.errCode !== 0) {
+				uni.showToast({
+					title: '预约失败: ' + (res.errMsg || '未知错误'),
+					icon: 'none'
+				});
+			} else {
+				uni.showToast({
+					title: '预约成功',
+					icon: 'success'
+				});
+				uni.navigateBack();
+			}
 	
 	    } catch (error) {
 	        uni.hideLoading();

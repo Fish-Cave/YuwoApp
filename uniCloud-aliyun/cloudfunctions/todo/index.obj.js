@@ -60,59 +60,171 @@ module.exports = {
 	},
 
 	Reservation_Add: async function(content) {
-	    const dbJQL = uniCloud.databaseForJQL({
-	        clientInfo: this.getClientInfo()
-	    });
-	
+	    const db = uniCloud.database();
 	    const startTime = content.startTime;
 	    const endTime = content.endTime;
 	    const machineId = content.machineId;
 	    const isOvernight = content.isOvernight;
+	    const userId = content.userId;
 	
-	    // 1. 获取机台的 capacity 值
-	    const machineInfo = await dbJQL.collection('machines')
-	        .where({ _id: machineId })
-	        .field('capacity')
-	        .get();
+	    console.log("Reservation_Add function started");
+	    console.log("Input content:", content);
 	
-	    if (machineInfo.data.length === 0) {
+	    // Input validation
+	    if (!startTime || !endTime || !machineId || !userId) {
+	        console.log("Error: Missing parameters");
 	        return {
-	            errCode: 'MACHINE_NOT_FOUND',
-	            errMsg: '未找到指定的机台信息'
-	        }; // 机台不存在
+	            errCode: 'INVALID_PARAMS',
+	            errMsg: '缺少必要参数'
+	        };
 	    }
-	
-	    const maxCapacity = machineInfo.data[0].capacity || 1; // 默认 capacity 为 1，防止未设置 capacity 的情况
-	
-	    // 2. 统计当前时间段内该机台的预约数量
-	    const existingReservationsCount = await dbJQL.collection('reservation-log')
-	        .where({
-	            machineId: machineId,
-	            status: 1, //  只统计 "进行中" 的预约
-	            isOvernight: isOvernight, // 预约类型也需要一致
-	            _id: dbJQL.command.neq(content._id || ''), // 排除自身更新的情况
-	            $and: [
-	                { startTime: dbJQL.command.lt(endTime) },
-	                { endTime: dbJQL.command.gt(startTime) }
-	            ]
-	        })
-	        .count();
-	
-	
-	    // 3. 判断预约数量是否超过 capacity
-	    if (existingReservationsCount.total >= maxCapacity) {
+	    if (startTime >= endTime) {
+	        console.log("Error: Invalid time range");
 	        return {
-	            errCode: 'CAPACITY_EXCEEDED',
-	            errMsg: `该时段机台预约已满 (${maxCapacity}人上限)，请选择其他时段或机台。`
+	            errCode: 'INVALID_TIME_RANGE',
+	            errMsg: '开始时间必须早于结束时间'
 	        };
 	    }
 	
-	    // 4. 如果未超过 capacity，则创建预约
 	    try {
-	        await dbJQL.collection('reservation-log').add(content);
-	        return { errCode: 0, errMsg: 'success' };
+	        // 1. 获取机台信息
+	        console.log("Fetching machine info for machineId:", machineId);
+	        const machineInfo = await db.collection('machines')
+	            .where({ _id: machineId })
+	            .field({ capacity: true }) // Corrected field syntax
+	            .get();
+	        console.log("Machine info fetched:", machineInfo);
+	
+	        if (machineInfo.data.length === 0) {
+	            console.log("Error: Machine not found");
+	            return {
+	                errCode: 'MACHINE_NOT_FOUND',
+	                errMsg: '未找到指定的机台信息'
+	            };
+	        }
+	
+	        console.log("Machine data[0]:", machineInfo.data[0]);
+	        console.log("Type of capacity from DB:", typeof machineInfo.data[0].capacity);
+	        console.log("Raw capacity from DB:", JSON.stringify(machineInfo.data[0]));
+	
+	        const maxCapacity = Number(machineInfo.data[0].capacity) || 1;
+	        console.log("Calculated maxCapacity:", maxCapacity);
+	        console.log("Type of maxCapacity:", typeof maxCapacity);
+	
+	        // 2. 一次性查询所有需要的数据
+	        console.log("Fetching user and overlapping reservations...");
+	        const [userReservations, allOverlappingReservations] = await Promise.all([
+	            // 查询用户已有的重叠预约
+	            db.collection('reservation-log')
+	                .where({
+	                    userId: userId,
+	                    status: 1,
+	                    isOvernight: isOvernight,
+	                    _id: db.command.neq(content._id || ''),
+	                    $and: [
+	                        { startTime: db.command.lt(endTime) },
+	                        { endTime: db.command.gt(startTime) }
+	                    ]
+	                })
+	                .limit(1)
+	                .get(),
+	
+	            // 查询所有重叠的预约（用于容量检查）
+	            db.collection('reservation-log')
+	                .where({
+	                    machineId: machineId,
+	                    status: 1,
+	                    isOvernight: isOvernight,
+	                    $and: [
+	                        { startTime: db.command.lt(endTime) },
+	                        { endTime: db.command.gt(startTime) }
+	                    ]
+	                })
+	                .field({ startTime: true, endTime: true }) // Corrected field syntax
+	                .get()
+	        ]);
+	        console.log("Fetching user and overlapping reservations...");
+	        // 3. 检查用户重叠预约
+	        if (userReservations.data.length > 0) {
+	            console.log("Error: Time conflict - user overlap");
+	            return {
+	                errCode: 'TIME_CONFLICT',
+	                errMsg: '同一用户不能预约重叠的时间段'
+	            };
+	        }
+	
+	        // 4. 优化的容量检查 - 使用扫描线算法
+	        const events = [];
+	        allOverlappingReservations.data.forEach(rsv => {
+	            events.push({ time: rsv.startTime, delta: 1 });
+	            events.push({ time: rsv.endTime, delta: -1 });
+	        });
+	
+	        // 添加当前预约的事件点
+	        events.push({ time: startTime, delta: 1 });
+	        events.push({ time: endTime, delta: -1 });
+	
+	        // 按时间排序
+	        events.sort((a, b) => a.time - b.time);
+	
+	        // 计算最大并发数
+	        let currentCount = 0;
+	        let maxConcurrent = 0;
+	        let prevTime = 0;
+	        console.log("Starting capacity check loop. maxCapacity:", maxCapacity);
+	        for (const event of events) {
+	            // 相同时间点的结束事件应该先处理（减少计数）
+	            if (event.time === prevTime && event.delta < 0) {
+	                currentCount += event.delta;
+	            } else {
+	                // 更新最大并发数
+	                maxConcurrent = Math.max(maxConcurrent, currentCount);
+	                currentCount += event.delta;
+	                prevTime = event.time;
+	            }
+	            console.log("After event processing - currentCount:", currentCount, "maxConcurrent:", maxConcurrent);
+	        }
+	        console.log("Capacity check loop finished. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
+	        // 5. 检查是否超过容量限制
+	        if (maxConcurrent > maxCapacity) {
+	            console.log("Error: Capacity exceeded. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
+	            return {
+	                errCode: 'CAPACITY_EXCEEDED',
+	                errMsg: `该时段已达预约上限 (${maxCapacity}人上限)，请选择其他时段`
+	            };
+	        }
+	
+	        // 6. 添加预约记录
+	        console.log("Adding reservation record...");
+	        const result = await db.collection('reservation-log').add({
+	            ...content,
+	            createTime: Date.now()
+	        });
+	        console.log("Reservation add result:", result);
+	
+	        if (!result || !result.id) {
+	            console.log("Error: DB add failed");
+	            return {
+	                errCode: 'DB_ADD_FAILED',
+	                errMsg: '添加预约记录失败'
+	            };
+	        }
+	
+	        console.log("Reservation successful, id:", result.id);
+	        return {
+	            errCode: 0,
+	            errMsg: 'success',
+	            id: result.id
+	        };
+	
 	    } catch (e) {
-	        return { errCode: 500, errMsg: e.message };
+	        console.error("Exception caught:", e);
+	        return e.errCode ? e : {
+	            errCode: 'DB_ERROR',
+	            errMsg: '数据库操作失败: ' + e.message
+	        };
+	    } finally {
+	        console.log("Reservation_Add function finished");
 	    }
 	},
 
