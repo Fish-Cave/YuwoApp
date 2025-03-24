@@ -1,6 +1,7 @@
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
+
 module.exports = {
 	_before: function() { // 通用预处理器
 
@@ -59,6 +60,52 @@ module.exports = {
 		}).get()
 	},
 
+	/**
+	 * 获取用户会员信息
+	 * @param {string} userID 用户ID
+	 * @returns {object} 会员信息，包含 membership 和 subscriptionPackage 状态
+	 */
+	async getUserMembershipInfo(userID) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		try {
+			const membershipCollection = dbJQL.collection('membership');
+			const subscriptionPackageCollection = dbJQL.collection('subscription-package');
+	
+			const membership = await membershipCollection
+				.where({
+					userID: userID,
+					status: true, // 只查询有效的会员
+					validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+				})
+				.get();
+	
+			const subscriptionPackage = await subscriptionPackageCollection
+				.where({
+					userID: userID,
+					status: true, // 只查询有效的会员
+					validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+				})
+				.get();
+	
+			//检查是否有数据，没有数据返回空数组
+			const membershipData = membership.data.length > 0 ? membership.data : [];
+			const subscriptionPackageData = subscriptionPackage.data.length > 0 ? subscriptionPackage.data : [];
+	
+			return {
+				membership: membershipData,
+				subscriptionPackage: subscriptionPackageData,
+			};
+		} catch (e) {
+			console.error("Error in getUserMembershipInfo:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '获取会员信息失败: ' + e.message
+			};
+		}
+	},
+	
 	Reservation_Add: async function(content) {
 	    const db = uniCloud.database();
 	    const startTime = content.startTime;
@@ -111,7 +158,32 @@ module.exports = {
 	        console.log("Calculated maxCapacity:", maxCapacity);
 	        console.log("Type of maxCapacity:", typeof maxCapacity);
 	
-	        // 2. 一次性查询所有需要的数据
+	        // 2. 获取用户信息
+	        const membershipInfo = await this.getUserMembershipInfo(userId);
+			if (membershipInfo.errCode) {
+				return membershipInfo; // 直接返回错误信息
+			}
+	        console.log("Membership Info:", membershipInfo);
+	
+	        // 3. 根据会员信息修改价格或预定逻辑
+	        let priceInfo = await db.collection('prices').where({ type: content.type }).get();
+	        let price = priceInfo.data[0].price; // 从数据库获取原始价格
+	
+	        if (membershipInfo.subscriptionPackage.length > 0) {
+	            // 包周卡/月卡会员，100% off
+	            price = 0;
+	            console.log("User has subscription package, price set to 0");
+	        } else if (membershipInfo.membership.length > 0) {
+	            // 音游会员，折扣
+	            //假设音游会员打8折
+	            price = price * 0.8;
+	            console.log("User has membership, price adjusted to 80%");
+	        }
+	        
+	        //将价格放入content
+	        content.price = price
+	
+	        // 4. 一次性查询所有需要的数据
 	        console.log("Fetching user and overlapping reservations...");
 	        const [userReservations, allOverlappingReservations] = await Promise.all([
 	            // 查询用户已有的重叠预约
@@ -144,7 +216,7 @@ module.exports = {
 	                .get()
 	        ]);
 	        console.log("Fetching user and overlapping reservations...");
-	        // 3. 检查用户重叠预约
+	        // 5. 检查用户重叠预约
 	        if (userReservations.data.length > 0) {
 	            console.log("Error: Time conflict - user overlap");
 	            return {
@@ -153,7 +225,7 @@ module.exports = {
 	            };
 	        }
 	
-	        // 4. 优化的容量检查 - 使用扫描线算法
+	        // 6. 优化的容量检查 - 使用扫描线算法
 	        const events = [];
 	        allOverlappingReservations.data.forEach(rsv => {
 	            events.push({ time: rsv.startTime, delta: 1 });
@@ -185,7 +257,7 @@ module.exports = {
 	            console.log("After event processing - currentCount:", currentCount, "maxConcurrent:", maxConcurrent);
 	        }
 	        console.log("Capacity check loop finished. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
-	        // 5. 检查是否超过容量限制
+	        // 7. 检查是否超过容量限制
 	        if (maxConcurrent > maxCapacity) {
 	            console.log("Error: Capacity exceeded. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
 	            return {
@@ -194,7 +266,7 @@ module.exports = {
 	            };
 	        }
 	
-	        // 6. 添加预约记录
+	        // 8. 添加预约记录
 	        console.log("Adding reservation record...");
 	        const result = await db.collection('reservation-log').add({
 	            ...content,
@@ -227,7 +299,6 @@ module.exports = {
 	        console.log("Reservation_Add function finished");
 	    }
 	},
-
 	
 	Reservation_Update: function(content,statusnumber) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
@@ -358,5 +429,49 @@ module.exports = {
 			"isPlay" : true,
 			"starttime" : true
 		}).get()
+	},
+
+	/**
+	 * 定时任务：更新会员状态
+	 * 此函数应该配置为定时触发，例如每天凌晨执行一次
+	 */
+	async updateMembershipStatus() {
+		try {
+			const now = Date.now();
+			const membershipCollection = db.collection('membership');
+			const subscriptionPackageCollection = db.collection('subscription-package');
+	
+			// 更新 membership
+			await membershipCollection
+				.where({
+					status: true,
+					validthru: db.command.lt(now)
+				})
+				.update({
+					status: false
+				});
+	
+			// 更新 subscription-package
+			await subscriptionPackageCollection
+				.where({
+					status: true,
+					validthru: db.command.lt(now)
+				})
+				.update({
+					status: false
+				});
+	
+			console.log('会员状态更新完成');
+			return {
+				success: true,
+				message: '会员状态更新完成'
+			};
+		} catch (e) {
+			console.error('会员状态更新失败:', e);
+			return {
+				success: false,
+				message: '会员状态更新失败: ' + e.message
+			};
+		}
 	}
 }

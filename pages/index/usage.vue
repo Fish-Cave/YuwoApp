@@ -11,7 +11,9 @@
 					<view class="machine-info">
 						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
 						<view class="price-status-container">
-							<text v-if="isSuperUser" class="machine-price">会员价 4元/半时</text>
+							<!-- 会员价格显示逻辑 -->
+							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">会员价 0元/半时</text>
+							<text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
 							<text v-else class="machine-price">5元/半时</text>
 
 							<view class="status-label"
@@ -86,6 +88,8 @@
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const isSuperUser = ref(false)
 	const isUser = ref(false)
+	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
+
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
 		if (res.role.includes("admin") || res.role.includes("superUser")) {
@@ -94,32 +98,62 @@
 			isSuperUser.value = false
 			isUser.value = true
 		}
+		getMembershipStatus(); // 获取会员状态
 	}
+
+	async function getMembershipStatus() {
+		try {
+			const result = await todo.getUserMembershipInfo(uniCloud.getCurrentUserInfo().uid);
+			if (result && result.membership.length > 0) {
+				const memberships = result.membership; // Assuming membership is an array
+
+				// Check for weekly/monthly first
+				if (memberships.some(m => m.package_type === 'weekly' || m.package_type === 'monthly')) {
+					membershipType.value = "weekly_monthly";
+					console.log('have weekly/monthly pass!')
+				} else if (memberships.some(m => m.package_type === 'music_game')) {
+					membershipType.value = "music_game";
+					console.log('have membership!')
+				} else {
+					membershipType.value = "none"; // Should not reach here if membership.length > 0, but for safety
+					console.log('have no pass(and should not see this)')
+				}
+			} else {
+				membershipType.value = "none";
+				console.log('have no pass')
+			}
+		} catch (error) {
+			console.error("获取会员信息失败:", error);
+			membershipType.value = "none"; // Default to non-member on error
+		}
+	}
+
+
 	uni.$on('uni-id-pages-login-success', () => {
-	    roleJudge();
+		roleJudge();
 	});
 	const todo = uniCloud.importObject('todo')
 	interface machine {
-		"_id" : string;
-		"name" : string;
-		"capacity" : number;
-		"status" : number;
-		"machinenum" : number;
-		"description" : string;
+		"_id": string;
+		"name": string;
+		"capacity": number;
+		"status": number;
+		"machinenum": number;
+		"description": string;
 	}
 	interface Reservation {
-		"_id" : string;
-		"machineId" : string;
-		"isOvernight" : boolean;
-		"status" : string;
-		"startTime" : number;
-		"endTime" : number;
+		"_id": string;
+		"machineId": string;
+		"isOvernight": boolean;
+		"status": string;
+		"startTime": number;
+		"endTime": number;
 	}
 
 	// 新增：用于控制收藏状态
 	const favorites = ref<Set<string>>(new Set());
 
-	function toggleFavorite(machineId : string) {
+	function toggleFavorite(machineId: string) {
 		if (favorites.value.has(machineId)) {
 			favorites.value.delete(machineId);
 		} else {
@@ -150,21 +184,21 @@
 	}
 
 	function viewReservations(machineData) {
-	    // 存储数据到 localStorage
-	    const detailData = {
-	        GetMachineReservationInfo: machineData
-	    };
-	    uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
-	
-	    console.log("查看预约信息：", machineData);
-	    uni.navigateTo({
-	        url: '/pages/usageDetail/usageDetail',
-	        success: function (res) {
-	            //res.eventChannel.emit('acceptDataFromOpenerPage', {
-	            //  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-	            //});
-	        }
-	    });
+		// 存储数据到 localStorage
+		const detailData = {
+			GetMachineReservationInfo: machineData
+		};
+		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
+
+		console.log("查看预约信息：", machineData);
+		uni.navigateTo({
+			url: '/pages/usageDetail/usageDetail',
+			success: function (res) {
+				//res.eventChannel.emit('acceptDataFromOpenerPage', {
+				//  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
+				//});
+			}
+		});
 	}
 
 
@@ -181,24 +215,30 @@
 		}
 	})
 
-	function goOrder(machineName : String, machineID : String) {
+	function goOrder(machineName: String, machineID: String) {
 		// 存储数据到 localStorage
 		const orderData = {
 			name: machineName,
 			id: machineID
 		};
 		uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
-		
+
 		uni.navigateTo({
 			url: '/pages/order/order',
 			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
+				res.eventChannel.emit('acceptDataFromOpenerPage', {
+					'name': machineName,
+					'id': machineID
+				})
 			}
 		});
 	}
 
 
-	const machineReservationData = ref<Array<{ machineInfo : machine, reservations : Reservation[] }>>([]) // 初始化为空数组
+	const machineReservationData = ref<Array<{
+		machineInfo: machine,
+		reservations: Reservation[]
+	}>>([]) // 初始化为空数组
 
 	async function loadMachineReservations() {
 		try {
@@ -242,18 +282,18 @@
 		roleJudge();
 	})
 	uni.$on('onShow', () => {
-	  loadMachineReservations(); // 每次页面显示时刷新
-	  
+		loadMachineReservations(); // 每次页面显示时刷新
+
 	});
 	uni.$on('reservationSuccess', () => {
-	        loadMachineReservations(); 
-	    });
+		loadMachineReservations();
+	});
 
 	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation : Reservation, dayStartTime : number, dayEndTime : number) {
+	function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
 		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
 		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
-		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;   // 预约结束时间在一天中的偏移量
+		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
 
 		const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
 		const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
@@ -337,6 +377,7 @@
 		color: #333;
 		margin-bottom: 8rpx;
 	}
+
 
 	.machine-price {
 		font-size: 26rpx;
