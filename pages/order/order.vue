@@ -683,36 +683,54 @@ async function submitOrder() {
 	Data.status = 1;
 
 	try {
-		uni.showLoading({
-			title: '提交中...'
-		});
-
-		const res = await todo.Reservation_Add(Data);
-
-		uni.hideLoading();
-
-		if (res && res.errCode !== 0) { // 修改判断条件
-			uni.showToast({
-				title: '预约失败: ' + (res.errMsg || '未知错误'), // Display error message from cloud function
-				icon: 'none'
-			});
-		} else {
-			uni.showToast({
-				title: '预约成功',
-				icon: 'success'
-			});
-			uni.navigateBack(); // 返回到之前的页面
-		}
-
-
-	} catch (error) { // Catch network errors or other unexpected issues in calling cloud function
-		uni.hideLoading();
-		uni.showToast({
-			title: '预约失败: 网络错误或未知错误',
-			icon: 'none'
-		});
-		console.error("Error calling Reservation_Add:", error); // Log error in frontend console as well
-	}
+	        uni.showLoading({
+	            title: '提交中...'
+	        });
+	
+	        const res = await todo.Reservation_Add(Data);
+	
+	        uni.hideLoading();
+	
+	        if (res && res.errCode === 'CAPACITY_EXCEEDED') {
+	            uni.showToast({
+	                title: res.errMsg, // 显示云对象返回的错误信息 (包含 capacity 上限)
+	                icon: 'none',
+	                duration: 3000
+	            });
+	        } else if (res && res.errCode === 'TIME_CONFLICT') {
+	            uni.showToast({
+	                title: res.errMsg,
+	                icon: 'none',
+	                duration: 3000
+	            });
+	        }  else if (res && res.errCode === 'MACHINE_NOT_FOUND') {
+	            uni.showToast({
+	                title: res.errMsg,
+	                icon: 'none',
+	                duration: 3000
+	            });
+	        } else if (res && res.errCode !== 0) {
+	            uni.showToast({
+	                title: '预约失败: ' + (res.errMsg || '未知错误'),
+	                icon: 'none'
+	            });
+	        } else {
+	            uni.showToast({
+	                title: '预约成功',
+	                icon: 'success'
+	            });
+	            uni.navigateBack();
+	        }
+	
+	
+	    } catch (error) {
+	        uni.hideLoading();
+	        uni.showToast({
+	            title: '预约失败: 网络错误或未知错误',
+	            icon: 'none'
+	        });
+	        console.error("Error calling Reservation_Add:", error);
+	    }
 }
 
 </script>
@@ -1125,7 +1143,6 @@ async function submitOrder() {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    /* Replace external shadow with inset shadow and border effect */
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 
                 inset 0 2px 8px rgba(255, 255, 255, 0.7), 
                 inset 0 -2px 8px rgba(31, 38, 135, 0.05);
@@ -1133,8 +1150,6 @@ async function submitOrder() {
     padding: 16px;
     margin-bottom: 20px;
 }
-
-/* Add subtle border highlight for depth effect */
 .header-container::after,
 .calendar-container::after,
 .chart-container::after,
