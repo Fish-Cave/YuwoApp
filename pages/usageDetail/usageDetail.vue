@@ -133,6 +133,9 @@ const startTime = ref<number>(0);
 const endTime = ref<number>(0);
 
 onMounted(() => {
+	uni.$on('reservationSuccess', () => {
+			loadMachineReservations(); 
+		});
     // 尝试从 localStorage 获取数据
     const storedData = uni.getStorageSync('detailData');
     if (storedData) {
@@ -184,7 +187,30 @@ onMounted(() => {
         });
     }
 });
+async function loadMachineReservations() {
+		try {
+			if (!props.startTime || !props.endTime) {
+				console.log("startTime 或 endTime 为空，不加载数据");
+				return;
+			}
+			console.log("准备调用 GetMachineReservationInfo 云函数");
+			let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
+			console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
 
+			if (Array.isArray(res)) {
+				machineReservationData.value = res;
+			} else if (res && res.result) {
+				machineReservationData.value = res.result;
+			} else {
+				console.error("返回的数据格式不正确:", res);
+				machineReservationData.value = []; // 设置为空数组避免渲染错误
+			}
+
+			console.log("machineReservationData.value 赋值后:", machineReservationData.value);
+		} catch (e) {
+			console.error("加载机台预约信息失败:", e);
+		}
+	}
 function getOpenerEventChannel() {
     // @ts-ignore
     const pages = getCurrentPages();

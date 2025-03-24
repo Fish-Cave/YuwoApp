@@ -691,11 +691,19 @@ async function submitOrder() {
                     title: '预约失败: ' + (res.errMsg || '未知错误'),
                     icon: 'none'
                 });
+            } else if (res && res.errCode == 0) {
+                uni.showToast({
+                    title: '预约成功',
+                    icon: 'success'
+                });
+				uni.$emit('reservationSuccess');
+                uni.navigateBack();
             } else {
                 uni.showToast({
                     title: '预约成功',
                     icon: 'success'
                 });
+				uni.$emit('reservationSuccess');
                 uni.navigateBack();
             }
 
