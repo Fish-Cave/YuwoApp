@@ -182,30 +182,28 @@ function formatTime(timestamp: number) {
 	return dayjs(timestamp).format('HH:mm');
 }
 
-
 function groupReservationsByUser(reservations: Reservation[]) {
-	const userGroups: Map<string, any> = new Map(); // 使用 Map 存储用户分组
+    const userGroups: Map<string, any> = new Map();
 
-	reservations.forEach(reservation => {
-		const userId = reservation.userId; // 假设 reservation 对象中有 userId 字段
-		if (userId) {
-			if (userGroups.has(userId)) {
-				userGroups.get(userId).reservations.push(reservation);
-			} else {
-				userGroups.set(userId, {
-					userId: userId,
-					username: reservation.username, // 取第一个预约的用户名
-					avatar: reservation.avatar,     // 取第一个预约的头像
-					reservations: [reservation]
-				});
-			}
-		}
-	});
+    reservations.forEach(reservation => {
+        const userId = reservation.userId;
+        if (userId) {
+            if (userGroups.has(userId)) {
+                userGroups.get(userId).reservations.push(reservation);
+            } else {
+                const avatarUrl = reservation.avatar_file?.url || reservation.avatar || 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-aliyun-uid/e952b560-822f-4e8d-b9ab-530230c46558.png';
+                userGroups.set(userId, {
+                    userId: userId,
+                    username: reservation.username,
+                    avatar: avatarUrl,
+                    reservations: [reservation]
+                });
+            }
+        }
+    });
 
-	// 将 Map 转换为数组
-	return Array.from(userGroups.values());
+    return Array.from(userGroups.values());
 }
-
 
 function calculateDuration(groupedUserReservation: any) {
 	if (!groupedUserReservation || !groupedUserReservation.reservations || groupedUserReservation.reservations.length === 0) {
