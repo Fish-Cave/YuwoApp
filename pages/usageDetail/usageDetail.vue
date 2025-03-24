@@ -37,29 +37,40 @@
 			</view>
 		</view>
 
-		<!-- 预约列表 -->
 		<view class="reservation-list">
 			<view
-				v-for="(reservation, index) in reservations"
-				:key="index"
+				v-for="groupedUser in groupedReservations"
+				:key="groupedUser.userId"
 				class="reservation-item glass-card"
 			>
 				<view class="reservation-header">
 					<image
-						:src="reservation.avatar || 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-aliyun-uid/e952b560-822f-4e8d-b9ab-530230c46558.png'"
+						:src="groupedUser.avatar || 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-aliyun-uid/e952b560-822f-4e8d-b9ab-530230c46558.png'"
 						class="avatar"
 					/>
 					<view class="user-info">
-						<text class="username">{{ reservation.username }}</text>
-						<text class="reservation-time">预约时间：{{ formatTime(reservation.startTime) }} - {{ formatTime(reservation.endTime) }}</text>
+						<text class="username">{{ groupedUser.username }}</text>
+						<!--  修改：循环显示每个预约的时间 -->
+						<view class="reservation-times">
+							<text
+								v-for="(reservation, index) in groupedUser.reservations"
+								:key="index"
+								class="reservation-time-item"
+							>
+								{{ formatTime(reservation.startTime) }} - {{ formatTime(reservation.endTime) }}
+							</text>
+						</view>
 					</view>
 					<view class="duration-badge">
-						{{ calculateDuration(reservation.startTime, reservation.endTime) }}
+						{{ calculateDuration(groupedUser) }}
 					</view>
 				</view>
 				<view class="timeline-container user-timeline-container">
 					<view class="timeline-bar user-timeline">
+						<!-- 修改：循环渲染每个预约的时间条 segment -->
 						<view
+							v-for="(reservation, index) in groupedUser.reservations"
+							:key="index"
 							class="timeline-segment user-segment"
 							:style="calculateUserTimelineStyle(reservation, startTime, endTime)"
 						></view>
@@ -98,6 +109,7 @@ interface Reservation {
 	endTime: number;
 	username?: string;
 	avatar?: string;
+	userId?: string; // 确保 Reservation 接口包含 userId
 }
 
 interface MachineReservationData {
@@ -116,6 +128,7 @@ const machineInfo = ref<Machine>({
 });
 
 const reservations = ref<Reservation[]>([]);
+const groupedReservations = ref<any[]>([]); // 用于存储合并后的用户预约数据
 const startTime = ref<number>(0);
 const endTime = ref<number>(0);
 
@@ -127,9 +140,12 @@ onMounted(() => {
 		if (data.GetMachineReservationInfo) {
 			machineInfo.value = data.GetMachineReservationInfo.machineInfo;
 			reservations.value = data.GetMachineReservationInfo.reservations;
-			
+
+			// 数据预处理，合并用户预约
+			groupedReservations.value = groupReservationsByUser(reservations.value);
+
 			// 如果有预约数据，设置时间范围
-			if (data.GetMachineReservationInfo.reservations && data.GetMachineReservationInfo.reservations.length > 0) {
+			if (groupedReservations.value && groupedReservations.value.length > 0) {
 				const today = dayjs().startOf('day');
 				startTime.value = today.valueOf();
 				endTime.value = today.add(1, 'day').valueOf();
@@ -166,13 +182,46 @@ function formatTime(timestamp: number) {
 	return dayjs(timestamp).format('HH:mm');
 }
 
-function calculateDuration(startTime: number, endTime: number) {
-	const duration = (endTime - startTime) / (1000 * 60); // 分钟
-	if (duration < 60) {
-		return `${duration}分钟`;
+
+function groupReservationsByUser(reservations: Reservation[]) {
+	const userGroups: Map<string, any> = new Map(); // 使用 Map 存储用户分组
+
+	reservations.forEach(reservation => {
+		const userId = reservation.userId; // 假设 reservation 对象中有 userId 字段
+		if (userId) {
+			if (userGroups.has(userId)) {
+				userGroups.get(userId).reservations.push(reservation);
+			} else {
+				userGroups.set(userId, {
+					userId: userId,
+					username: reservation.username, // 取第一个预约的用户名
+					avatar: reservation.avatar,     // 取第一个预约的头像
+					reservations: [reservation]
+				});
+			}
+		}
+	});
+
+	// 将 Map 转换为数组
+	return Array.from(userGroups.values());
+}
+
+
+function calculateDuration(groupedUserReservation: any) {
+	if (!groupedUserReservation || !groupedUserReservation.reservations || groupedUserReservation.reservations.length === 0) {
+		return '0分钟';
+	}
+
+	let totalDurationMinutes = 0;
+	groupedUserReservation.reservations.forEach((reservation: Reservation) => {
+		totalDurationMinutes += (reservation.endTime - reservation.startTime) / (1000 * 60);
+	});
+
+	if (totalDurationMinutes < 60) {
+		return `${totalDurationMinutes.toFixed(0)}分钟`; // 保留整数分钟
 	} else {
-		const hours = Math.floor(duration / 60);
-		const minutes = duration % 60;
+		const hours = Math.floor(totalDurationMinutes / 60);
+		const minutes = Math.floor(totalDurationMinutes % 60); // 取整分钟数
 		return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
 	}
 }
@@ -192,24 +241,26 @@ function calculateTotalTimelineStyle(reservation: Reservation, dayStartTime: num
 	};
 }
 
-function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
-	const totalDayTime = dayEndTime - dayStartTime;
-	const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
-	const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
+function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) { // 函数签名保持不变，接收单个 reservation
+    const totalDayTime = dayEndTime - dayStartTime;
+    const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
+    const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
 
-	const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
-	const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
+    const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
+    const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
 
-	return {
-		left: `${segmentLeftPercentage}%`,
-		right: `${segmentRightPercentage}%`,
-		backgroundColor: '#FFC107', 
-	};
+    return {
+        left: `${segmentLeftPercentage}%`,
+        right: `${segmentRightPercentage}%`,
+        backgroundColor: '#FFC107',
+    };
 }
+
+
 
 function goToReserve(machineName: String, machineID: String) {
 	uni.navigateTo({
-		url: '/pages/order/order', // 替换为你的预约页面路径
+		url: '/pages/order/order',
 		success: function (res) {
 			res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
 		}
@@ -382,7 +433,7 @@ function goToReserve(machineName: String, machineID: String) {
 	color: #333;
 }
 
-.reservation-time {
+.reservation-count {
 	font-size: 13px;
 	color: #6b7280;
 	background: rgba(243, 244, 246, 0.7);
@@ -437,7 +488,22 @@ function goToReserve(machineName: String, machineID: String) {
 	transform: scale(0.95);
 	box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
+.reservation-times {
+    display: flex;
+    flex-direction: column; /* 垂直排列时间 */
+    gap: 2px; /* 时间项之间的间距 */
+    margin-top: 4px; /* 与 username 的间距 */
+}
 
+.reservation-time-item {
+    font-size: 13px;
+    color: #6b7280;
+    background: rgba(243, 244, 246, 0.7);
+    padding: 2px 8px;
+    border-radius: 12px;
+    align-self: flex-start;
+    margin-bottom: 2px; /* 增加时间项之间的垂直间距 */
+}
 /* 去预约按钮样式 */
 .reserve-button {
 	position: fixed;
@@ -469,21 +535,21 @@ function goToReserve(machineName: String, machineID: String) {
 	.container {
 		padding: 16px;
 	}
-	
+
 	.machine-name {
 		font-size: 18px;
 	}
-	
+
 	.icon-container {
 		width: 50px;
 		height: 50px;
 	}
-	
+
 	.avatar {
 		width: 40px;
 		height: 40px;
 	}
-	
+
 	.floating-back-btn {
 		bottom: 16px;
 		right: 16px;
@@ -503,48 +569,48 @@ function goToReserve(machineName: String, machineID: String) {
 	.container {
 		padding: 24px;
 	}
-	
+
 	.glass-card {
 		padding: 20px;
 		border-radius: 24px;
 	}
-	
+
 	.machine-info-card {
 		margin-bottom: 30px;
 	}
-	
+
 	.machine-name {
 		font-size: 22px;
 	}
-	
+
 	.icon-container {
 		width: 70px;
 		height: 70px;
 		border-radius: 20px;
 	}
-	
+
 	.timeline-bar {
 		height: 16px;
 		border-radius: 8px;
 	}
-	
+
 	.timeline-segment {
 		border-radius: 8px;
 	}
-	
+
 	.avatar {
 		width: 56px;
 		height: 56px;
 	}
-	
+
 	.username {
 		font-size: 18px;
 	}
-	
-	.reservation-time {
+
+	.reservation-count {
 		font-size: 14px;
 	}
-	
+
 	.reserve-button {
 		font-size: 18px;
 		padding: 14px 28px;

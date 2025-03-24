@@ -147,12 +147,12 @@ module.exports = {
 		}).orderBy("startTime", "desc").get()
 	},
 
-	GetMachineReservationInfo: async function(startTime, endTime) { // 新增的 GetMachineReservationInfo，根据时间范围获取机台预约信息
+	GetMachineReservationInfo: async function(startTime, endTime) {
 		const dbJQL = uniCloud.databaseForJQL({
 			clientInfo: this.getClientInfo()
 		});
 		const collectionJQL = dbJQL.collection('reservation-log');
-		const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get() // 获取机台信息，用于后续关联
+		const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get()
 
 		const reservationData = await collectionJQL.where(`startTime >= ${startTime} && endTime <= ${endTime}`)
 			.field({
@@ -162,23 +162,53 @@ module.exports = {
 				"status": true,
 				"startTime": true,
 				"endTime": true,
+				"userId": true // 确保获取 userId
 			}).get()
 
 		const machineMap = new Map();
 		machines.data.forEach(machine => {
-			machineMap.set(machine._id, machine); // 使用 Map 优化查询效率
+			machineMap.set(machine._id, machine);
 		});
 
+		// 获取所有预约记录的 userId，用于批量查询用户信息
+		const userIds = [...new Set(reservationData.data.map(reservation => reservation.userId))];
+
+		// 批量查询用户信息
+		const users = await dbJQL.collection('uni-id-users')
+			.where({
+				_id: dbJQL.command.in(userIds)
+			})
+			.field({
+				"_id": true,
+				"nickname": true,
+				"avatar": true
+			})
+			.get();
+		const userMap = new Map();
+		users.data.forEach(user => {
+			userMap.set(user._id, user);
+		});
+
+
 		const result = machines.data.map(machine => {
-			const machineReservations = reservationData.data.filter(reservation => reservation
-				.machineId === machine._id);
+			const machineReservations = reservationData.data.filter(reservation => reservation.machineId === machine._id);
+			// 为每个预约记录关联用户信息
+			const reservationsWithUserInfo = machineReservations.map(reservation => {
+				const userInfo = userMap.get(reservation.userId) || {}; // 找不到用户信息时提供空对象
+				return {
+					...reservation,
+					username: userInfo.nickname || '未知用户', // 默认值
+					avatar: userInfo.avatar || '' // 默认值
+				};
+			});
 			return {
 				machineInfo: machine,
-				reservations: machineReservations
+				reservations: reservationsWithUserInfo
 			};
 		});
 		return result;
 	},
+
 
 	GetUserInfo: function(content) {
 		const collection = db.collection('uni-id-users');
