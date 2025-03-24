@@ -92,39 +92,39 @@ import dayjs from 'dayjs';
 
 // 定义数据结构
 interface Machine {
-	_id: string;
-	name: string;
-	capacity: number;
-	status: number;
-	machinenum: number;
-	description: string;
+    _id: string;
+    name: string;
+    capacity: number;
+    status: number;
+    machinenum: number;
+    description: string;
 }
 
 interface Reservation {
-	_id: string;
-	machineId: string;
-	isOvernight: boolean;
-	status: string;
-	startTime: number;
-	endTime: number;
-	username?: string;
-	avatar?: string;
-	userId?: string; // 确保 Reservation 接口包含 userId
+    _id: string;
+    machineId: string;
+    isOvernight: boolean;
+    status: string;
+    startTime: number;
+    endTime: number;
+    username?: string;
+    avatar?: string;
+    userId?: string; // 确保 Reservation 接口包含 userId
 }
 
 interface MachineReservationData {
-	machineInfo: Machine;
-	reservations: Reservation[];
+    machineInfo: Machine;
+    reservations: Reservation[];
 }
 
 // 初始化数据
 const machineInfo = ref<Machine>({
-	_id: '',
-	name: '未知机台',
-	capacity: 0,
-	status: 0,
-	machinenum: 0,
-	description: ''
+    _id: '',
+    name: '未知机台',
+    capacity: 0,
+    status: 0,
+    machinenum: 0,
+    description: ''
 });
 
 const reservations = ref<Reservation[]>([]);
@@ -133,53 +133,79 @@ const startTime = ref<number>(0);
 const endTime = ref<number>(0);
 
 onMounted(() => {
-	// 从页面传参中获取数据
-	const eventChannel = getOpenerEventChannel();
-	eventChannel.on('acceptDataFromOpenerPage', (data: { GetMachineReservationInfo: MachineReservationData }) => {
-		console.log("usageDetail获取到的数据:", data.GetMachineReservationInfo);
-		if (data.GetMachineReservationInfo) {
-			machineInfo.value = data.GetMachineReservationInfo.machineInfo;
-			reservations.value = data.GetMachineReservationInfo.reservations;
+    // 尝试从 localStorage 获取数据
+    const storedData = uni.getStorageSync('detailData');
+    if (storedData) {
+        const data = JSON.parse(storedData);
+        console.log("usageDetail从localstorage获取到的数据:", data.GetMachineReservationInfo);
+        if (data.GetMachineReservationInfo) {
+            machineInfo.value = data.GetMachineReservationInfo.machineInfo;
+            reservations.value = data.GetMachineReservationInfo.reservations;
 
-			// 数据预处理，合并用户预约
-			groupedReservations.value = groupReservationsByUser(reservations.value);
+            // 数据预处理，合并用户预约
+            groupedReservations.value = groupReservationsByUser(reservations.value);
 
-			// 如果有预约数据，设置时间范围
-			if (groupedReservations.value && groupedReservations.value.length > 0) {
-				const today = dayjs().startOf('day');
-				startTime.value = today.valueOf();
-				endTime.value = today.add(1, 'day').valueOf();
-			} else {
-				// 如果没有预约数据，设置为当天的时间范围
-				const today = dayjs().startOf('day');
-				startTime.value = today.valueOf();
-				endTime.value = today.add(1, 'day').valueOf();
-			}
-		}
-	});
+            // 如果有预约数据，设置时间范围
+            if (groupedReservations.value && groupedReservations.value.length > 0) {
+                const today = dayjs().startOf('day');
+                startTime.value = today.valueOf();
+                endTime.value = today.add(1, 'day').valueOf();
+            } else {
+                // 如果没有预约数据，设置为当天的时间范围
+                const today = dayjs().startOf('day');
+                startTime.value = today.valueOf();
+                endTime.value = today.add(1, 'day').valueOf();
+            }
+        }
+    } else {
+        // 从页面传参中获取数据
+        const eventChannel = getOpenerEventChannel();
+        eventChannel.on('acceptDataFromOpenerPage', (data: { GetMachineReservationInfo: MachineReservationData }) => {
+            console.log("usageDetail获取到的数据:", data.GetMachineReservationInfo);
+            if (data.GetMachineReservationInfo) {
+                machineInfo.value = data.GetMachineReservationInfo.machineInfo;
+                reservations.value = data.GetMachineReservationInfo.reservations;
+
+                // 数据预处理，合并用户预约
+                groupedReservations.value = groupReservationsByUser(reservations.value);
+
+                // 如果有预约数据，设置时间范围
+                if (groupedReservations.value && groupedReservations.value.length > 0) {
+                    const today = dayjs().startOf('day');
+                    startTime.value = today.valueOf();
+                    endTime.value = today.add(1, 'day').valueOf();
+                } else {
+                    // 如果没有预约数据，设置为当天的时间范围
+                    const today = dayjs().startOf('day');
+                    startTime.value = today.valueOf();
+                    endTime.value = today.add(1, 'day').valueOf();
+                }
+            }
+        });
+    }
 });
 
 function getOpenerEventChannel() {
-	// @ts-ignore
-	const pages = getCurrentPages();
-	const currentPage = pages[pages.length - 1];
-	const eventChannel = currentPage.getOpenerEventChannel();
-	return eventChannel;
+    // @ts-ignore
+    const pages = getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    const eventChannel = currentPage.getOpenerEventChannel();
+    return eventChannel;
 }
 
 function goBack() {
-	uni.navigateBack();
+    uni.navigateBack();
 }
 
 function formatDate(timestamp: number) {
-	const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-	const date = dayjs(timestamp);
-	const weekday = weekdays[date.day()];
-	return date.format(`YYYY-MM-DD 星期${weekday}`);
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const date = dayjs(timestamp);
+    const weekday = weekdays[date.day()];
+    return date.format(`YYYY-MM-DD 星期${weekday}`);
 }
 
 function formatTime(timestamp: number) {
-	return dayjs(timestamp).format('HH:mm');
+    return dayjs(timestamp).format('HH:mm');
 }
 
 function groupReservationsByUser(reservations: Reservation[]) {
@@ -206,37 +232,37 @@ function groupReservationsByUser(reservations: Reservation[]) {
 }
 
 function calculateDuration(groupedUserReservation: any) {
-	if (!groupedUserReservation || !groupedUserReservation.reservations || groupedUserReservation.reservations.length === 0) {
-		return '0分钟';
-	}
+    if (!groupedUserReservation || !groupedUserReservation.reservations || groupedUserReservation.reservations.length === 0) {
+        return '0分钟';
+    }
 
-	let totalDurationMinutes = 0;
-	groupedUserReservation.reservations.forEach((reservation: Reservation) => {
-		totalDurationMinutes += (reservation.endTime - reservation.startTime) / (1000 * 60);
-	});
+    let totalDurationMinutes = 0;
+    groupedUserReservation.reservations.forEach((reservation: Reservation) => {
+        totalDurationMinutes += (reservation.endTime - reservation.startTime) / (1000 * 60);
+    });
 
-	if (totalDurationMinutes < 60) {
-		return `${totalDurationMinutes.toFixed(0)}分钟`; // 保留整数分钟
-	} else {
-		const hours = Math.floor(totalDurationMinutes / 60);
-		const minutes = Math.floor(totalDurationMinutes % 60); // 取整分钟数
-		return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
-	}
+    if (totalDurationMinutes < 60) {
+        return `${totalDurationMinutes.toFixed(0)}分钟`; // 保留整数分钟
+    } else {
+        const hours = Math.floor(totalDurationMinutes / 60);
+        const minutes = Math.floor(totalDurationMinutes % 60); // 取整分钟数
+        return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
+    }
 }
 
 function calculateTotalTimelineStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
-	const totalDayTime = dayEndTime - dayStartTime;
-	const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
-	const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
+    const totalDayTime = dayEndTime - dayStartTime;
+    const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
+    const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
 
-	const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
-	const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
+    const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
+    const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
 
-	return {
-		left: `${segmentLeftPercentage}%`,
-		right: `${segmentRightPercentage}%`,
-		backgroundColor: '#FDE68A',
-	};
+    return {
+        left: `${segmentLeftPercentage}%`,
+        right: `${segmentRightPercentage}%`,
+        backgroundColor: '#FDE68A',
+    };
 }
 
 function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) { // 函数签名保持不变，接收单个 reservation
@@ -254,16 +280,22 @@ function calculateUserTimelineStyle(reservation: Reservation, dayStartTime: numb
     };
 }
 
-
-
 function goToReserve(machineName: String, machineID: String) {
-	uni.navigateTo({
-		url: '/pages/order/order',
-		success: function (res) {
-			res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
-		}
-	});
+    // 存储数据到 localStorage
+    const orderData = {
+        name: machineName,
+        id: machineID
+    };
+    uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
+
+    uni.navigateTo({
+        url: '/pages/order/order',
+        success: function (res) {
+        }
+    });
 }
+
+
 </script>
 
 <style scoped>

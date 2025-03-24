@@ -147,16 +147,23 @@
 	}
 
 	function viewReservations(machineData) {
-		console.log("查看预约信息：", machineData);
-		uni.navigateTo({
-			url: '/pages/usageDetail/usageDetail',
-			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', {
-					GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-				});
-			}
-		});
+	    // 存储数据到 localStorage
+	    const detailData = {
+	        GetMachineReservationInfo: machineData
+	    };
+	    uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
+	
+	    console.log("查看预约信息：", machineData);
+	    uni.navigateTo({
+	        url: '/pages/usageDetail/usageDetail',
+	        success: function (res) {
+	            //res.eventChannel.emit('acceptDataFromOpenerPage', {
+	            //  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
+	            //});
+	        }
+	    });
 	}
+
 
 
 	// 接收父组件传递的时间戳 props
@@ -172,6 +179,13 @@
 	})
 
 	function goOrder(machineName : String, machineID : String) {
+		// 存储数据到 localStorage
+		const orderData = {
+			name: machineName,
+			id: machineID
+		};
+		uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
+		
 		uni.navigateTo({
 			url: '/pages/order/order',
 			success: function (res) {
@@ -179,6 +193,7 @@
 			}
 		});
 	}
+
 
 	const machineReservationData = ref<Array<{ machineInfo : machine, reservations : Reservation[] }>>([]) // 初始化为空数组
 
