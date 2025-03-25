@@ -96,7 +96,7 @@
 		<!-- 功能按钮 -->
 		<view class="features-card glass-card">
 			<view class="features-container">
-				<view class="feature-item" @click="handleFeatureClick('using')">
+				<view class="feature-item" @click="goToUsing()">
 					<view class="feature-icon using-icon">
 						<uni-icons type="checkbox" size="28" color="#FF9800"></uni-icons>
 					</view>
@@ -299,6 +299,24 @@ function goToreservationList() {
 	uni.navigateTo({
 		url: '/pages/reservationList/reservationList'
 	});
+}
+
+async function goToUsing() {
+	console.log(res.uid)
+	try {
+		const result = await todo.SignIn_Search(res.uid)
+		if (result.data.length == 1) {
+			console.log(result.data[0])
+			uni.navigateTo({
+				url:"/pages/using/using"
+			})
+		} else {
+			uni.showToast({
+				title: "未找到签到信息",
+				icon : "error"
+			})
+		}
+	} catch { }
 }
 
 // 跳转到 uni-id-pages 的用户信息页
@@ -876,6 +894,14 @@ onMounted(() => {
 
 	.feature-label {
 		font-size: 12px;
+	}
+	.mark-badge {
+		background: rgba(255, 193, 7, 0.1);
+		color: #FF9800;
+		font-size: 12px;
+		font-weight: 500;
+		padding: 4px 10px;
+		border-radius: 12px;
 	}
 }
 
