@@ -704,111 +704,128 @@ onMounted(async () => {
 
 // 提交订单
 async function submitOrder() {
-	// 验证开始时间 (普通预约需要选择开始时间)
-	if (!Data.isOvernight && !selectedStartTime.value) {
-		uni.showToast({
-			title: '请选择开始时间',
-			icon: 'none'
-		});
-		return;
-	}
+    // 验证开始时间 (普通预约需要选择开始时间)
+    if (!Data.isOvernight && !selectedStartTime.value) {
+        uni.showToast({
+            title: '请选择开始时间',
+            icon: 'none'
+        });
+        return;
+    }
 
-	// 确保时间戳已更新
-	updateStartTimestamp();
-	// 普通预约需要结束时间
-	if (!Data.isOvernight) {
-		if (!selectedEndTime.value) {
-			uni.showToast({
-				title: '请选择结束时间',
-				icon: 'none'
-			});
-			return;
-		}
-		updateEndTimestamp();
-	} else {
-		// 过夜预约，默认结束时间为第二天早上8点 (假设)
-		const startTimeDayjs = dayjs(Data.startTime);
-		Data.endTime = startTimeDayjs.add(10, 'hour').valueOf(); // 假设过夜时长为10小时，结束时间为第二天早上8点 (22:00 + 10 hours = 08:00 next day)
-	}
+    // 确保时间戳已更新
+    updateStartTimestamp();
+    
+    // 普通预约需要结束时间
+    if (!Data.isOvernight) {
+        if (!selectedEndTime.value) {
+            uni.showToast({
+                title: '请选择结束时间',
+                icon: 'none'
+            });
+            return;
+        }
+        updateEndTimestamp();
+    } else {
+        // 过夜预约，默认结束时间为第二天早上8点
+        const startTimeDayjs = dayjs(Data.startTime);
+        Data.endTime = startTimeDayjs.add(10, 'hour').valueOf();
+    }
 
+    // 1. 参数验证 - 与后端保持一致
+    if (!Data.startTime || !Data.endTime || !Data.machineId || !Data.userId) {
+        uni.showToast({
+            title: '缺少必要参数',
+            icon: 'none'
+        });
+        return;
+    }
 
-	// 验证当前时间
-	const now = Date.now();
-	if (Data.startTime < now) {
-		uni.showToast({
-			title: '开始时间不能早于当前时间',
-			icon: 'none'
-		});
-		return;
-	}
+    // 2. 时间范围验证 - 与后端保持一致
+    if (Data.startTime >= Data.endTime) {
+        uni.showToast({
+            title: '开始时间必须早于结束时间',
+            icon: 'none'
+        });
+        return;
+    }
 
-	// 验证结束时间在开始时间之后 (仅普通预约)
-	if (!Data.isOvernight && Data.endTime <= Data.startTime) {
-		uni.showToast({
-			title: '结束时间必须晚于开始时间',
-			icon: 'none'
-		});
-		return;
-	}
+    // 注意：移除了"开始时间不能早于当前时间"的验证
+    // 因为后端代码中并没有这项验证，这可能是导致问题的原因
+    
+    // 设置预约状态
+    Data.status = 1;
 
-	Data.status = 1;
+    try {
+        uni.showLoading({
+            title: '提交中...'
+        });
 
-	try {
-		uni.showLoading({
-			title: '提交中...'
-		});
+        // 直接调用后端，让后端进行剩余的验证
+        const res = await todo.Reservation_Add(Data);
 
-		const res = await todo.Reservation_Add(Data); // **直接调用云函数，不再进行前端时间冲突检查**
+        uni.hideLoading();
 
-		uni.hideLoading();
+        // 处理后端返回的各种错误码
+        if (res && res.errCode === 'CAPACITY_EXCEEDED') {
+            uni.showToast({
+                title: res.errMsg,
+                icon: 'none',
+                duration: 3000
+            });
+        } else if (res && res.errCode === 'TIME_CONFLICT') {
+            uni.showToast({
+                title: res.errMsg,
+                icon: 'none',
+                duration: 3000
+            });
+        } else if (res && res.errCode === 'MACHINE_NOT_FOUND') {
+            uni.showToast({
+                title: res.errMsg,
+                icon: 'none',
+                duration: 3000
+            });
+        } else if (res && res.errCode === 'INVALID_TIME_RANGE') {
+            uni.showToast({
+                title: res.errMsg,
+                icon: 'none',
+                duration: 3000
+            });
+        } else if (res && res.errCode === 'INVALID_PARAMS') {
+            uni.showToast({
+                title: res.errMsg,
+                icon: 'none',
+                duration: 3000
+            });
+        } else if (res && res.errCode !== 0) {
+            uni.showToast({
+                title: '预约失败: ' + (res.errMsg || '未知错误'),
+                icon: 'none'
+            });
+        } else if (res && res.errCode == 0) {
+            uni.showToast({
+                title: '预约成功',
+                icon: 'success'
+            });
+            uni.$emit('reservationSuccess');
+            uni.navigateBack();
+        } else {
+            uni.showToast({
+                title: '预约成功',
+                icon: 'success'
+            });
+            uni.$emit('reservationSuccess');
+            uni.navigateBack();
+        }
 
-		if (res && res.errCode === 'CAPACITY_EXCEEDED') {
-			uni.showToast({
-				title: res.errMsg,
-				icon: 'none',
-				duration: 3000
-			});
-		} else if (res && res.errCode === 'TIME_CONFLICT') {
-			uni.showToast({
-				title: res.errMsg,
-				icon: 'none',
-				duration: 3000
-			});
-		} else if (res && res.errCode === 'MACHINE_NOT_FOUND') {
-			uni.showToast({
-				title: res.errMsg,
-				icon: 'none',
-				duration: 3000
-			});
-		} else if (res && res.errCode !== 0) {
-			uni.showToast({
-				title: '预约失败: ' + (res.errMsg || '未知错误'),
-				icon: 'none'
-			});
-		} else if (res && res.errCode == 0) {
-			uni.showToast({
-				title: '预约成功',
-				icon: 'success'
-			});
-			uni.$emit('reservationSuccess');
-			uni.navigateBack();
-		} else {
-			uni.showToast({
-				title: '预约成功',
-				icon: 'success'
-			});
-			uni.$emit('reservationSuccess');
-			uni.navigateBack();
-		}
-
-	} catch (error) {
-		uni.hideLoading();
-		uni.showToast({
-			title: '预约失败: 网络错误或未知错误',
-			icon: 'none'
-		});
-		console.error("Error calling Reservation_Add:", error);
-	}
+    } catch (error) {
+        uni.hideLoading();
+        uni.showToast({
+            title: '预约失败: 网络错误或未知错误',
+            icon: 'none'
+        });
+        console.error("Error calling Reservation_Add:", error);
+    }
 }
 </script>
 <style>
