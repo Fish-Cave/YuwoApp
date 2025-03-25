@@ -191,24 +191,24 @@ const overnightPrice = ref(50)
 
 // 用于展示的价格，会根据会员信息变化
 const displaySinglePrice = computed(() => {
-	let priceText = `${singlePrice.value}元/半小时`;
 	if (membershipInfo.membership.length > 0) {
-		priceText += " (音游会员优惠)";
+		return "4元/半小时 (音游会员优惠，当日封顶40元)";
 	} else if (membershipInfo.subscriptionPackage.length > 0) {
-		priceText = "包周/月会员免费";
+		return "包周/月会员免费";
+	} else {
+		return `${singlePrice.value}元/半小时`;
 	}
-	return priceText;
 });
 
 async function getPriceList() {
 	try {
-		if (res.role.includes("superUser") || res.role.includes("admin")) {
-			const result = await todo.GetPriceInfoByRole("superUser")
-			pricelist.value = result.data
-			singlePrice.value = toRaw(pricelist.value[0]).price
-			overnightPrice.value = toRaw(pricelist.value[1]).price
-		}
-	} catch { }
+		const result = await todo.GetPriceInfoByRole("user")
+		pricelist.value = result.data
+		singlePrice.value = toRaw(pricelist.value[0]).price
+		overnightPrice.value = toRaw(pricelist.value[1]).price
+	} catch (error) {
+		console.error("获取价格信息失败", error);
+	}
 }
 
 // 新增 - 显示已有预约的相关变量和函数

@@ -106,7 +106,8 @@ module.exports = {
 		}
 	},
 	
-	Reservation_Add: async function(content) {
+	// 提交订单
+	async Reservation_Add(content) {
 	    const db = uniCloud.database();
 	    const startTime = content.startTime;
 	    const endTime = content.endTime;
@@ -138,7 +139,7 @@ module.exports = {
 	        console.log("Fetching machine info for machineId:", machineId);
 	        const machineInfo = await db.collection('machines')
 	            .where({ _id: machineId })
-	            .field({ capacity: true }) // Corrected field syntax
+	            .field({ capacity: true })
 	            .get();
 	        console.log("Machine info fetched:", machineInfo);
 	
@@ -158,30 +159,83 @@ module.exports = {
 	        console.log("Calculated maxCapacity:", maxCapacity);
 	        console.log("Type of maxCapacity:", typeof maxCapacity);
 	
-	        // 2. 获取用户信息
-	        const membershipInfo = await this.getUserMembershipInfo(userId);
-			if (membershipInfo.errCode) {
-				return membershipInfo; // 直接返回错误信息
-			}
+	        // 2. 获取用户会员信息 - 修改这里的调用方式
+	        // ===== 修改开始 =====
+	        // 直接在这里实现获取会员信息的逻辑，而不是调用其他方法
+	        const dbJQL = uniCloud.databaseForJQL({
+	            clientInfo: this.getClientInfo()
+	        });
+	        
+	        let membershipInfo = {
+	            membership: [],
+	            subscriptionPackage: []
+	        };
+	        
+	        try {
+	            const membershipCollection = dbJQL.collection('membership');
+	            const subscriptionPackageCollection = dbJQL.collection('subscription-package');
+	        
+	            const membership = await membershipCollection
+	                .where({
+	                    userID: userId,
+	                    status: true,
+	                    validthru: dbJQL.command.gt(Date.now())
+	                })
+	                .get();
+	        
+	            const subscriptionPackage = await subscriptionPackageCollection
+	                .where({
+	                    userID: userId,
+	                    status: true,
+	                    validthru: dbJQL.command.gt(Date.now())
+	                })
+	                .get();
+	        
+	            membershipInfo.membership = membership.data.length > 0 ? membership.data : [];
+	            membershipInfo.subscriptionPackage = subscriptionPackage.data.length > 0 ? subscriptionPackage.data : [];
+	        } catch (e) {
+	            console.error("Error in fetching membership info:", e);
+	            return {
+	                errCode: 'DB_ERROR',
+	                errMsg: '获取会员信息失败: ' + e.message
+	            };
+	        }
+	        // ===== 修改结束 =====
+	        
 	        console.log("Membership Info:", membershipInfo);
 	
-	        // 3. 根据会员信息修改价格或预定逻辑
-	        let priceInfo = await db.collection('prices').where({ type: content.type }).get();
-	        let price = priceInfo.data[0].price; // 从数据库获取原始价格
-	
-	        if (membershipInfo.subscriptionPackage.length > 0) {
-	            // 包周卡/月卡会员，100% off
-	            price = 0;
-	            console.log("User has subscription package, price set to 0");
-	        } else if (membershipInfo.membership.length > 0) {
-	            // 音游会员，折扣
-	            //假设音游会员打8折
-	            price = price * 0.8;
-	            console.log("User has membership, price adjusted to 80%");
+	        // 3. 根据会员信息修改价格
+	        // 获取基础价格信息
+	        let price;
+	        if (isOvernight) {
+	            // 获取过夜预约价格
+	            const priceInfo = await db.collection('prices')
+	                .where({ type: 'overnight' })
+	                .get();
+	            price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 50; // 默认50
+	        } else {
+	            // 获取普通预约价格
+	            const priceInfo = await db.collection('prices')
+	                .where({ type: 'normal' })
+	                .get();
+	            price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 5; // 默认5
 	        }
 	        
-	        //将价格放入content
-	        content.price = price
+	        // 应用会员折扣
+	        if (membershipInfo.subscriptionPackage.length > 0) {
+	            // 包周/月卡会员，100% off
+	            price = 0;
+	            console.log("User has subscription package, price set to 0");
+	        } else if (membershipInfo.membership.length > 0 && !isOvernight) {
+	            // 音游会员，每半小时4元，当日封顶40元
+	            const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+	            const halfHourUnits = Math.ceil(diffHours / 0.5);
+	            price = Math.min(halfHourUnits * 4, 40); // 日常上限40元
+	            console.log("User has membership, price calculated as:", price);
+	        }
+	        
+	        // 将价格放入content
+	        content.price = price;
 	
 	        // 4. 一次性查询所有需要的数据
 	        console.log("Fetching user and overlapping reservations...");
@@ -212,10 +266,10 @@ module.exports = {
 	                        { endTime: db.command.gt(startTime) }
 	                    ]
 	                })
-	                .field({ startTime: true, endTime: true }) // Corrected field syntax
+	                .field({ startTime: true, endTime: true })
 	                .get()
 	        ]);
-	        console.log("Fetching user and overlapping reservations...");
+	        
 	        // 5. 检查用户重叠预约
 	        if (userReservations.data.length > 0) {
 	            console.log("Error: Time conflict - user overlap");
@@ -257,6 +311,7 @@ module.exports = {
 	            console.log("After event processing - currentCount:", currentCount, "maxConcurrent:", maxConcurrent);
 	        }
 	        console.log("Capacity check loop finished. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
+	        
 	        // 7. 检查是否超过容量限制
 	        if (maxConcurrent > maxCapacity) {
 	            console.log("Error: Capacity exceeded. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
@@ -299,6 +354,7 @@ module.exports = {
 	        console.log("Reservation_Add function finished");
 	    }
 	},
+
 	
 	Reservation_Update: function(content,statusnumber) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
@@ -335,7 +391,7 @@ module.exports = {
 			clientInfo: this.getClientInfo()
 		})
 		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
-		const collectionJQL = dbJQL.collection('reservation-log', machines)
+		const collectionJQL = dbJQL.collection('signin', machines)
 	
 		// 提取参数，content 应该包含 userId, pageSize, pageNumber
 		const userId = content.userId;
