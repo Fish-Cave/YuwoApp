@@ -12,7 +12,7 @@
 						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
 						<view class="price-status-container">
 							<!-- 会员价格显示逻辑 -->
-							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">时间卡价 0元/半时</text>
+							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">包周/月价 0元/半时</text>
 							<text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
 							<text v-else class="machine-price">5元/半时</text>
 
