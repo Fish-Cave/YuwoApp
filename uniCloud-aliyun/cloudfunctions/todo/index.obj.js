@@ -1,6 +1,7 @@
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
+
 module.exports = {
 	_before: function() { // 通用预处理器
 
@@ -59,7 +60,54 @@ module.exports = {
 		}).get()
 	},
 
-	Reservation_Add: async function(content) {
+	/**
+	 * 获取用户会员信息
+	 * @param {string} userID 用户ID
+	 * @returns {object} 会员信息，包含 membership 和 subscriptionPackage 状态
+	 */
+	async getUserMembershipInfo(userID) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		try {
+			const membershipCollection = dbJQL.collection('membership');
+			const subscriptionPackageCollection = dbJQL.collection('subscription-package');
+	
+			const membership = await membershipCollection
+				.where({
+					userID: userID,
+					status: true, // 只查询有效的会员
+					validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+				})
+				.get();
+	
+			const subscriptionPackage = await subscriptionPackageCollection
+				.where({
+					userID: userID,
+					status: true, // 只查询有效的会员
+					validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+				})
+				.get();
+	
+			//检查是否有数据，没有数据返回空数组
+			const membershipData = membership.data.length > 0 ? membership.data : [];
+			const subscriptionPackageData = subscriptionPackage.data.length > 0 ? subscriptionPackage.data : [];
+	
+			return {
+				membership: membershipData,
+				subscriptionPackage: subscriptionPackageData,
+			};
+		} catch (e) {
+			console.error("Error in getUserMembershipInfo:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '获取会员信息失败: ' + e.message
+			};
+		}
+	},
+	
+	// 提交订单
+	async Reservation_Add(content) {
 	    const db = uniCloud.database();
 	    const startTime = content.startTime;
 	    const endTime = content.endTime;
@@ -91,7 +139,7 @@ module.exports = {
 	        console.log("Fetching machine info for machineId:", machineId);
 	        const machineInfo = await db.collection('machines')
 	            .where({ _id: machineId })
-	            .field({ capacity: true }) // Corrected field syntax
+	            .field({ capacity: true })
 	            .get();
 	        console.log("Machine info fetched:", machineInfo);
 	
@@ -111,7 +159,85 @@ module.exports = {
 	        console.log("Calculated maxCapacity:", maxCapacity);
 	        console.log("Type of maxCapacity:", typeof maxCapacity);
 	
-	        // 2. 一次性查询所有需要的数据
+	        // 2. 获取用户会员信息 - 修改这里的调用方式
+	        // ===== 修改开始 =====
+	        // 直接在这里实现获取会员信息的逻辑，而不是调用其他方法
+	        const dbJQL = uniCloud.databaseForJQL({
+	            clientInfo: this.getClientInfo()
+	        });
+	        
+	        let membershipInfo = {
+	            membership: [],
+	            subscriptionPackage: []
+	        };
+	        
+	        try {
+	            const membershipCollection = dbJQL.collection('membership');
+	            const subscriptionPackageCollection = dbJQL.collection('subscription-package');
+	        
+	            const membership = await membershipCollection
+	                .where({
+	                    userID: userId,
+	                    status: true,
+	                    validthru: dbJQL.command.gt(Date.now())
+	                })
+	                .get();
+	        
+	            const subscriptionPackage = await subscriptionPackageCollection
+	                .where({
+	                    userID: userId,
+	                    status: true,
+	                    validthru: dbJQL.command.gt(Date.now())
+	                })
+	                .get();
+	        
+	            membershipInfo.membership = membership.data.length > 0 ? membership.data : [];
+	            membershipInfo.subscriptionPackage = subscriptionPackage.data.length > 0 ? subscriptionPackage.data : [];
+	        } catch (e) {
+	            console.error("Error in fetching membership info:", e);
+	            return {
+	                errCode: 'DB_ERROR',
+	                errMsg: '获取会员信息失败: ' + e.message
+	            };
+	        }
+	        // ===== 修改结束 =====
+	        
+	        console.log("Membership Info:", membershipInfo);
+	
+	        // 3. 根据会员信息修改价格
+	        // 获取基础价格信息
+	        let price;
+	        if (isOvernight) {
+	            // 获取过夜预约价格
+	            const priceInfo = await db.collection('prices')
+	                .where({ type: 'overnight' })
+	                .get();
+	            price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 50; // 默认50
+	        } else {
+	            // 获取普通预约价格
+	            const priceInfo = await db.collection('prices')
+	                .where({ type: 'normal' })
+	                .get();
+	            price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 5; // 默认5
+	        }
+	        
+	        // 应用会员折扣
+	        if (membershipInfo.subscriptionPackage.length > 0) {
+	            // 包周/月卡会员，100% off
+	            price = 0;
+	            console.log("User has subscription package, price set to 0");
+	        } else if (membershipInfo.membership.length > 0 && !isOvernight) {
+	            // 音游会员，每半小时4元，当日封顶40元
+	            const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+	            const halfHourUnits = Math.ceil(diffHours / 0.5);
+	            price = Math.min(halfHourUnits * 4, 40); // 日常上限40元
+	            console.log("User has membership, price calculated as:", price);
+	        }
+	        
+	        // 将价格放入content
+	        content.price = price;
+	
+	        // 4. 一次性查询所有需要的数据
 	        console.log("Fetching user and overlapping reservations...");
 	        const [userReservations, allOverlappingReservations] = await Promise.all([
 	            // 查询用户已有的重叠预约
@@ -140,11 +266,11 @@ module.exports = {
 	                        { endTime: db.command.gt(startTime) }
 	                    ]
 	                })
-	                .field({ startTime: true, endTime: true }) // Corrected field syntax
+	                .field({ startTime: true, endTime: true })
 	                .get()
 	        ]);
-	        console.log("Fetching user and overlapping reservations...");
-	        // 3. 检查用户重叠预约
+	        
+	        // 5. 检查用户重叠预约
 	        if (userReservations.data.length > 0) {
 	            console.log("Error: Time conflict - user overlap");
 	            return {
@@ -153,7 +279,7 @@ module.exports = {
 	            };
 	        }
 	
-	        // 4. 优化的容量检查 - 使用扫描线算法
+	        // 6. 优化的容量检查 - 使用扫描线算法
 	        const events = [];
 	        allOverlappingReservations.data.forEach(rsv => {
 	            events.push({ time: rsv.startTime, delta: 1 });
@@ -185,7 +311,8 @@ module.exports = {
 	            console.log("After event processing - currentCount:", currentCount, "maxConcurrent:", maxConcurrent);
 	        }
 	        console.log("Capacity check loop finished. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
-	        // 5. 检查是否超过容量限制
+	        
+	        // 7. 检查是否超过容量限制
 	        if (maxConcurrent > maxCapacity) {
 	            console.log("Error: Capacity exceeded. maxConcurrent:", maxConcurrent, "maxCapacity:", maxCapacity);
 	            return {
@@ -194,7 +321,7 @@ module.exports = {
 	            };
 	        }
 	
-	        // 6. 添加预约记录
+	        // 8. 添加预约记录
 	        console.log("Adding reservation record...");
 	        const result = await db.collection('reservation-log').add({
 	            ...content,
@@ -257,6 +384,48 @@ module.exports = {
 			"startTime": true,
 			"isPlay":true
 		}).orderBy("startTime", "desc").get()
+	},
+	
+	GetOrderInfo: async function(content) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		})
+		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
+		const collectionJQL = dbJQL.collection('signin', machines)
+	
+		// 提取参数，content 应该包含 userId, pageSize, pageNumber
+		const userId = content.userId;
+		const pageSize = content.pageSize || 10; // 默认每页 10 条
+		const pageNumber = content.pageNumber || 1; // 默认第一页
+	
+		let baseQuery = collectionJQL.where({
+			userId: userId,
+		}).field({
+			"_id": true,
+			"machineId": true,
+			"isOvernight": true,
+			"status": true,
+			"startTime": true,
+			"endTime": true,
+			"isPlay": true
+		}).orderBy("startTime", "desc")
+	
+		// 1. 获取总记录数
+		const countResult = await baseQuery.count()
+		const total = countResult.total;
+	
+		// 2. 应用分页
+		const paginatedQuery = baseQuery
+			.skip((pageNumber - 1) * pageSize) // 跳过前面页面的数据
+			.limit(pageSize)                   // 限制每页数量
+	
+		const dataResult = await paginatedQuery.get()
+		const data = dataResult.data;
+	
+		return {
+			data: data,
+			total: total
+		}
 	},
 
 	GetMachineReservationInfo: async function(startTime, endTime) {
@@ -358,5 +527,49 @@ module.exports = {
 			"isPlay" : true,
 			"starttime" : true
 		}).get()
+	},
+
+	/**
+	 * 定时任务：更新会员状态
+	 * 此函数应该配置为定时触发，例如每天凌晨执行一次
+	 */
+	async updateMembershipStatus() {
+		try {
+			const now = Date.now();
+			const membershipCollection = db.collection('membership');
+			const subscriptionPackageCollection = db.collection('subscription-package');
+	
+			// 更新 membership
+			await membershipCollection
+				.where({
+					status: true,
+					validthru: db.command.lt(now)
+				})
+				.update({
+					status: false
+				});
+	
+			// 更新 subscription-package
+			await subscriptionPackageCollection
+				.where({
+					status: true,
+					validthru: db.command.lt(now)
+				})
+				.update({
+					status: false
+				});
+	
+			console.log('会员状态更新完成');
+			return {
+				success: true,
+				message: '会员状态更新完成'
+			};
+		} catch (e) {
+			console.error('会员状态更新失败:', e);
+			return {
+				success: false,
+				message: '会员状态更新失败: ' + e.message
+			};
+		}
 	}
 }

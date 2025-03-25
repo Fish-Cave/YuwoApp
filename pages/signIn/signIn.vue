@@ -26,7 +26,7 @@
 				
 				<view class="vertical-divider"></view>
 				
-				<view class="function-button" @click="goTousing()">
+				<view class="function-button" @click="goToUsing()">
 					<view class="icon-container">
 						<uni-icons type="paperplane" size="30" color="#ffffff"></uni-icons>
 					</view>
@@ -75,7 +75,7 @@ function goToreservationList() {
 	});
 }
 
-async function goTousing() {
+async function goToUsing() {
 	console.log(res.uid)
 	try {
 		const result = await todo.SignIn_Search(res.uid)
@@ -86,7 +86,8 @@ async function goTousing() {
 			})
 		} else {
 			uni.showToast({
-				title: "未找到签到信息"
+				title: "未找到签到信息",
+				icon : "error"
 			})
 		}
 	} catch { }
