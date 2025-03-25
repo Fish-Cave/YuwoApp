@@ -11,7 +11,9 @@
 					<view class="machine-info">
 						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
 						<view class="price-status-container">
-							<text v-if="isSuperUser" class="machine-price">会员价 4元/半时</text>
+							<!-- 会员价格显示逻辑 -->
+							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">包周/月价 0元/半时</text>
+							<text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
 							<text v-else class="machine-price">5元/半时</text>
 
 							<view class="status-label"
@@ -86,6 +88,8 @@
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const isSuperUser = ref(false)
 	const isUser = ref(false)
+	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
+
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
 		if (res.role.includes("admin") || res.role.includes("superUser")) {
@@ -94,44 +98,74 @@
 			isSuperUser.value = false
 			isUser.value = true
 		}
+		getMembershipStatus(); // 获取会员状态
 	}
+
+	// 使用云对象的 getUserMembershipInfo 方法获取会员状态
+	async function getMembershipStatus() {
+	    try {
+	        const userInfo = uniCloud.getCurrentUserInfo();
+	        if (!userInfo || !userInfo.uid) {
+	            console.log('未登录或无法获取用户ID');
+	            membershipType.value = "none";
+	            return;
+	        }
+	        
+	        // 调用云对象方法获取会员信息
+	        const result = await todo.getUserMembershipInfo(userInfo.uid);
+	        console.log("会员信息查询结果:", result);
+	        
+	        if (result) {
+	            // 检查包周/月会员
+	            if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
+	                membershipType.value = "weekly_monthly";
+	                console.log('用户拥有包周/月会员');
+	            } 
+	            // 检查音游会员
+	            else if (result.membership && result.membership.length > 0) {
+	                membershipType.value = "music_game";
+	                console.log('用户拥有音游会员');
+	            } 
+	            // 无会员
+	            else {
+	                membershipType.value = "none";
+	                console.log('用户没有会员');
+	            }
+	        } else {
+	            membershipType.value = "none";
+	            console.log('获取会员信息失败或用户没有会员');
+	        }
+	    } catch (error) {
+	        console.error("获取会员信息失败:", error);
+	        membershipType.value = "none"; // 错误时默认为非会员
+	    }
+	}
+
+
+
 	uni.$on('uni-id-pages-login-success', () => {
-	    roleJudge();
+		roleJudge();
 	});
 	const todo = uniCloud.importObject('todo')
 	interface machine {
-		"_id" : string;
-		"name" : string;
-		"capacity" : number;
-		"status" : number;
-		"machinenum" : number;
-		"description" : string;
+		"_id": string;
+		"name": string;
+		"capacity": number;
+		"status": number;
+		"machinenum": number;
+		"description": string;
 	}
 	interface Reservation {
-		"_id" : string;
-		"machineId" : string;
-		"isOvernight" : boolean;
-		"status" : string;
-		"startTime" : number;
-		"endTime" : number;
+		"_id": string;
+		"machineId": string;
+		"isOvernight": boolean;
+		"status": string;
+		"startTime": number;
+		"endTime": number;
 	}
 
 	// 新增：用于控制收藏状态
 	const favorites = ref<Set<string>>(new Set());
-
-	function toggleFavorite(machineId : string) {
-		if (favorites.value.has(machineId)) {
-			favorites.value.delete(machineId);
-		} else {
-			favorites.value.add(machineId);
-		}
-		// 这里可以实现持久化存储逻辑
-		uni.showToast({
-			icon: 'success',
-			title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
-			duration: 1500
-		});
-	}
 
 	function unuseable() {
 		uni.showToast({
@@ -150,21 +184,21 @@
 	}
 
 	function viewReservations(machineData) {
-	    // 存储数据到 localStorage
-	    const detailData = {
-	        GetMachineReservationInfo: machineData
-	    };
-	    uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
-	
-	    console.log("查看预约信息：", machineData);
-	    uni.navigateTo({
-	        url: '/pages/usageDetail/usageDetail',
-	        success: function (res) {
-	            //res.eventChannel.emit('acceptDataFromOpenerPage', {
-	            //  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-	            //});
-	        }
-	    });
+		// 存储数据到 localStorage
+		const detailData = {
+			GetMachineReservationInfo: machineData
+		};
+		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
+
+		console.log("查看预约信息：", machineData);
+		uni.navigateTo({
+			url: '/pages/usageDetail/usageDetail',
+			success: function (res) {
+				//res.eventChannel.emit('acceptDataFromOpenerPage', {
+				//  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
+				//});
+			}
+		});
 	}
 
 
@@ -181,24 +215,30 @@
 		}
 	})
 
-	function goOrder(machineName : String, machineID : String) {
+	function goOrder(machineName: String, machineID: String) {
 		// 存储数据到 localStorage
 		const orderData = {
 			name: machineName,
 			id: machineID
 		};
 		uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
-		
+
 		uni.navigateTo({
 			url: '/pages/order/order',
 			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', { 'name': machineName, 'id': machineID })
+				res.eventChannel.emit('acceptDataFromOpenerPage', {
+					'name': machineName,
+					'id': machineID
+				})
 			}
 		});
 	}
 
 
-	const machineReservationData = ref<Array<{ machineInfo : machine, reservations : Reservation[] }>>([]) // 初始化为空数组
+	const machineReservationData = ref<Array<{
+		machineInfo: machine,
+		reservations: Reservation[]
+	}>>([]) // 初始化为空数组
 
 	async function loadMachineReservations() {
 		try {
@@ -232,7 +272,7 @@
 			loadMachineReservations();
 		}
 	})
-
+	
 	onMounted(() => {
 		console.log("usage 组件 onMounted");
 		if (props.startTime && props.endTime) {
@@ -240,32 +280,72 @@
 		}
 		console.log(machineReservationData.value);
 		roleJudge();
+		
+		// 尝试从本地存储加载收藏状态
+		try {
+			const storedFavorites = uni.getStorageSync('machine_favorites');
+			if (storedFavorites) {
+				favorites.value = new Set(JSON.parse(storedFavorites));
+			}
+		} catch (e) {
+			console.error("读取收藏状态失败:", e);
+		}
 	})
+	
+	// 页面显示时刷新数据和会员状态
 	uni.$on('onShow', () => {
-	  loadMachineReservations(); // 每次页面显示时刷新
-	  
+		loadMachineReservations(); // 每次页面显示时刷新
+		getMembershipStatus(); // 刷新会员状态
 	});
+	
+	// 预约成功后刷新数据
 	uni.$on('reservationSuccess', () => {
-	        loadMachineReservations(); 
-	    });
-
+		loadMachineReservations();
+	});
+	
 	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation : Reservation, dayStartTime : number, dayEndTime : number) {
+	function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
 		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
 		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
-		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;   // 预约结束时间在一天中的偏移量
-
+		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
+	
 		const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
 		const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
-
+	
 		return {
 			left: `${segmentLeftPercentage}%`,
 			right: `${segmentRightPercentage}%`,
 			background: 'linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%)'
 		};
 	}
+	
+	// 更新收藏状态到本地存储
+	function saveUserFavorites() {
+		try {
+			uni.setStorageSync('machine_favorites', JSON.stringify([...favorites.value]));
+		} catch (e) {
+			console.error("保存收藏状态失败:", e);
+		}
+	}
+	
+	// 修改toggleFavorite函数以保存收藏状态
+	function toggleFavorite(machineId: string) {
+		if (favorites.value.has(machineId)) {
+			favorites.value.delete(machineId);
+		} else {
+			favorites.value.add(machineId);
+		}
+		
+		// 保存到本地存储
+		saveUserFavorites();
+		
+		uni.showToast({
+			icon: 'success',
+			title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
+			duration: 1500
+		});
+	}
 </script>
-
 <style>
 	/* 基础容器样式 */
 	.container {
@@ -337,6 +417,7 @@
 		color: #333;
 		margin-bottom: 8rpx;
 	}
+
 
 	.machine-price {
 		font-size: 26rpx;
