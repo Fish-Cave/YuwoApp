@@ -24,7 +24,7 @@
 			</view>
 
 			<view class="divider" />
-			<view class="chart-container glass-card">
+			<view class="chart-container glass-card" v-if="!isNoPlayMachine">
 				<uni-title type="h1" title="已有预约时段"></uni-title>
 				<view class="timeline-hours">
 					<span>0:00</span>
@@ -66,22 +66,22 @@
 					<switch :checked="debug" @change="debugSwitchChange" />
 				</view>
 
-				<view>
+				<view v-if="!isNoPlayMachine">
 					<text class="segment-label">预约类型:</text>
 				</view>
-				<view class="segmented-control-container">
+				<view class="segmented-control-container" v-if="!isNoPlayMachine">
 					<uni-segmented-control :values="segmentedValues" :current="segmentedCurrent" style-type="button"
 						active-color="#f9cb14" @clickItem="onSegmentChange"></uni-segmented-control>
 				</view>
 
 				<!-- 橙色提示信息 -->
-				<view v-if="showNormalBookingTimeExpiredWarning" class="booking-time-warning">
+				<view v-if="showNormalBookingTimeExpiredWarning && !isNoPlayMachine" class="booking-time-warning">
 					<uni-icons type="warning-filled" color="#f9cb14" size="16" style="margin-right: 5rpx;">
 					</uni-icons>
 					已超过普通预约时间，请选择夜间预约
 				</view>
 
-				<view v-if="Data.isOvernight">
+				<view v-if="Data.isOvernight && !isNoPlayMachine">
 					<view class="time-selection">
 						<uni-row class="attention-box">
 							<uni-col :span="4">
@@ -146,6 +146,7 @@
 				<text>{{Data}}</text><br />
 				<text>单价:{{singlePrice}} 过夜价:{{overnightPrice}}</text><br />
 				<text>会员信息: {{ membershipInfo }}</text>
+                <text>是否不游玩机台: {{ isNoPlayMachine }}</text>
 			</view>
 		</scroll-view>
 
@@ -168,6 +169,7 @@ import { ref, getCurrentInstance, onMounted, reactive, computed, watch, toRaw } 
 const todo = uniCloud.importObject('todo')
 const machineName = ref("")
 const debug = ref(false);
+const isNoPlayMachine = ref(false); // 新增：是否是不游玩机台的标志
 
 //通过在本地缓存的token来获取用户信息
 const res = uniCloud.getCurrentUserInfo('uni_id_token')
@@ -191,13 +193,23 @@ const overnightPrice = ref(50)
 
 // 用于展示的价格，会根据会员信息变化
 const displaySinglePrice = computed(() => {
-	if (membershipInfo.membership.length > 0) {
-		return "4元/半小时 (音游会员优惠，当日封顶40元)";
-	} else if (membershipInfo.subscriptionPackage.length > 0) {
-		return "包周/月会员免费";
-	} else {
-		return `${singlePrice.value}元/半小时`;
-	}
+    // 先检查是否是不游玩机台
+    if (isNoPlayMachine.value) {
+        if (membershipInfo.subscriptionPackage.length > 0 || membershipInfo.membership.length > 0) {
+            return "会员免费";
+        } else {
+            return "1元/半小时";
+        }
+    }
+
+    // 常规机台价格显示逻辑
+    if (membershipInfo.subscriptionPackage.length > 0) {
+        return "包周/月会员免费";
+    } else if (membershipInfo.membership.length > 0) {
+        return "4元/半小时 (音游会员优惠，当日封顶40元)";
+    } else {
+        return `${singlePrice.value}元/半小时`;
+    }
 });
 
 async function getPriceList() {
@@ -262,6 +274,7 @@ interface reservationData {
 	"status": number;
 	"notes": string;
 	"price": number; // 添加 price 字段
+    "isPlay": boolean; // 新增：是否游玩机台
 }
 
 const Data = reactive<reservationData>({
@@ -272,7 +285,8 @@ const Data = reactive<reservationData>({
 	"isOvernight": false,
 	"status": 0,
 	"notes": "",
-	"price": 0 // 初始化 price 为 0
+	"price": 0, // 初始化 price 为 0
+    "isPlay": true // 默认为true，表示游玩机台
 });
 
 const price = ref(0);
@@ -289,7 +303,7 @@ function updateBookingType() {
   // 判断是否是未来日期
   const isFutureDate = dayjs(selectedDate.value).isAfter(dayjs(), 'day');
 
-  if (Data.isOvernight) {
+  if (Data.isOvernight && !isNoPlayMachine.value) { // 只有非不游玩机台才允许过夜预约
     // 过夜预约默认开始时间
     selectedStartTime.value = '22:00';
     minStartTimeHour.value = 22;
@@ -352,7 +366,7 @@ watch([selectedDate, selectedEndTime], () => {
 });
 
 // 监听时间戳变化，计算总时长和价格
-watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight, membershipInfo], () => {
+watch([() => Data.startTime, () => Data.endTime, () => Data.isOvernight, membershipInfo, isNoPlayMachine], () => {
 	calculateTotalTimeAndPrice();
 });
 
@@ -374,6 +388,22 @@ function updateEndTimestamp() {
 
 // 计算总时长和价格
 function calculateTotalTimeAndPrice() {
+    // 如果是不游玩机台
+    if (isNoPlayMachine.value) {
+        if (membershipInfo.subscriptionPackage.length > 0 || membershipInfo.membership.length > 0) {
+            // 如果是周卡月卡会员或音游会员，不游玩机台免费
+            price.value = 0;
+            Data.price = 0;
+        } else {
+            // 非会员，不游玩机台每半小时1元
+            const diffHours = (Data.endTime - Data.startTime) / (1000 * 60 * 60);
+            const halfHourUnits = Math.ceil(diffHours / 0.5);
+            price.value = halfHourUnits * 1; // 每半小时1元
+            Data.price = price.value;
+        }
+        return;
+    }
+
 	if (membershipInfo.subscriptionPackage.length > 0) {
 		// 包周/月卡会员，100% off
 		price.value = 0;
@@ -381,7 +411,7 @@ function calculateTotalTimeAndPrice() {
 		return;
 	}
 
-	if (Data.isOvernight) {
+	if (Data.isOvernight && !isNoPlayMachine.value) { // 只有非不游玩机台才允许过夜预约
 		price.value = overnightPrice.value;
 		Data.price = overnightPrice.value;
 		return;
@@ -436,12 +466,12 @@ function openEndTimePicker() {
 // 确认开始时间
 function confirmStartTime(e) {
   selectedStartTime.value = e.value;
-  
+
   // 使用完整的日期时间字符串创建 dayjs 对象
   const dateStr = selectedDate.value || dayjs().format('YYYY-MM-DD');
   const startTimeStr = `${dateStr} ${selectedStartTime.value}`;
   const startTime = dayjs(startTimeStr);
-  
+
   // 确保 startTime 是有效的日期对象
   if (startTime.isValid()) {
     const endTime = startTime.add(30, 'minute');
@@ -638,10 +668,32 @@ function calendarChange(e) {
   updateMinStartTime(selectedDate.value); // 更新最小开始时间，传入 selectedDate
 
   // 获取所选日期的预约信息
-  if (Data.machineId) {
+  if (Data.machineId && !isNoPlayMachine.value) { // 如果不是不游玩机台，才获取预约信息
     getReservationsForDate(Data.machineId, selectedDate.value);
+  } else {
+      reservations.value = []; // 不游玩机台不显示预约信息
   }
 }
+
+// 不游玩机台的初始设置
+function setupNoPlayMachine() {
+    // 强制设置为普通预约
+    segmentedCurrent.value = 0;
+    Data.isOvernight = false;
+
+    // 添加isPlay字段，设置为false表示不游玩机台
+    Data.isPlay = false;
+
+    // 隐藏时间选择器，设置默认时间
+    selectedStartTime.value = '08:00';
+    selectedEndTime.value = '08:30';
+    updateStartTimestamp();
+    updateEndTimestamp();
+
+    // 更新价格计算逻辑
+    calculateTotalTimeAndPrice();
+}
+
 
 onMounted(async () => {
 	const instance = getCurrentInstance().proxy;
@@ -668,7 +720,6 @@ onMounted(async () => {
 		});
 	}
 
-
 	// 尝试从 localStorage 获取数据
 	const storedData = uni.getStorageSync('orderData');
 	if (storedData) {
@@ -676,10 +727,33 @@ onMounted(async () => {
 		machineName.value = orderData.name;
 		Data.machineId = orderData.id;
 
-		// 获取所选日期的预约信息
-		selectedDate.value = dayjs().format('YYYY-MM-DD'); // 设置默认日期为今天
-		getReservationsForDate(Data.machineId, selectedDate.value);
+        // 新增: 检查是否是不游玩机台
+        isNoPlayMachine.value = orderData.isNoPlay === true;
 
+        // 新增: 检查是否有时间戳并同步到日历
+        if (orderData.startTime && orderData.endTime) {
+            // 使用传入的时间戳更新日历
+            const dateStr = dayjs(orderData.startTime).format('YYYY-MM-DD');
+            selectedDate.value = dateStr;
+
+            // 获取所选日期的预约信息
+            if (!isNoPlayMachine.value) { // 如果不是"不游玩机台"，才获取预约信息
+                getReservationsForDate(Data.machineId, selectedDate.value);
+            }
+
+            selectedStartTime.value = dayjs(orderData.startTime).format('HH:mm');
+            selectedEndTime.value = dayjs(orderData.endTime).format('HH:mm');
+            updateStartTimestamp();
+            updateEndTimestamp();
+
+        } else {
+            // 默认设置为今天
+            selectedDate.value = dayjs().format('YYYY-MM-DD');
+            // 获取所选日期的预约信息
+            if (!isNoPlayMachine.value) {
+                getReservationsForDate(Data.machineId, selectedDate.value);
+            }
+        }
 	} else {
 		// 如果 localStorage 中没有数据，则尝试从 eventChannel 获取
 		const eventChannel = instance.getOpenerEventChannel();
@@ -687,9 +761,32 @@ onMounted(async () => {
 			console.log('acceptDataFromOpenerPage', data);
 			machineName.value = data.name;
 			Data.machineId = data.id;
-			// 设置默认日期为今天并获取预约信息
-			selectedDate.value = dayjs().format('YYYY-MM-DD');
-			getReservationsForDate(data.id, selectedDate.value);
+
+            // 新增: 检查是否是不游玩机台
+            isNoPlayMachine.value = data.isNoPlay === true;
+
+            // 新增: 检查是否有时间戳并同步到日历
+            if (data.startTime && data.endTime) {
+                // 使用传入的时间戳更新日历
+                const dateStr = dayjs(data.startTime).format('YYYY-MM-DD');
+                selectedDate.value = dateStr;
+
+                // 获取所选日期的预约信息
+                if (!isNoPlayMachine.value) { // 如果不是"不游玩机台"，才获取预约信息
+                    getReservationsForDate(data.id, selectedDate.value);
+                }
+                selectedStartTime.value = dayjs(data.startTime).format('HH:mm');
+                selectedEndTime.value = dayjs(data.endTime).format('HH:mm');
+                updateStartTimestamp();
+                updateEndTimestamp();
+            } else {
+                // 设置默认日期为今天
+                selectedDate.value = dayjs().format('YYYY-MM-DD');
+                // 获取所选日期的预约信息
+                if (!isNoPlayMachine.value) {
+                    getReservationsForDate(data.id, selectedDate.value);
+                }
+            }
 		});
 
 		// 设置默认日期为今天
@@ -700,12 +797,17 @@ onMounted(async () => {
 	updateBookingType(); // **页面加载时初始化预约类型**
 	updateMinStartTime(selectedDate.value); // 初始化时传入 selectedDate
 	Data.userId = res.uid;
+
+    // 新增: 设置不游玩机台的初始值
+    if (isNoPlayMachine.value) {
+        setupNoPlayMachine();
+    }
 });
 
 // 提交订单
 async function submitOrder() {
     // 验证开始时间 (普通预约需要选择开始时间)
-    if (!Data.isOvernight && !selectedStartTime.value) {
+    if (!isNoPlayMachine.value && !Data.isOvernight && !selectedStartTime.value) {
         uni.showToast({
             title: '请选择开始时间',
             icon: 'none'
@@ -715,9 +817,9 @@ async function submitOrder() {
 
     // 确保时间戳已更新
     updateStartTimestamp();
-    
+
     // 普通预约需要结束时间
-    if (!Data.isOvernight) {
+    if (!isNoPlayMachine.value && !Data.isOvernight) {
         if (!selectedEndTime.value) {
             uni.showToast({
                 title: '请选择结束时间',
@@ -726,11 +828,16 @@ async function submitOrder() {
             return;
         }
         updateEndTimestamp();
-    } else {
+    } else if (Data.isOvernight && !isNoPlayMachine.value) { // 只有非不游玩机台才允许过夜预约
         // 过夜预约，默认结束时间为第二天早上8点
         const startTimeDayjs = dayjs(Data.startTime);
         Data.endTime = startTimeDayjs.add(10, 'hour').valueOf();
+    } else if (isNoPlayMachine.value) {
+        // 不游玩机台，使用默认时间
+        updateStartTimestamp();
+        updateEndTimestamp();
     }
+
 
     // 1. 参数验证 - 与后端保持一致
     if (!Data.startTime || !Data.endTime || !Data.machineId || !Data.userId) {
@@ -750,11 +857,11 @@ async function submitOrder() {
         return;
     }
 
-    // 注意：移除了"开始时间不能早于当前时间"的验证
-    // 因为后端代码中并没有这项验证，这可能是导致问题的原因
-    
     // 设置预约状态
     Data.status = 1;
+
+    // 确保isPlay字段正确设置
+    Data.isPlay = !isNoPlayMachine.value;
 
     try {
         uni.showLoading({

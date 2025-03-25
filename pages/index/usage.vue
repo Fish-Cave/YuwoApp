@@ -144,8 +144,6 @@
 	    }
 	}
 
-
-
 	uni.$on('uni-id-pages-login-success', () => {
 		roleJudge();
 	});
@@ -204,8 +202,6 @@
 		});
 	}
 
-
-
 	// 接收父组件传递的时间戳 props
 	const props = defineProps({
 		startTime: {
@@ -219,24 +215,26 @@
 	})
 
 	function goOrder(machineName: String, machineID: String) {
-		// 存储数据到 localStorage
-		const orderData = {
-			name: machineName,
-			id: machineID
-		};
-		uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
-
-		uni.navigateTo({
-			url: '/pages/order/order',
-			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', {
-					'name': machineName,
-					'id': machineID
-				})
-			}
-		});
+	  const orderData = {
+	    name: machineName,
+	    id: machineID,
+	    startTime: props.startTime,
+	    endTime: props.endTime
+	  };
+	  uni.setStorageSync('orderData', JSON.stringify(orderData));
+	
+	  uni.navigateTo({
+	    url: '/pages/order/order',
+	    success: function (res) {
+	      res.eventChannel.emit('acceptDataFromOpenerPage', {
+	        'name': machineName,
+	        'id': machineID,
+	        'startTime': props.startTime,
+	        'endTime': props.endTime
+	      })
+	    }
+	  });
 	}
-
 
 	const machineReservationData = ref<Array<{
 		machineInfo: machine,
