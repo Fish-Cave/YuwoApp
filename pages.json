@@ -6,7 +6,9 @@
 		},
 		{
 			"path": "pages/recharge/recharge",
-			"style": {}
+			"style": {
+				"navigationBarTitleText": "充值"
+			}
 		},
 		{
 			"path": "pages/signIn/signIn",
