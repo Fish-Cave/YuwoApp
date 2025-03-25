@@ -283,42 +283,44 @@ function debugSwitchChange(e) {
 	debug.value = e.detail.value;
 }
 
-// 更新预约类型和相关设置
 function updateBookingType() {
-	showNormalBookingTimeExpiredWarning.value = false; // 每次更新前先隐藏警告
+  showNormalBookingTimeExpiredWarning.value = false; // 每次更新前先隐藏警告
 
-	if (Data.isOvernight) {
-		//过夜预约默认开始时间
-		selectedStartTime.value = '22:00';
-		minStartTimeHour.value = 22;
-		maxStartTimeHour.value = 22;
-		minEndTimeHour.value = 0;
-		maxEndTimeHour.value = 8;
-		minEndTimeMinute.value = 0;
-	} else {
-		// 普通预约恢复普通时间限制
-		updateMinStartTime(selectedDate.value); // 传入 selectedDate
-		minEndTimeHour.value = 8; // 普通预约最早结束时间
-		maxEndTimeHour.value = 22; // 普通预约最晚结束时间
-		minEndTimeMinute.value = 0;
+  // 判断是否是未来日期
+  const isFutureDate = dayjs(selectedDate.value).isAfter(dayjs(), 'day');
 
-		// **新的日期判断逻辑：只有当选择的日期是今天时，才判断当前时间是否超过 22:00**
-		if (dayjs(selectedDate.value).isSame(dayjs(), 'day')) {
-			const now = dayjs();
-			if (now.hour() >= 22) {
-				segmentedCurrent.value = 1;
-				Data.isOvernight = true;
-				showNormalBookingTimeExpiredWarning.value = true;
-			} else {
-				showNormalBookingTimeExpiredWarning.value = false; // 确保在 22:00 前不显示警告
-			}
-		} else {
-			// 如果选择的是未来日期，则不显示警告，保持普通预约选中状态
-			showNormalBookingTimeExpiredWarning.value = false;
-		}
-	}
+  if (Data.isOvernight) {
+    // 过夜预约默认开始时间
+    selectedStartTime.value = '22:00';
+    minStartTimeHour.value = 22;
+    maxStartTimeHour.value = 22;
+    minEndTimeHour.value = 0;
+    maxEndTimeHour.value = 8;
+    minEndTimeMinute.value = 0;
+  } else {
+    // 普通预约恢复普通时间限制
+    updateMinStartTime(selectedDate.value);
+    minEndTimeHour.value = 8; // 普通预约最早结束时间
+    maxEndTimeHour.value = 22; // 普通预约最晚结束时间
+    minEndTimeMinute.value = 0;
+
+    // 只有当选择的日期是今天时，才判断当前时间是否超过 22:00
+    if (dayjs(selectedDate.value).isSame(dayjs(), 'day')) {
+      const now = dayjs();
+      if (now.hour() >= 22) {
+        // 如果是今天且已超过22:00，强制切换到过夜预约
+        segmentedCurrent.value = 1;
+        Data.isOvernight = true;
+        showNormalBookingTimeExpiredWarning.value = true;
+      } else {
+        showNormalBookingTimeExpiredWarning.value = false;
+      }
+    } else {
+      // 如果是未来日期，确保不显示警告
+      showNormalBookingTimeExpiredWarning.value = false;
+    }
+  }
 }
-
 
 // 处理分段控制器变化
 function onSegmentChange(e) {
@@ -611,30 +613,34 @@ function updateMinStartTime(dateStr?: string) { // dateStr 参数为可选
 
 }
 
-
 // 处理日历变化
 function calendarChange(e) {
-	// 更新选择的日期
-	selectedDate.value = e.fulldate;
+  // 更新选择的日期
+  selectedDate.value = e.fulldate;
 
-	// 检查是否选择了过去的日期
-	if (dayjs(e.fulldate).isBefore(dayjs(), 'day')) {
-		uni.showToast({
-			title: '不能选择过去的日期',
-			icon: 'none'
-		});
-		selectedDate.value = dayjs().format('YYYY-MM-DD');
-		return; // 如果选择了过去日期，直接返回，不进行后续预约类型更新
-	}
+  // 检查是否选择了过去的日期
+  if (dayjs(e.fulldate).isBefore(dayjs(), 'day')) {
+    uni.showToast({
+      title: '不能选择过去的日期',
+      icon: 'none'
+    });
+    selectedDate.value = dayjs().format('YYYY-MM-DD');
+    return; // 如果选择了过去日期，直接返回，不进行后续预约类型更新
+  }
 
-	updateBookingType(); // **日期更改后立即更新预约类型**
-	updateMinStartTime(selectedDate.value); // 更新最小开始时间，传入 selectedDate
+  // 如果选择了未来日期，自动切换回普通预约
+  if (dayjs(e.fulldate).isAfter(dayjs(), 'day')) {
+    segmentedCurrent.value = 0; // 切换到普通预约
+    Data.isOvernight = false;
+  }
 
+  updateBookingType(); // 日期更改后更新预约类型
+  updateMinStartTime(selectedDate.value); // 更新最小开始时间，传入 selectedDate
 
-	// 获取所选日期的预约信息
-	if (Data.machineId) {
-		getReservationsForDate(Data.machineId, selectedDate.value);
-	}
+  // 获取所选日期的预约信息
+  if (Data.machineId) {
+    getReservationsForDate(Data.machineId, selectedDate.value);
+  }
 }
 
 onMounted(async () => {
