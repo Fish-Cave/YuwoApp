@@ -329,6 +329,48 @@ module.exports = {
 			"isPlay":true
 		}).orderBy("startTime", "desc").get()
 	},
+	
+	GetOrderInfo: async function(content) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		})
+		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
+		const collectionJQL = dbJQL.collection('reservation-log', machines)
+	
+		// 提取参数，content 应该包含 userId, pageSize, pageNumber
+		const userId = content.userId;
+		const pageSize = content.pageSize || 10; // 默认每页 10 条
+		const pageNumber = content.pageNumber || 1; // 默认第一页
+	
+		let baseQuery = collectionJQL.where({
+			userId: userId,
+		}).field({
+			"_id": true,
+			"machineId": true,
+			"isOvernight": true,
+			"status": true,
+			"startTime": true,
+			"endTime": true,
+			"isPlay": true
+		}).orderBy("startTime", "desc")
+	
+		// 1. 获取总记录数
+		const countResult = await baseQuery.count()
+		const total = countResult.total;
+	
+		// 2. 应用分页
+		const paginatedQuery = baseQuery
+			.skip((pageNumber - 1) * pageSize) // 跳过前面页面的数据
+			.limit(pageSize)                   // 限制每页数量
+	
+		const dataResult = await paginatedQuery.get()
+		const data = dataResult.data;
+	
+		return {
+			data: data,
+			total: total
+		}
+	},
 
 	GetMachineReservationInfo: async function(startTime, endTime) {
 	    const dbJQL = uniCloud.databaseForJQL({

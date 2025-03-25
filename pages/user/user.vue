@@ -7,13 +7,13 @@
 				<view class="avatar-container">
 					<uni-id-pages-avatar width="160rpx" height="160rpx"></uni-id-pages-avatar>
 				</view>
-				
+
 				<!-- 用户信息 -->
 				<view class="user-details">
 					<text class="username">{{ userInfo.nickname || '未设置昵称' }}</text>
 					<text class="user-id">UID: {{ userInfo._id }}</text>
 				</view>
-				
+
 				<!-- 设置按钮 -->
 				<view class="settings-button" @click="goToUserInfoPage">
 					<uni-icons type="gear-filled" size="24" color="#FF9800"></uni-icons>
@@ -55,14 +55,14 @@
 					</view>
 					<text class="feature-label">预约中</text>
 				</view>
-				
+
 				<view class="feature-item" @click="handleFeatureClick('favorite')">
 					<view class="feature-icon favorite-icon">
 						<uni-icons type="heart" size="28" color="#8B5CF6"></uni-icons>
 					</view>
 					<text class="feature-label">收藏</text>
 				</view>
-				
+
 				<view class="feature-item" @click="handleFeatureClick('service')">
 					<view class="feature-icon service-icon">
 						<uni-icons type="chatbubble" size="28" color="#10B981"></uni-icons>
@@ -74,31 +74,33 @@
 
 		<!-- 最近订单 -->
 		<view class="orders-card glass-card">
-			<view class="card-header">
+			<view class="card-header" @click="goToRecentOrder">
 				<text class="card-title">最近订单</text>
-				<uni-icons type="right" size="18" color="#6b7280"></uni-icons>
+				<text style="color:#6b7280;">查看更多</text>
 			</view>
 
 			<view class="orders-container">
-				<view v-for="data in Data" :key="data._id" class="order-item">
+				<view v-for="data in displayedData" :key="data._id" class="order-item">
 					<view class="order-icon">
 						<uni-icons type="headphones" size="28" color="#FF9800"></uni-icons>
 					</view>
-					
+
 					<view class="order-details">
 						<text class="order-machine">{{ data.machineId }}</text>
-						<uni-dateformat :date="data.startTime" format="yyyy-MM-dd hh:mm" class="order-date"></uni-dateformat>
+						<uni-dateformat :date="data.startTime" format="yyyy-MM-dd hh:mm" class="order-date">
+						</uni-dateformat>
 					</view>
-					
+
 					<view class="order-status" :class="data.status == 1 ? 'status-completed' : 'status-pending'">
 						<text class="status-text">{{ data.status == 1 ? '已完成' : '未完成' }}</text>
 					</view>
 				</view>
-				
-				<view v-if="Data.length === 0" class="empty-orders">
+
+				<view v-if="displayedData.length === 0" class="empty-orders">
 					<text>暂无订单记录</text>
 				</view>
 			</view>
+
 		</view>
 
 		<!-- 底部功能按钮 -->
@@ -108,9 +110,9 @@
 				<text class="utility-text">消息通知</text>
 				<uni-icons type="right" size="16" color="#6b7280"></uni-icons>
 			</view>
-			
+
 			<view class="utility-divider"></view>
-			
+
 			<view class="utility-item" @click="handleUtilityClick('help')">
 				<uni-icons type="info-filled" size="20" color="#6b7280"></uni-icons>
 				<text class="utility-text">帮助中心</text>
@@ -124,9 +126,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, toRaw, computed } from 'vue'
+import {
+	onMounted,
+	reactive,
+	ref,
+	toRaw,
+	computed
+} from 'vue'
 // 引入 uni-id-pages 的 store
-import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+import {
+	store,
+	mutations
+} from '@/uni_modules/uni-id-pages/common/store.js'
 const uniIdCo = uniCloud.importObject("uni-id-co")
 const todo = uniCloud.importObject('todo')
 const res = uniCloud.getCurrentUserInfo('uni_id_token')
@@ -164,7 +175,7 @@ async function getPriceList() {
 		console.log(toRaw(pricelist.value[0]))
 		price.value = toRaw(pricelist.value[0]).price
 		priceOvernight.value = toRaw(pricelist.value[1]).price
-	} catch { }
+	} catch {}
 }
 
 async function getReservationData() {
@@ -172,7 +183,7 @@ async function getReservationData() {
 		let result = await todo.GetReservationInfo(res.uid)
 		console.log(result.data)
 		Data.value = result.data
-	} catch { }
+	} catch {}
 }
 
 function goToreservationList() {
@@ -233,6 +244,16 @@ async function logOut() {
 			icon: 'none'
 		});
 	}
+}
+
+const displayedData = computed(() => {
+	return Data.value.slice(0, 5);
+});
+
+function goToRecentOrder() {
+	uni.navigateTo({
+		url: '/pages/recentOrder/recentOrder' // 确保路径正确
+	});
 }
 
 onMounted(() => {
@@ -559,21 +580,21 @@ onMounted(() => {
 	.container {
 		padding: 16px;
 	}
-	
+
 	.avatar-container {
 		width: 60px;
 		height: 60px;
 	}
-	
+
 	.username {
 		font-size: 18px;
 	}
-	
+
 	.feature-icon {
 		width: 50px;
 		height: 50px;
 	}
-	
+
 	.feature-label {
 		font-size: 12px;
 	}
@@ -586,29 +607,29 @@ onMounted(() => {
 		max-width: 800px;
 		margin: 0 auto;
 	}
-	
+
 	.glass-card {
 		padding: 20px;
 		border-radius: 24px;
 	}
-	
+
 	.avatar-container {
 		width: 100px;
 		height: 100px;
 	}
-	
+
 	.username {
 		font-size: 22px;
 	}
-	
+
 	.stats-container {
 		padding: 20px 16px;
 	}
-	
+
 	.stat-value {
 		font-size: 20px;
 	}
-	
+
 	.feature-icon {
 		width: 70px;
 		height: 70px;
