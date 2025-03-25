@@ -37,13 +37,16 @@
 						<text class="time-label">24:00</text>
 					</view>
 					<view class="timeline-container">
-						<view class="timeline-bar">
-							<view v-for="(reservation, index) in machineData.reservations" :key="index"
-								class="timeline-segment"
-								:style="calculateSegmentStyle(reservation, startTime, endTime)">
-								<view class="timeline-segment-pulse"></view>
-							</view>
-						</view>
+					  <view class="timeline-bar">
+					    <view v-for="(reservation, index) in mergeReservations(machineData.reservations)" :key="index"
+					      class="timeline-segment"
+					      :style="calculateSegmentStyle(reservation, startTime, endTime)">
+					      <view class="timeline-segment-pulse"></view>
+					      <view v-if="getReservationCount(machineData.reservations, reservation) > 1" class="reservation-count">
+					        {{ getReservationCount(machineData.reservations, reservation) }}
+					      </view>
+					    </view>
+					  </view>
 					</view>
 				</view>
 
@@ -319,6 +322,42 @@
 		};
 	}
 	
+	function mergeReservations(reservations) {
+	  if (!reservations || reservations.length === 0) return [];
+	  
+	  // 按开始时间排序
+	  const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
+	  
+	  const mergedReservations = [];
+	  let currentMerged = {...sortedReservations[0]};
+	  
+	  for (let i = 1; i < sortedReservations.length; i++) {
+	    const current = sortedReservations[i];
+	    
+	    // 如果当前预约与合并中的预约有重叠，则合并
+	    if (current.startTime <= currentMerged.endTime) {
+	      // 更新结束时间为较晚的那个
+	      currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
+	    } else {
+	      // 没有重叠，将当前合并的添加到结果中，并开始新的合并
+	      mergedReservations.push(currentMerged);
+	      currentMerged = {...current};
+	    }
+	  }
+	  
+	  // 添加最后一个合并的预约
+	  mergedReservations.push(currentMerged);
+	  
+	  return mergedReservations;
+	}
+	
+	function getReservationCount(allReservations, mergedReservation) {
+	  // 计算有多少预约与当前合并的预约时间段有重叠
+	  return allReservations.filter(res => 
+	    (res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
+	  ).length;
+	}
+	
 	// 更新收藏状态到本地存储
 	function saveUserFavorites() {
 		try {
@@ -524,6 +563,22 @@
 		animation: pulse 2s infinite;
 		border-radius: 18rpx;
 	}
+	.reservation-count {
+	  position: absolute;
+	  top: 5rpx;
+	  right: 15rpx;
+	  background-color: #e29a09;
+	  color: white;
+	  border-radius: 50%;
+	  width: 20rpx;
+	  height: 20rpx;
+	  font-size: 20rpx;
+	  display: flex;
+	  justify-content: center;
+	  align-items: center;
+	  font-weight: bold;
+	  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+	}
 
 	@keyframes pulse {
 		0% {
@@ -639,7 +694,7 @@
 			border-radius: 15rpx;
 		}
 	}
-
+	
 	/* 大屏幕设备 */
 	@media screen and (min-width: 768px) {
 		.container {
