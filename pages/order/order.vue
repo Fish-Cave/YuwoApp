@@ -433,12 +433,21 @@ function openEndTimePicker() {
 
 // 确认开始时间
 function confirmStartTime(e) {
-	selectedStartTime.value = e.value;
-	// 自动设置结束时间为开始时间 30 分钟后
-	const startTime = dayjs(selectedStartTime.value, 'HH:mm');
-	const endTime = startTime.add(30, 'minute');
-	selectedEndTime.value = endTime.format('HH:mm');
-	updateEndTimestamp(); // 更新结束时间戳，用于价格计算等
+  selectedStartTime.value = e.value;
+  
+  // 使用完整的日期时间字符串创建 dayjs 对象
+  const dateStr = selectedDate.value || dayjs().format('YYYY-MM-DD');
+  const startTimeStr = `${dateStr} ${selectedStartTime.value}`;
+  const startTime = dayjs(startTimeStr);
+  
+  // 确保 startTime 是有效的日期对象
+  if (startTime.isValid()) {
+    const endTime = startTime.add(30, 'minute');
+    selectedEndTime.value = endTime.format('HH:mm');
+    updateEndTimestamp(); // 更新结束时间戳，用于价格计算等
+  } else {
+    console.error('无效的开始时间:', selectedStartTime.value);
+  }
 }
 
 // 确认结束时间
