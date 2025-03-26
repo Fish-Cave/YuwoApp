@@ -568,28 +568,38 @@ module.exports = {
 			clientInfo: this.getClientInfo()
 		})
 		const Loved = dbJQL.collection('loved')
+
 		const db = uniCloud.database();
 		const collection = db.collection('loved');
 		const dbCmd = db.command;
-
 		const res = await Loved.where({
 			userid: uid
 		}).get()
+
 		if (res.data.length == 0) {
 			await Loved.add({
 				userid: uid,
+				love: [],
 			})
-			await collection.where({
+			const result = await collection.where({
 				userid: uid,
 			}).update({
 				love: dbCmd.push(content)
 			})
 		} else {
-			collection.where({
+			const res = await collection.where({
 				userid: uid,
-			}).update({
-				love: dbCmd.push(content)
-			})
+				love: content
+			}).get()
+			if (res.data.length != 0) {
+				console.log("当前数据已经存在")
+			} else {
+				const result = await collection.where({
+					userid: uid,
+				}).update({
+					love: dbCmd.push(content)
+				})
+			}
 		}
 	},
 	/**
