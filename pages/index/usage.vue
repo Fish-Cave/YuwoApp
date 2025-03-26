@@ -1,388 +1,469 @@
 <template>
-	<view class="container">
-		<view v-for="machineData in machineReservationData" :key="machineData.machineInfo.machinenum"
-			class="machine-item">
-			<view class="glass-card">
-				<!-- 机台信息区域 -->
-				<view class="card-header">
-					<view class="icon-container">
-						<uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
-					</view>
-					<view class="machine-info">
-						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
-						<view class="price-status-container">
-							<!-- 会员价格显示逻辑 -->
-							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">包周/月价 0元/半时</text>
-							<text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
-							<text v-else class="machine-price">5元/半时</text>
+  <view class="container">
+    <view class="filter-container">
+      <view class="filter-button" :class="{'filter-active': showFavoritesOnly}" @click="toggleFavoritesFilter">
+        <uni-icons :type="showFavoritesOnly ? 'heart-filled' : 'heart'" size="20" color="#f472b6"></uni-icons>
+        <text class="filter-text">{{ showFavoritesOnly ? '显示全部' : '只看收藏' }}</text>
+      </view>
+    </view>
+    <!-- 这里修改为使用 filteredMachineData -->
+    <view v-for="machineData in filteredMachineData" :key="machineData.machineInfo.machinenum"
+      class="machine-item">
+      <view class="glass-card">
+        <!-- 机台信息区域 -->
+        <view class="card-header">
+          <view class="icon-container">
+            <uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
+          </view>
+          <view class="machine-info">
+            <text class="machine-name">{{ machineData.machineInfo.name }}</text>
+            <view class="price-status-container">
+              <!-- 会员价格显示逻辑 -->
+              <text v-if="membershipType === 'weekly_monthly'" class="machine-price">包周/月价 0元/半时</text>
+              <text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
+              <text v-else class="machine-price">5元/半时</text>
 
-							<view class="status-label"
-								:class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
-								{{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
-							</view>
-						</view>
-					</view>
-					<view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
-						<uni-icons :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
-							size="24" color="#f472b6"></uni-icons>
-					</view>
-				</view>
-				<!-- 时间轴区域 -->
-				<view class="timeline-section">
-					<view class="timeline-hours">
-						<text class="time-label">0:00</text>
-						<text class="time-label">6:00</text>
-						<text class="time-label">12:00</text>
-						<text class="time-label">18:00</text>
-						<text class="time-label">24:00</text>
-					</view>
-					<view class="timeline-container">
-					  <view class="timeline-bar">
-					    <view v-for="(reservation, index) in mergeReservations(machineData.reservations)" :key="index"
-					      class="timeline-segment"
-					      :style="calculateSegmentStyle(reservation, startTime, endTime)">
-					      <view class="timeline-segment-pulse"></view>
-					      <view v-if="getReservationCount(machineData.reservations, reservation) > 1" class="reservation-count">
-					        {{ getReservationCount(machineData.reservations, reservation) }}
-					      </view>
-					    </view>
-					  </view>
-					</view>
-				</view>
+              <view class="status-label"
+                :class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
+                {{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
+              </view>
+            </view>
+          </view>
+          <view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
+            <uni-icons :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
+              size="24" color="#f472b6"></uni-icons>
+          </view>
+        </view>
+        <!-- 时间轴区域 -->
+        <view class="timeline-section">
+          <view class="timeline-hours">
+            <text class="time-label">0:00</text>
+            <text class="time-label">6:00</text>
+            <text class="time-label">12:00</text>
+            <text class="time-label">18:00</text>
+            <text class="time-label">24:00</text>
+          </view>
+          <view class="timeline-container">
+            <view class="timeline-bar">
+              <view v-for="(reservation, index) in mergeReservations(machineData.reservations)" :key="index"
+                class="timeline-segment"
+                :style="calculateSegmentStyle(reservation, startTime, endTime)">
+                <view class="timeline-segment-pulse"></view>
+                <view v-if="getReservationCount(machineData.reservations, reservation) > 1" class="reservation-count">
+                  {{ getReservationCount(machineData.reservations, reservation) }}
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
 
-				<!-- 按钮区域 -->
-				<view class="button-group">
-					<view v-if="(isSuperUser || isUser)"
-						class="action-button view-button" @click="viewReservations(machineData)">
-						<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
-						<text class="button-text">查看预约</text>
-					</view>
-					<view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
-						class="action-button needlog-button" @click="unlogin()">
-						<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text error-text">登陆后查看</text>
-					</view>
-					<view v-if="machineData.machineInfo.status == 0 &&(isSuperUser || isUser)"
-						class="action-button reserve-button"
-						@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
-						<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text reserve-text">预约</text>
-					</view>
-					<view v-else-if="machineData.machineInfo.status == 1" class="action-button error-button"
-						@click="unuseable()">
-						<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text error-text">机台故障</text>
-					</view>
-					<view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
-						class="action-button needlog-button" @click="unlogin()">
-						<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text error-text">登陆后预约</text>
-					</view>
-				</view>
-			</view>
-		</view>
-	</view>
+        <!-- 按钮区域 -->
+        <view class="button-group">
+          <view v-if="(isSuperUser || isUser)"
+            class="action-button view-button" @click="viewReservations(machineData)">
+            <uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
+            <text class="button-text">查看预约</text>
+          </view>
+          <view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
+            class="action-button needlog-button" @click="unlogin()">
+            <uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text error-text">登陆后查看</text>
+          </view>
+          <view v-if="machineData.machineInfo.status == 0 &&(isSuperUser || isUser)"
+            class="action-button reserve-button"
+            @click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
+            <uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text reserve-text">预约</text>
+          </view>
+          <view v-else-if="machineData.machineInfo.status == 1" class="action-button error-button"
+            @click="unuseable()">
+            <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text error-text">机台故障</text>
+          </view>
+          <view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
+            class="action-button needlog-button" @click="unlogin()">
+            <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+            <text class="button-text error-text">登陆后预约</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch, onShow } from 'vue';
-	import dayjs from 'dayjs';
-	import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
-	const uniIdCo = uniCloud.importObject("uni-id-co")
-	const isSuperUser = ref(false)
-	const isUser = ref(false)
-	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
+import { onMounted, reactive, ref, watch, onShow, computed } from 'vue'; // 添加 computed
+import dayjs from 'dayjs';
+import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+const uniIdCo = uniCloud.importObject("uni-id-co")
+const isSuperUser = ref(false)
+const isUser = ref(false)
+const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
 
-	function roleJudge() {
-		const res = uniCloud.getCurrentUserInfo('uni_id_token')
-		if (res.role.includes("admin") || res.role.includes("superUser")) {
-			isSuperUser.value = true
-		} else if (res.role.includes("user")) {
-			isSuperUser.value = false
-			isUser.value = true
-		}
-		getMembershipStatus(); // 获取会员状态
-	}
+function roleJudge() {
+  const res = uniCloud.getCurrentUserInfo('uni_id_token')
+  if (res.role.includes("admin") || res.role.includes("superUser")) {
+    isSuperUser.value = true
+  } else if (res.role.includes("user")) {
+    isSuperUser.value = false
+    isUser.value = true
+  }
+  getMembershipStatus(); // 获取会员状态
+}
 
-	// 使用云对象的 getUserMembershipInfo 方法获取会员状态
-	async function getMembershipStatus() {
-	    try {
-	        const userInfo = uniCloud.getCurrentUserInfo();
-	        if (!userInfo || !userInfo.uid) {
-	            console.log('未登录或无法获取用户ID');
-	            membershipType.value = "none";
-	            return;
-	        }
-	        
-	        // 调用云对象方法获取会员信息
-	        const result = await todo.getUserMembershipInfo(userInfo.uid);
-	        console.log("会员信息查询结果:", result);
-	        
-	        if (result) {
-	            // 检查包周/月会员
-	            if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
-	                membershipType.value = "weekly_monthly";
-	                console.log('用户拥有包周/月会员');
-	            } 
-	            // 检查音游会员
-	            else if (result.membership && result.membership.length > 0) {
-	                membershipType.value = "music_game";
-	                console.log('用户拥有音游会员');
-	            } 
-	            // 无会员
-	            else {
-	                membershipType.value = "none";
-	                console.log('用户没有会员');
-	            }
-	        } else {
-	            membershipType.value = "none";
-	            console.log('获取会员信息失败或用户没有会员');
-	        }
-	    } catch (error) {
-	        console.error("获取会员信息失败:", error);
-	        membershipType.value = "none"; // 错误时默认为非会员
-	    }
-	}
+// 使用云对象的 getUserMembershipInfo 方法获取会员状态
+async function getMembershipStatus() {
+  try {
+    const userInfo = uniCloud.getCurrentUserInfo();
+    if (!userInfo || !userInfo.uid) {
+      console.log('未登录或无法获取用户ID');
+      membershipType.value = "none";
+      return;
+    }
+    
+    // 调用云对象方法获取会员信息
+    const result = await todo.getUserMembershipInfo(userInfo.uid);
+    console.log("会员信息查询结果:", result);
+    
+    if (result) {
+      // 检查包周/月会员
+      if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
+        membershipType.value = "weekly_monthly";
+        console.log('用户拥有包周/月会员');
+      } 
+      // 检查音游会员
+      else if (result.membership && result.membership.length > 0) {
+        membershipType.value = "music_game";
+        console.log('用户拥有音游会员');
+      } 
+      // 无会员
+      else {
+        membershipType.value = "none";
+        console.log('用户没有会员');
+      }
+    } else {
+      membershipType.value = "none";
+      console.log('获取会员信息失败或用户没有会员');
+    }
+  } catch (error) {
+    console.error("获取会员信息失败:", error);
+    membershipType.value = "none"; // 错误时默认为非会员
+  }
+}
 
-	uni.$on('uni-id-pages-login-success', () => {
-		roleJudge();
-	});
-	const todo = uniCloud.importObject('todo')
-	interface machine {
-		"_id": string;
-		"name": string;
-		"capacity": number;
-		"status": number;
-		"machinenum": number;
-		"description": string;
-	}
-	interface Reservation {
-		"_id": string;
-		"machineId": string;
-		"isOvernight": boolean;
-		"status": string;
-		"startTime": number;
-		"endTime": number;
-	}
+uni.$on('uni-id-pages-login-success', () => {
+  roleJudge();
+});
+const todo = uniCloud.importObject('todo')
+interface machine {
+  "_id": string;
+  "name": string;
+  "capacity": number;
+  "status": number;
+  "machinenum": number;
+  "description": string;
+}
+interface Reservation {
+  "_id": string;
+  "machineId": string;
+  "isOvernight": boolean;
+  "status": string;
+  "startTime": number;
+  "endTime": number;
+}
 
-	// 新增：用于控制收藏状态
-	const favorites = ref<Set<string>>(new Set());
+// 新增：用于控制收藏状态
+const favorites = ref<Set<string>>(new Set());
 
-	function unuseable() {
-		uni.showToast({
-			icon: "error",
-			title: "机台故障",
-		})
-	}
-	function unlogin() {
-		uni.showToast({
-			icon: "error",
-			title: "请先登录",
-		})
-		uni.reLaunch({
-			url: '/uni_modules/uni-id-pages/pages/login/login-withpwd'
-		})
-	}
+function unuseable() {
+  uni.showToast({
+    icon: "error",
+    title: "机台故障",
+  })
+}
+function unlogin() {
+  uni.showToast({
+    icon: "error",
+    title: "请先登录",
+  })
+  uni.reLaunch({
+    url: '/uni_modules/uni-id-pages/pages/login/login-withpwd'
+  })
+}
 
-	function viewReservations(machineData) {
-		// 存储数据到 localStorage
-		const detailData = {
-			GetMachineReservationInfo: machineData
-		};
-		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
+function viewReservations(machineData) {
+  // 存储数据到 localStorage
+  const detailData = {
+    GetMachineReservationInfo: machineData
+  };
+  uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
 
-		console.log("查看预约信息：", machineData);
-		uni.navigateTo({
-			url: '/pages/usageDetail/usageDetail',
-			success: function (res) {
-				//res.eventChannel.emit('acceptDataFromOpenerPage', {
-				//  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-				//});
-			}
-		});
-	}
+  console.log("查看预约信息：", machineData);
+  uni.navigateTo({
+    url: '/pages/usageDetail/usageDetail',
+    success: function (res) {
+      //res.eventChannel.emit('acceptDataFromOpenerPage', {
+      //  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
+      //});
+    }
+  });
+}
 
-	// 接收父组件传递的时间戳 props
-	const props = defineProps({
-		startTime: {
-			type: Number,
-			required: true
-		},
-		endTime: {
-			type: Number,
-			required: true
-		}
-	})
+// 接收父组件传递的时间戳 props
+const props = defineProps({
+  startTime: {
+    type: Number,
+    required: true
+  },
+  endTime: {
+    type: Number,
+    required: true
+  }
+})
 
-	function goOrder(machineName: String, machineID: String) {
-	  const orderData = {
-	    name: machineName,
-	    id: machineID,
-	    startTime: props.startTime,
-	    endTime: props.endTime
-	  };
-	  uni.setStorageSync('orderData', JSON.stringify(orderData));
-	
-	  uni.navigateTo({
-	    url: '/pages/order/order',
-	    success: function (res) {
-	      res.eventChannel.emit('acceptDataFromOpenerPage', {
-	        'name': machineName,
-	        'id': machineID,
-	        'startTime': props.startTime,
-	        'endTime': props.endTime
-	      })
-	    }
-	  });
-	}
+function goOrder(machineName: String, machineID: String) {
+  const orderData = {
+    name: machineName,
+    id: machineID,
+    startTime: props.startTime,
+    endTime: props.endTime
+  };
+  uni.setStorageSync('orderData', JSON.stringify(orderData));
 
-	const machineReservationData = ref<Array<{
-		machineInfo: machine,
-		reservations: Reservation[]
-	}>>([]) // 初始化为空数组
+  uni.navigateTo({
+    url: '/pages/order/order',
+    success: function (res) {
+      res.eventChannel.emit('acceptDataFromOpenerPage', {
+        'name': machineName,
+        'id': machineID,
+        'startTime': props.startTime,
+        'endTime': props.endTime
+      })
+    }
+  });
+}
 
-	async function loadMachineReservations() {
-		try {
-			if (!props.startTime || !props.endTime) {
-				console.log("startTime 或 endTime 为空，不加载数据");
-				return;
-			}
-			console.log("准备调用 GetMachineReservationInfo 云函数");
-			let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
-			console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
+const machineReservationData = ref<Array<{
+  machineInfo: machine,
+  reservations: Reservation[]
+}>>([]) // 初始化为空数组
 
-			if (Array.isArray(res)) {
-				machineReservationData.value = res;
-			} else if (res && res.result) {
-				machineReservationData.value = res.result;
-			} else {
-				console.error("返回的数据格式不正确:", res);
-				machineReservationData.value = []; // 设置为空数组避免渲染错误
-			}
+async function loadMachineReservations() {
+  try {
+    if (!props.startTime || !props.endTime) {
+      console.log("startTime 或 endTime 为空，不加载数据");
+      return;
+    }
+    console.log("准备调用 GetMachineReservationInfo 云函数");
+    let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
+    console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
 
-			console.log("machineReservationData.value 赋值后:", machineReservationData.value);
-		} catch (e) {
-			console.error("加载机台预约信息失败:", e);
-		}
-	}
+    if (Array.isArray(res)) {
+      machineReservationData.value = res;
+    } else if (res && res.result) {
+      machineReservationData.value = res.result;
+    } else {
+      console.error("返回的数据格式不正确:", res);
+      machineReservationData.value = []; // 设置为空数组避免渲染错误
+    }
 
-	// 监听 startTime 和 endTime 的变化，重新加载预约数据
-	watch(() => [props.startTime, props.endTime], ([newStartTime, newEndTime]) => {
-		console.log("watch 监听器被触发，startTime:", newStartTime, "endTime:", newEndTime);
-		if (newStartTime && newEndTime) {
-			loadMachineReservations();
-		}
-	})
-	
-	onMounted(() => {
-		console.log("usage 组件 onMounted");
-		if (props.startTime && props.endTime) {
-			loadMachineReservations();
-		}
-		console.log(machineReservationData.value);
-		roleJudge();
-		
-		// 尝试从本地存储加载收藏状态
-		try {
-			const storedFavorites = uni.getStorageSync('machine_favorites');
-			if (storedFavorites) {
-				favorites.value = new Set(JSON.parse(storedFavorites));
-			}
-		} catch (e) {
-			console.error("读取收藏状态失败:", e);
-		}
-	})
-	
-	// 页面显示时刷新数据和会员状态
-	uni.$on('onShow', () => {
-		loadMachineReservations(); // 每次页面显示时刷新
-		getMembershipStatus(); // 刷新会员状态
-	});
-	
-	// 预约成功后刷新数据
-	uni.$on('reservationSuccess', () => {
-		loadMachineReservations();
-	});
-	
-	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
-		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
-		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
-		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
-	
-		const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
-		const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
-	
-		return {
-			left: `${segmentLeftPercentage}%`,
-			right: `${segmentRightPercentage}%`,
-			background: 'linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%)'
-		};
-	}
-	
-	function mergeReservations(reservations) {
-	  if (!reservations || reservations.length === 0) return [];
-	  
-	  // 按开始时间排序
-	  const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
-	  
-	  const mergedReservations = [];
-	  let currentMerged = {...sortedReservations[0]};
-	  
-	  for (let i = 1; i < sortedReservations.length; i++) {
-	    const current = sortedReservations[i];
-	    
-	    // 如果当前预约与合并中的预约有重叠，则合并
-	    if (current.startTime <= currentMerged.endTime) {
-	      // 更新结束时间为较晚的那个
-	      currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
-	    } else {
-	      // 没有重叠，将当前合并的添加到结果中，并开始新的合并
-	      mergedReservations.push(currentMerged);
-	      currentMerged = {...current};
-	    }
-	  }
-	  
-	  // 添加最后一个合并的预约
-	  mergedReservations.push(currentMerged);
-	  
-	  return mergedReservations;
-	}
-	
-	function getReservationCount(allReservations, mergedReservation) {
-	  // 计算有多少预约与当前合并的预约时间段有重叠
-	  return allReservations.filter(res => 
-	    (res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
-	  ).length;
-	}
-	
-	// 更新收藏状态到本地存储
-	function saveUserFavorites() {
-		try {
-			uni.setStorageSync('machine_favorites', JSON.stringify([...favorites.value]));
-		} catch (e) {
-			console.error("保存收藏状态失败:", e);
-		}
-	}
-	
-	// 修改toggleFavorite函数以保存收藏状态
-	function toggleFavorite(machineId: string) {
-		if (favorites.value.has(machineId)) {
-			favorites.value.delete(machineId);
-		} else {
-			favorites.value.add(machineId);
-		}
-		
-		// 保存到本地存储
-		saveUserFavorites();
-		
-		uni.showToast({
-			icon: 'success',
-			title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
-			duration: 1500
-		});
-	}
+    console.log("machineReservationData.value 赋值后:", machineReservationData.value);
+  } catch (e) {
+    console.error("加载机台预约信息失败:", e);
+  }
+}
+
+// 监听 startTime 和 endTime 的变化，重新加载预约数据
+watch(() => [props.startTime, props.endTime], ([newStartTime, newEndTime]) => {
+  console.log("watch 监听器被触发，startTime:", newStartTime, "endTime:", newEndTime);
+  if (newStartTime && newEndTime) {
+    loadMachineReservations();
+  }
+})
+
+// 计算条形图 segment 的样式
+function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, dayEndTime: number) {
+  const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
+  const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
+  const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
+
+  const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
+  const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
+
+  return {
+    left: `${segmentLeftPercentage}%`,
+    right: `${segmentRightPercentage}%`,
+    background: 'linear-gradient(90deg, rgba(255,193,7,0.5) 0%, rgba(252,211,77,0.8) 100%)'
+  };
+}
+
+function mergeReservations(reservations) {
+    if (!reservations || reservations.length === 0) return [];
+    
+    // 按开始时间排序
+    const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
+    
+    const mergedReservations = [];
+    let currentMerged = {...sortedReservations[0]};
+    
+    for (let i = 1; i < sortedReservations.length; i++) {
+      const current = sortedReservations[i];
+      
+      // 如果当前预约与合并中的预约有重叠，则合并
+      if (current.startTime <= currentMerged.endTime) {
+        // 更新结束时间为较晚的那个
+        currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
+      } else {
+        // 没有重叠，将当前合并的添加到结果中，并开始新的合并
+        mergedReservations.push(currentMerged);
+        currentMerged = {...current};
+      }
+    }
+    
+    // 添加最后一个合并的预约
+    mergedReservations.push(currentMerged);
+    
+    return mergedReservations;
+  }
+  
+  function getReservationCount(allReservations, mergedReservation) {
+    // 计算有多少预约与当前合并的预约时间段有重叠
+    return allReservations.filter(res => 
+      (res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
+    ).length;
+  }
+  
+  // 添加收藏筛选的状态
+  const showFavoritesOnly = ref(false);
+
+  // 添加筛选后的机台数据计算属性
+  const filteredMachineData = computed(() => {
+    if (!showFavoritesOnly.value) {
+      return machineReservationData.value;
+    }
+    
+    // 只显示已收藏的机台
+    return machineReservationData.value.filter(machine => 
+      favorites.value.has(machine.machineInfo._id)
+    );
+  });
+
+  // 切换筛选状态
+  function toggleFavoritesFilter() {
+    showFavoritesOnly.value = !showFavoritesOnly.value;
+    
+    uni.showToast({
+      icon: 'none',
+      title: showFavoritesOnly.value ? '只显示收藏的机台' : '显示全部机台',
+      duration: 1500
+    });
+  }
+  
+  // 更新收藏状态到本地存储
+  function saveUserFavorites() {
+    try {
+      uni.setStorageSync('machine_favorites', JSON.stringify([...favorites.value]));
+    } catch (e) {
+      console.error("保存收藏状态失败:", e);
+    }
+  }
+  
+  // 修改toggleFavorite函数以保存收藏状态
+  async function toggleFavorite(machineId: string) {
+    try {
+      const userInfo = uniCloud.getCurrentUserInfo();
+      if (!userInfo || !userInfo.uid) {
+        uni.showToast({
+          icon: 'none',
+          title: '请先登录',
+          duration: 1500
+        });
+        return;
+      }
+
+      if (favorites.value.has(machineId)) {
+        favorites.value.delete(machineId);
+      } else {
+        favorites.value.add(machineId);
+      }
+      
+      // 保存到本地存储
+      saveUserFavorites();
+      
+      // 同步到云端
+      await todo.Loved_Update(userInfo.uid, machineId);
+      
+      uni.showToast({
+        icon: 'success',
+        title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
+        duration: 1500
+      });
+    } catch (error) {
+      console.error("收藏操作失败:", error);
+      uni.showToast({
+        icon: 'error',
+        title: '操作失败',
+        duration: 1500
+      });
+    } // 这里缺少了闭合的花括号
+  }
+  
+  // 加载用户收藏数据
+  async function loadUserFavorites() {
+    try {
+      const userInfo = uniCloud.getCurrentUserInfo();
+      if (!userInfo || !userInfo.uid) {
+        console.log('未登录，不加载收藏数据');
+        return;
+      }
+      
+      // 调用云函数获取收藏数据
+      const result = await todo.Loved_Query(userInfo.uid);
+      if (result && result.data) {
+        // 更新收藏集合
+        favorites.value = new Set(result.data);
+        // 同步到本地存储
+        saveUserFavorites();
+      }
+    } catch (error) {
+      console.error("加载收藏数据失败:", error);
+    }
+  }
+  
+  onMounted(() => {
+    console.log("usage 组件 onMounted");
+    if (props.startTime && props.endTime) {
+      loadMachineReservations();
+    }
+    console.log(machineReservationData.value);
+    roleJudge();
+    
+    // 先从本地存储加载收藏状态
+    try {
+      const storedFavorites = uni.getStorageSync('machine_favorites');
+      if (storedFavorites) {
+        favorites.value = new Set(JSON.parse(storedFavorites));
+      }
+    } catch (e) {
+      console.error("读取收藏状态失败:", e);
+    }
+    
+    // 然后从云端加载收藏数据
+    loadUserFavorites();
+  })
+  
+  // 页面显示时刷新数据和会员状态
+  uni.$on('onShow', () => {
+    loadMachineReservations(); // 每次页面显示时刷新
+    getMembershipStatus(); // 刷新会员状态
+  });
+  
+  // 预约成功后刷新数据
+  uni.$on('reservationSuccess', () => {
+    loadMachineReservations();
+  });
 </script>
+
 <style>
 	/* 基础容器样式 */
 	.container {
@@ -747,4 +828,35 @@
 		display: flex;
 		align-items: center;
 	}
+	.filter-container {
+	  display: flex;
+	  justify-content: flex-end;
+	  padding: 10rpx 30rpx;
+	  margin-bottom: 10rpx;
+	}
+	
+	.filter-button {
+	  display: flex;
+	  align-items: center;
+	  background-color: rgba(255, 255, 255, 0.7);
+	  padding: 10rpx 20rpx;
+	  border-radius: 30rpx;
+	  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.filter-active {
+	  background-color: #fdf2f8;
+	  box-shadow: 0 2rpx 10rpx rgba(244, 114, 182, 0.3);
+	}
+	
+	.filter-text {
+	  margin-left: 10rpx;
+	  font-size: 26rpx;
+	  color: #666;
+	}
+	
+	.filter-active .filter-text {
+	  color: #f472b6;
+	}
+	
 </style>

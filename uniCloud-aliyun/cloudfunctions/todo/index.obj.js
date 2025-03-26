@@ -602,6 +602,36 @@ module.exports = {
 			}
 		}
 	},
+	
+	// 查询用户的收藏列表
+	Loved_Query: async function(uid) {
+	    const dbJQL = uniCloud.databaseForJQL({ 
+	        clientInfo: this.getClientInfo()
+	    });
+	    const Loved = dbJQL.collection('loved');
+	    
+	    // 查询该用户的收藏记录
+	    const res = await Loved.where({
+	        userid: uid
+	    }).get();
+	    
+	    // 如果用户没有收藏记录，返回空数组
+	    if (res.data.length === 0) {
+	        return {
+	            code: 0,
+	            data: [],
+	            message: "用户暂无收藏内容"
+	        };
+	    }
+	    
+	    // 返回用户的收藏内容
+	    return {
+	        code: 0,
+	        data: res.data[0].love || [],
+	        message: "查询成功"
+	    };
+	},
+
 	/**
 	 * 定时任务：更新会员状态
 	 * 此函数应该配置为定时触发，例如每天凌晨执行一次
