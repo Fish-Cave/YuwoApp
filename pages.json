@@ -165,7 +165,28 @@
 				"navigationBarTitleText" : "邦住"
 			}
 		}
-	],
+	,{
+    "path": "uni_modules/uni-pay/pages/success/success",
+    "style": {
+        "backgroundColor": "#F8F8F8",
+        "navigationBarTitleText": "支付成功"
+    }
+}
+,{
+    "path": "uni_modules/uni-pay/pages/ad-interactive-webview/ad-interactive-webview",
+    "style": {
+        "backgroundColor": "#F8F8F8",
+        "navigationBarTitleText": "ad"
+    }
+}
+,{
+    "path": "uni_modules/uni-pay/pages/pay-desk/pay-desk",
+    "style": {
+        "backgroundColor": "#F8F8F8",
+        "navigationBarTitleText": "收银台"
+    }
+}
+],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "🐟窝预约小程序",

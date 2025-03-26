@@ -12,6 +12,10 @@
 		<view style="padding: 0 15px; font-size: 15px; color: #666; text-align: center; margin-bottom: 10px;">
 					登录后如果为会员将会自动显示会员价格
 				</view>
+        <view class="glass-card not-playing-card" @click="goToNoPlayPage">
+          <text>不游玩机台？</text>
+          <text class="link-text">请点击这里</text>
+        </view>
 		<view>
 			<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
 			<usage :startTime="selectedStartTime" :endTime="selectedEndTime"></usage>
@@ -27,7 +31,7 @@ import usage from './usage';
 import { useProfileStore } from '../../stores/userProfileStore';
 const userProfile = useProfileStore()
 const res = uniCloud.getCurrentUserInfo('uni_id_token')
-const isAdmin = res.role.includes("admin")
+const isAdmin = ref(res.role.includes("admin"))
 const todayDate = computed(() => {
 		return dayjs().format('YYYY-MM-DD');
 	});
@@ -62,6 +66,37 @@ function goToConfig(){
 	})
 }
 
+const goToNoPlayPage = () => {
+  console.log("用户点击了 '不游玩机台？请点击这里' 卡片");
+  
+  if (!selectedStartTime.value || !selectedEndTime.value) {
+    uni.showToast({
+      icon: 'error',
+      title: '请先选择日期',
+      duration: 2000
+    });
+    return;
+  }
+  
+  const orderData = {
+    name: "不游玩机台",
+    id: "67e2f4803f1a47470a1a552a", 
+    isNoPlay: true,
+    startTime: selectedStartTime.value,
+    endTime: selectedEndTime.value
+  };
+
+  uni.setStorageSync('orderData', JSON.stringify(orderData));
+
+  uni.navigateTo({
+    url: '/pages/order/order',
+    success: function(res) {
+      res.eventChannel.emit('acceptDataFromOpenerPage', orderData);
+    }
+  });
+}
+
+
 uni.$on("uni-id-pages-login-success",function(){
 	uni.switchTab({
 		url: "pages/index/index"
@@ -73,12 +108,12 @@ onMounted(() => {
     const today = dayjs().format('YYYY-MM-DD');
     const startTime = dayjs(today).startOf('day').valueOf();
     const endTime = dayjs(today).endOf('day').valueOf();
-    
+
     selectedStartTime.value = startTime;
     selectedEndTime.value = endTime;
-    
+
     console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
-	
+
 	// 获取用户信息
 	uniCloud.getCurrentUserInfo('uni_id_token').then(res => {
 		isAdmin.value = res.role.includes("admin"); // 设置 isAdmin 的值
@@ -86,7 +121,6 @@ onMounted(() => {
 });
 
 
-	
 </script>
 
 <style lang="scss">
@@ -166,4 +200,20 @@ onMounted(() => {
 		margin-left: 30rpx;
 		margin-right: 30rpx;
 	}
+
+    .not-playing-card {
+        margin: 20rpx 15px; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 30rpx 24rpx; 
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .link-text {
+        color: #007bff; 
+        text-decoration: underline; 
+        margin-left: 5rpx;
+    }
 </style>

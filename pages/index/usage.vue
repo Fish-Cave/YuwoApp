@@ -144,8 +144,6 @@
 	    }
 	}
 
-
-
 	uni.$on('uni-id-pages-login-success', () => {
 		roleJudge();
 	});
@@ -204,8 +202,6 @@
 		});
 	}
 
-
-
 	// 接收父组件传递的时间戳 props
 	const props = defineProps({
 		startTime: {
@@ -219,24 +215,26 @@
 	})
 
 	function goOrder(machineName: String, machineID: String) {
-		// 存储数据到 localStorage
-		const orderData = {
-			name: machineName,
-			id: machineID
-		};
-		uni.setStorageSync('orderData', JSON.stringify(orderData)); // 存储为字符串
-
-		uni.navigateTo({
-			url: '/pages/order/order',
-			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', {
-					'name': machineName,
-					'id': machineID
-				})
-			}
-		});
+	  const orderData = {
+	    name: machineName,
+	    id: machineID,
+	    startTime: props.startTime,
+	    endTime: props.endTime
+	  };
+	  uni.setStorageSync('orderData', JSON.stringify(orderData));
+	
+	  uni.navigateTo({
+	    url: '/pages/order/order',
+	    success: function (res) {
+	      res.eventChannel.emit('acceptDataFromOpenerPage', {
+	        'name': machineName,
+	        'id': machineID,
+	        'startTime': props.startTime,
+	        'endTime': props.endTime
+	      })
+	    }
+	  });
 	}
-
 
 	const machineReservationData = ref<Array<{
 		machineInfo: machine,
@@ -423,7 +421,6 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		/* 顶部对齐 */
 		margin-bottom: 20rpx;
 		position: relative;
 	}
@@ -498,16 +495,12 @@
 
 	.status-available {
 		background-color: rgba(76, 175, 80, 0.2);
-		/* 浅绿色背景 */
 		color: #4CAF50;
-		/* 绿色文字 */
 	}
 
 	.status-error {
 		background-color: rgba(244, 67, 54, 0.2);
-		/* 浅红色背景 */
 		color: #f44336;
-		/* 红色文字 */
 	}
 
 	/* 时间轴样式 */
@@ -594,7 +587,6 @@
 		}
 	}
 
-	/* 按钮组样式 - 响应式 */
 	.button-group {
 		display: flex;
 		justify-content: space-around;
@@ -754,6 +746,5 @@
 	.price-status-container {
 		display: flex;
 		align-items: center;
-		/* 垂直居中对齐 */
 	}
 </style>
