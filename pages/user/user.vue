@@ -38,53 +38,52 @@
 			</view>
 
 			<!-- 会员有效期信息卡片 -->
-			<view v-if="hasMembership" class="membership-info-card glass-card">
-				<view class="membership-info-header">
-					<uni-icons type="vip-filled" size="20" color="#FFD700"></uni-icons>
-					<text class="membership-info-title">会员权益</text>
-				</view>
-
-				<view class="membership-details">
-					<view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
-						class="membership-item">
-						<view class="membership-icon premium-icon">
-							<uni-icons type="star-filled" size="16" color="#ffffff"></uni-icons>
-						</view>
-						<view class="membership-content">
-							<view class="membership-name">包月会员</view>
-							<view class="membership-validity">
-								<text class="validity-label">有效期至:</text>
-								<text
-									class="validity-date">{{ formatDate(membershipInfo.subscriptionPackage[0].validthru) }}</text>
-							</view>
-						</view>
-					</view>
-
-					<view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
-						class="membership-item">
-						<view class="membership-icon standard-icon">
-							<uni-icons type="medal-filled" size="16" color="#ffffff"></uni-icons>
-						</view>
-						<view class="membership-content">
-							<view class="membership-name">音游会员</view>
-							<view class="membership-validity">
-								<text class="validity-label">有效期至:</text>
-								<text
-									class="validity-date">{{ formatDate(membershipInfo.membership[0].validthru) }}</text>
-							</view>
-						</view>
-					</view>
-				</view>
-
-			</view>
-			<view v-else class="membership-info-card glass-card">
-				<view class="membership-info-header">
-					<uni-icons type="vip-filled" size="20" color="#FFD700"></uni-icons>
-					<text class="membership-info-title">还不是🐟窝会员！</text>
-				</view>
-				<view class="becamemember-button glass-button" @click="goToRecharge()">
-					<text>成为会员！</text>
-				</view>
+			<view class="membership-info-card glass-card">
+			    <view class="membership-info-header">
+			        <uni-icons type="vip-filled" size="20" color="#FFD700"></uni-icons>
+			        <text class="membership-info-title">{{ hasMembership ? '会员权益' : '还不是🐟窝会员！' }}</text>
+			    </view>
+			
+			    <view v-if="hasMembership" class="membership-details">
+			        <view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
+			            class="membership-item">
+			            <view class="membership-icon premium-icon">
+			                <uni-icons type="star-filled" size="16" color="#ffffff"></uni-icons>
+			            </view>
+			            <view class="membership-content">
+			                <view class="membership-name">包月会员</view>
+			                <view class="membership-validity">
+			                    <text class="validity-label">有效期至:</text>
+			                    <text class="validity-date">{{ formatDate(membershipInfo.subscriptionPackage[0].validthru) }}</text>
+			                </view>
+			            </view>
+			        </view>
+			
+			        <view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
+			            class="membership-item">
+			            <view class="membership-icon standard-icon">
+			                <uni-icons type="medal-filled" size="16" color="#ffffff"></uni-icons>
+			            </view>
+			            <view class="membership-content">
+			                <view class="membership-name">音游会员</view>
+			                <view class="membership-validity">
+			                    <text class="validity-label">有效期至:</text>
+			                    <text class="validity-date">{{ formatDate(membershipInfo.membership[0].validthru) }}</text>
+			                </view>
+			            </view>
+			        </view>
+			        
+			        <!-- 添加续费按钮 -->
+			        <view class="becamemember-button glass-button" @click="goToRecharge()">
+			            <text>续费会员</text>
+			        </view>
+			    </view>
+			
+			    <view v-else>
+			        <view class="becamemember-button glass-button" @click="goToRecharge()">
+			            <text>成为会员！</text>
+			        </view>
+			    </view>
 			</view>
 
 			<!-- 统计信息 -->

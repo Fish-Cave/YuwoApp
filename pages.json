@@ -13,11 +13,14 @@
 		{
 			"path": "pages/signIn/signIn",
 			"style": {
+				"navigationBarTitleText": "签到"
 			}
 		},
 		{
 			"path": "pages/user/user",
-			"style": {}
+			"style": {
+				"navigationBarTitleText": "我的"
+			}
 		},
 		{
 			"path": "pages/order/order",
@@ -149,13 +152,6 @@
 			"style" : 
 			{
 				"navigationBarTitleText" : "最近订单"
-			}
-		},
-		{
-			"path" : "pages/love/love",
-			"style" : 
-			{
-				"navigationBarTitleText" : "喜爱的机台"
 			}
 		},
 		{
