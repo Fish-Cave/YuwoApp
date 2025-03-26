@@ -1,386 +1,764 @@
 <template>
-	<view>
-		<!-- 使用 v-if 来判断 Data 是否有数据，只渲染第一个数据项 -->
-		<view v-if="Data && Data.length > 0" v-for="data in Data.slice(0,1)" :key="data._id">
+	<view class="container">
+		<!-- 使用 v-if 来判断 signinData 是否有数据 -->
+		<view v-if="signinData">
 			<!-- 当前预约的机台信息卡片 -->
-			<uni-card style="background-color: rgb(254, 155, 0); border-radius: 30rpx;">
-				<view style="display: flex; flex-direction: column; padding: 20rpx;">
-					<text style="font-size: 80rpx; font-weight: bold; color: #fff;">{{ elapsedTime }}</text>
-					<!-- 显示计时器 -->
-					<text style="font-size: 24rpx; color: #fff; margin-top: 10rpx;">预约订单号</text>
-					<text style="font-size: 28rpx; color: #fff;">{{data.reservationid || '无'}}</text> <br />
-					<!-- 使用 || '无' 防止空值显示 -->
-					<text style="font-size: 24rpx; color: #fff;">签到订单号</text>
-					<text style="font-size: 28rpx; color: #fff;">{{data._id || '无'}}</text> <br />
-					<!-- 使用 || '无' 防止空值显示 -->
+			<view class="glass-card active-card">
+				<view class="timer-container">
+					<text class="timer-text">{{ elapsedTime }}</text>
+					<text class="timer-label">使用时长</text>
 				</view>
-			</uni-card>
+				<view class="divider"></view>
+				<view class="order-info">
+					<view class="info-row">
+						<text class="info-label">机台名称</text>
+						<text class="info-value">{{ machineData.name || '未知机台' }}</text>
+					</view>
+					<view class="info-row">
+						<text class="info-label">预约类型</text>
+						<text class="info-value">{{ reservationData.isOvernight ? '过夜预约' : '普通预约' }}</text>
+					</view>
+					<view class="info-row">
+						<text class="info-label">预约订单号</text>
+						<text class="info-value">{{ signinData.reservationid }}</text>
+					</view>
+					<view class="info-row">
+						<text class="info-label">签到订单号</text>
+						<text class="info-value">{{ signinData._id }}</text>
+					</view>
+				</view>
+			</view>
 
 			<!-- 实时费用 -->
-			<uni-card style="border-radius: 30rpx;">
-				<view class="content">
-					<view style="display: flex; justify-content: space-between; align-items: center;">
-						<text class="title">实时费用</text>
-						<text>{{singlePrice}}元/半小时</text>
+			<view class="glass-card">
+				<view class="card-content">
+					<view class="card-header">
+						<text class="card-title">实时费用</text>
+						<text class="rate-info">{{ displayRate }}</text>
 					</view>
-					<view style="margin-top: 10rpx;">
-						<text style="font-size: 28rpx; font-weight: bold;">{{ totalPrice }} 元</text>
-						<!-- 显示 totalPrice -->
+					<view class="price-container">
+						<text class="price-amount">¥ {{ totalPrice }}</text>
+						<text class="price-note" v-if="membershipType !== 'none'">{{ membershipNote }}</text>
 					</view>
 				</view>
-			</uni-card>
+			</view>
 
 			<!-- 使用记录 -->
-			<uni-card style="border-radius: 30rpx;">
-				<view class="content">
-					<view style="display: flex; align-items: center;">
-						<text class="title">使用记录</text>
+			<view class="glass-card">
+				<view class="card-content">
+					<view class="card-header">
+						<text class="card-title">使用记录</text>
 					</view>
-					<!-- 只有 starttime 不为 0 时才显示开始使用时间 -->
-					<view v-if="data.starttime != 0"
-						style="display: flex;justify-content: space-between; margin-top: 15rpx;">
-						<view style="display: flex; align-items: center;">
-							<uni-icons type="checkmarkempty" size="20" color="#4cd964"></uni-icons> <!-- 使用绿色图标 -->
-							<text style="margin-left: 5rpx;">开始使用</text>
+					<view class="usage-record">
+						<view class="record-item">
+							<view class="record-icon">
+								<uni-icons type="checkmarkempty" size="20" color="#4cd964"></uni-icons>
+							</view>
+							<view class="record-info">
+								<text class="record-label">开始使用</text>
+								<text class="record-time">{{ formatDate(signinData.starttime) }}</text>
+							</view>
 						</view>
-						<view>
-							<uni-dateformat :date="data.starttime"></uni-dateformat>
+						<view class="record-divider"></view>
+						<view class="record-item">
+							<view class="record-icon">
+								<uni-icons type="circle" size="20" color="#f0ad4e"></uni-icons>
+							</view>
+							<view class="record-info">
+								<text class="record-label">预计结束</text>
+								<text class="record-time">{{ estimatedEndTime }}</text>
+							</view>
 						</view>
-					</view>
-					<view v-else style="margin-top: 15rpx; color: gray;">
-						<text>等待开始使用...</text> <!-- 提示等待开始 -->
 					</view>
 				</view>
-			</uni-card>
+			</view>
 
-			<uni-card title="debug">
+			<!-- 玩不玩机台信息 -->
+			<view class="glass-card" v-if="signinData.isPlay !== undefined">
+				<view class="card-content">
+					<view class="card-header">
+						<text class="card-title">机台使用状态</text>
+					</view>
+					<view class="play-status">
+						<uni-icons :type="signinData.isPlay ? 'checkbox-filled' : 'closeempty'" 
+							:color="signinData.isPlay ? '#4cd964' : '#dd524d'" size="24"></uni-icons>
+						<text class="play-status-text">{{ signinData.isPlay ? '正在游玩机台' : '不游玩机台' }}</text>
+					</view>
+				</view>
+			</view>
+
+			<!-- Debug 信息 -->
+			<view class="glass-card" v-if="debug">
 				<template v-slot:title>
-					<view style="display: flex; justify-content: space-between; align-items: center;">
-						<uni-section  title="Debug" type="line"></uni-section>
+					<view class="debug-header">
+						<uni-section title="Debug" type="line"></uni-section>
 						<switch @change="switchChange"></switch>
 					</view>
 				</template>
-				<view v-if="debug">
-					<text>{{Data}}</text><br />
-					<text>{{membershipType}}</text><br />
-					<text>单价{{singlePrice}}</text><br />
-					<text>最高价格{{overnightPrice}}</text><br />
-					<text>{{totalPrice}}</text>
+				<view class="debug-content">
+					<text>签到数据: {{ JSON.stringify(signinData) }}</text>
+					<text>预约数据: {{ JSON.stringify(reservationData) }}</text>
+					<text>机台数据: {{ JSON.stringify(machineData) }}</text>
+					<text>会员类型: {{ membershipType }}</text>
+					<text>单价: {{ singlePrice }}</text>
+					<text>封顶价格: {{ overnightPrice }}</text>
+					<text>总价: {{ totalPrice }}</text>
 				</view>
-			</uni-card>
+			</view>
 		</view>
 		<view v-else>
-			<uni-card>
-				<view style="padding: 20rpx; text-align: center; color: gray;">
-					暂无使用信息
+			<view class="glass-card empty-card">
+				<view class="empty-content">
+					<uni-icons type="info" size="50" color="#bbb"></uni-icons>
+					<text class="empty-text">暂无使用中的签到信息</text>
+					<text class="empty-subtext">您可以返回首页进行预约</text>
 				</view>
-			</uni-card>
+			</view>
 		</view>
-		<!-- 按钮 -->
-		<view class="">
-			<view class="submit-button" @click="submit()">结束使用并支付</view>
-			<view class="bt" style="background-color: #E0E0E0" @click="askForHelp()">遇到问题</view>
+
+		<!-- 底部按钮区域 -->
+		<view class="footer">
+			<view class="button-container">
+				<view class="submit-button" @click="endUsage">结束使用并支付</view>
+				<view class="help-button" @click="askForHelp">遇到问题</view>
+			</view>
 		</view>
 	</view>
 </template>
 
-
 <script setup lang="ts">
-	import { onMounted, ref, onUnmounted, computed, toRaw } from 'vue' // 引入 onUnmounted 和 computed
-	const todo = uniCloud.importObject('todo')
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
-	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
-	interface signInData {
-		"_id" : string
-		"reservationid" : string
-		"isPlay" : boolean
-		"starttime" : number
-		"endtime" : number
-	}
-	const Data = ref<signInData[]>([])
-	const singlePrice = ref(5)
-	const totalPrice = ref(0) // 总价，实时更新
-	const overnightPrice = ref(50)
-	const startTime = ref<number | null>(null) // 开始时间戳，从 Data 中获取
-	const elapsedTime = ref("00:00:00") // 格式化后的已用时间
-	let timerInterval : number | null = null // 定时器 interval id
-	
-	//Debug
-	const debug = ref(false)
-	function switchChange(e) {
-		console.log('switch1 发生 change 事件，携带值为', e.detail.value)
-		debug.value = e.detail.value
-	}
+import { onMounted, ref, reactive, onUnmounted, computed } from 'vue';
+import dayjs from 'dayjs';
 
-	function submit() {
-		uni.showToast({
-			title: "结束使用并支付 (功能待完善)",
-			icon: 'none'
-		})
-		// TODO: 调用云函数结束使用，计算总价，跳转支付页面
-	}
-	function askForHelp() {
-		uni.showToast({
-			title: "遇到问题 (功能待完善)",
-			icon: 'none'
-		})
-		// TODO: 打开客服/帮助页面或弹窗
-	}
-	async function getMembershipStatus() {
-		try {
-			const userInfo = uniCloud.getCurrentUserInfo();
-			if (!userInfo || !userInfo.uid) {
-				console.log('未登录或无法获取用户ID');
-				membershipType.value = "none";
-				return;
-			}
+const todo = uniCloud.importObject('todo');
+const res = uniCloud.getCurrentUserInfo('uni_id_token');
 
-			// 调用云对象方法获取会员信息
-			const result = await todo.getUserMembershipInfo(userInfo.uid);
-			console.log("会员信息查询结果:", result);
+// 数据状态
+const signinData = ref(null);
+const reservationData = ref(null);
+const machineData = ref(null);
+const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
+const singlePrice = ref(5);
+const overnightPrice = ref(50);
+const totalPrice = ref(0);
+const elapsedTime = ref("00:00:00");
+const loading = ref(false);
+const debug = ref(false);
 
-			if (result) {
-				// 检查包周/月会员
-				if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
-					membershipType.value = "weekly_monthly";
-					console.log('用户拥有包周/月会员');
-					setSinglePrice()
-				}
-				// 检查音游会员
-				else if (result.membership && result.membership.length > 0) {
-					membershipType.value = "music_game";
-					console.log('用户拥有音游会员');
-					setSinglePrice()
-				}
-				// 无会员
-				else {
-					membershipType.value = "none";
-					console.log('用户没有会员');
-					setSinglePrice()
-				}
-			} else {
-				membershipType.value = "none";
-				console.log('获取会员信息失败或用户没有会员');
-			}
-		} catch (error) {
-			console.error("获取会员信息失败:", error);
-			membershipType.value = "none"; // 错误时默认为非会员
-		}
-	}
+// 计时器相关
+let timerInterval = null;
+const startTime = ref(0);
 
-	function setSinglePrice() {
-		switch (membershipType.value) {
-			case "weekly_monthly":
-				singlePrice.value = 0
-				overnightPrice.value = 0
-				break;
-			case "music_game":
-				// 当 expression 表达式值 等于 value2 时执行该代码块
-				singlePrice.value = 4
-				overnightPrice.value = 40
-				break;
-			default:
-				// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
-				singlePrice.value = 5
-				overnightPrice.value = 50
-				break;
-		}
-	}
+// 计算属性
+const displayRate = computed(() => {
+  if (membershipType.value === "weekly_monthly") {
+    return "包周/月会员免费";
+  } else if (membershipType.value === "music_game") {
+    return "音游会员: 4元/半小时 (封顶40元)";
+  } else {
+    return `${singlePrice.value}元/半小时`;
+  }
+});
 
-	async function searchSignin() {
-		try {
-			const result = await todo.SignIn_Search(res.uid)
-			console.log("签到数据:", result.data)
-			if (result.data && result.data.length > 0) {
-				Data.value = result.data
-				startTime.value = result.data[0].starttime; // 从接口获取开始时间
-				if (startTime.value && startTime.value !== 0) {
-					startTimer(); // 开始计时
-				}
-			} else {
-				Data.value = []; // 清空数据，显示暂无信息
-				stopTimer(); // 停止计时器，防止意外运行
-			}
-		} catch (e) {
-			console.error("获取签到信息失败:", e)
-			uni.showToast({
-				title: "获取使用信息失败",
-				icon: 'none'
-			})
-			Data.value = []; // 出错时也清空数据
-			stopTimer(); // 停止计时器，防止意外运行
-		}
-	}
+const membershipNote = computed(() => {
+  if (membershipType.value === "weekly_monthly") {
+    return "会员免费";
+  } else if (membershipType.value === "music_game") {
+    return "音游会员优惠价";
+  }
+  return "";
+});
 
-	function startTimer() {
-		if (startTime.value === null || startTime.value === 0) return; // 确保有开始时间
+const estimatedEndTime = computed(() => {
+  if (!signinData.value || !signinData.value.starttime) return "未开始";
+  
+  // 如果是过夜预约，预计结束时间是开始时间+10小时（22:00-08:00）
+  if (reservationData.value && reservationData.value.isOvernight) {
+    return formatDate(signinData.value.starttime + 10 * 60 * 60 * 1000);
+  }
+  
+  // 普通预约，根据预约的结束时间
+  if (reservationData.value && reservationData.value.endTime) {
+    return formatDate(reservationData.value.endTime);
+  }
+  
+  // 默认显示开始时间+2小时
+  return formatDate(signinData.value.starttime + 2 * 60 * 60 * 1000);
+});
 
-		timerInterval = setInterval(() => {
-			const now = Date.now();
-			const elapsedMilliseconds = now - startTime.value;
-			const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+// 方法
+function switchChange(e) {
+  debug.value = e.detail.value;
+}
 
-			// 计算总价 (假设每半小时 singlePrice 元)
-			const elapsedMinutes = elapsedSeconds / 60;
-			const priceIntervals = Math.ceil(elapsedMinutes / 30); // 向上取整，不满半小时也算半小时
-			
-			if (totalPrice.value <= overnightPrice.value) {
-				totalPrice.value = priceIntervals * singlePrice.value;
-			} else {
-				totalPrice.value == overnightPrice.value
-			}
-			elapsedTime.value = formatTime(elapsedSeconds);
-		}, 1000); // 每秒更新一次
-	}
+function formatDate(timestamp) {
+  if (!timestamp) return "未知时间";
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
+}
 
-	function stopTimer() {
-		if (timerInterval) {
-			clearInterval(timerInterval);
-			timerInterval = null;
-		}
-	}
+async function getActiveSigninDetail() {
+  loading.value = true;
+  try {
+    const result = await todo.GetActiveSigninDetail(res.uid);
+    
+    if (result.code === 0 && result.data) {
+      signinData.value = result.data.signin;
+      reservationData.value = result.data.reservation;
+      machineData.value = result.data.machine;
+      
+      // 设置开始时间并启动计时器
+      startTime.value = signinData.value.starttime;
+      if (startTime.value) {
+        startTimer();
+      }
+    } else {
+      uni.showToast({
+        title: result.message || "未找到使用中的签到",
+        icon: 'none'
+      });
+      signinData.value = null;
+    }
+  } catch (error) {
+    console.error("获取签到详情失败:", error);
+    uni.showToast({
+      title: "获取签到详情失败",
+      icon: 'none'
+    });
+  } finally {
+    loading.value = false;
+  }
+}
 
-	function formatTime(totalSeconds : number) : string {
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
+async function getMembershipStatus() {
+  try {
+    if (!res.uid) {
+      console.log('未登录或无法获取用户ID');
+      membershipType.value = "none";
+      return;
+    }
 
-		const formattedHours = String(hours).padStart(2, '0');
-		const formattedMinutes = String(minutes).padStart(2, '0');
-		const formattedSeconds = String(seconds).padStart(2, '0');
+    const result = await todo.getUserMembershipInfo(res.uid);
+    
+    if (result) {
+      // 检查包周/月会员
+      if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
+        membershipType.value = "weekly_monthly";
+      }
+      // 检查音游会员
+      else if (result.membership && result.membership.length > 0) {
+        membershipType.value = "music_game";
+      }
+      // 无会员
+      else {
+        membershipType.value = "none";
+      }
+    } else {
+      membershipType.value = "none";
+    }
+    
+    // 更新价格
+    updatePriceByMembership();
+    
+  } catch (error) {
+    console.error("获取会员信息失败:", error);
+    membershipType.value = "none";
+  }
+}
 
-		return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
-	}
+function updatePriceByMembership() {
+  switch (membershipType.value) {
+    case "weekly_monthly":
+      singlePrice.value = 0;
+      overnightPrice.value = 0;
+      break;
+    case "music_game":
+      singlePrice.value = 4;
+      overnightPrice.value = 40;
+      break;
+    default:
+      singlePrice.value = 5;
+      overnightPrice.value = 50;
+      break;
+  }
+}
 
-	onMounted(() => {
-		searchSignin()
-		getMembershipStatus()
-		setSinglePrice()
-		console.log(Data)
-	})
+function startTimer() {
+  if (!startTime.value) return;
 
-	onUnmounted(() => {
-		stopTimer(); // 组件卸载时停止定时器，避免内存泄漏
-	})
+  timerInterval = setInterval(() => {
+    const now = Date.now();
+    const elapsedMilliseconds = now - startTime.value;
+    const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+
+    // 更新显示的时间
+    elapsedTime.value = formatTime(elapsedSeconds);
+
+    // 计算费用
+    calculateFee(elapsedMilliseconds);
+    
+  }, 1000);
+}
+
+function calculateFee(elapsedMilliseconds) {
+  // 如果没有签到数据或预约数据，不计算费用
+  if (!signinData.value || !reservationData.value) return;
+  
+  // 如果是包周/月会员，费用为0
+  if (membershipType.value === "weekly_monthly") {
+    totalPrice.value = 0;
+    return;
+  }
+  
+  // 计算已用时间（分钟）
+  const elapsedMinutes = elapsedMilliseconds / (1000 * 60);
+  
+  // 是否过夜预约
+  const isOvernight = reservationData.value.isOvernight;
+  
+  // 是否玩机台
+  const isPlay = signinData.value.isPlay;
+  
+  if (isOvernight) {
+    // 过夜预约使用固定价格
+    totalPrice.value = isPlay ? overnightPrice.value : (overnightPrice.value * 0.2); // 不玩机台按20%收费
+  } else {
+    // 普通预约按时间计费
+    const halfHourUnits = Math.ceil(elapsedMinutes / 30); // 向上取整，不满半小时也算半小时
+    
+    if (membershipType.value === "music_game" && isPlay) {
+      // 音游会员，每半小时4元，当日封顶40元
+      totalPrice.value = Math.min(halfHourUnits * 4, 40);
+    } else {
+      // 非会员正常计费
+      const baseRate = isPlay ? singlePrice.value : 1; // 不玩机台每半小时1元
+      const calculatedPrice = halfHourUnits * baseRate;
+      
+      // 如果玩机台且超过封顶价格，使用封顶价格
+      if (isPlay && calculatedPrice > overnightPrice.value) {
+        totalPrice.value = overnightPrice.value;
+      } else {
+        totalPrice.value = calculatedPrice;
+      }
+    }
+  }
+  
+  // 保留两位小数
+  totalPrice.value = Math.round(totalPrice.value * 100) / 100;
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function formatTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const formattedHours = String(hours).padStart(2, '0');
+  const formattedMinutes = String(minutes).padStart(2, '0');
+  const formattedSeconds = String(seconds).padStart(2, '0');
+
+  return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+async function endUsage() {
+  if (!signinData.value) {
+    uni.showToast({
+      title: "没有使用中的签到",
+      icon: 'none'
+    });
+    return;
+  }
+  
+  uni.showModal({
+    title: '结束使用',
+    content: '确定要结束当前使用并进行结算吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        await processEndUsage();
+      }
+    }
+  });
+}
+
+async function processEndUsage() {
+  try {
+    uni.showLoading({
+      title: '处理中...'
+    });
+    
+    const endTime = Date.now();
+    
+    // 调用云函数结束签到
+    const result = await todo.SignIn_End({
+      signinId: signinData.value._id,
+      endtime: endTime
+    });
+    
+    if (result.code === 0) {
+      // 计算最终费用
+      const feeResult = await todo.CalculateSigninFee({
+        signinId: signinData.value._id,
+        starttime: signinData.value.starttime,
+        endtime: endTime
+      });
+      
+      uni.hideLoading();
+      
+      if (feeResult.code === 0) {
+        // 跳转到结算页面
+        uni.navigateTo({
+          url: '/pages/payment/payment',
+          success: (res) => {
+            // 传递结算数据
+            res.eventChannel.emit('acceptPaymentData', {
+              signinId: signinData.value._id,
+              reservationId: signinData.value.reservationid,
+              startTime: signinData.value.starttime,
+              endTime: endTime,
+              duration: feeResult.data.durationText,
+              fee: feeResult.data.fee,
+              isPlay: signinData.value.isPlay,
+              isOvernight: reservationData.value.isOvernight,
+              machineName: machineData.value ? machineData.value.name : '未知机台'
+            });
+          }
+        });
+      } else {
+        uni.showToast({
+          title: feeResult.message || '计算费用失败',
+          icon: 'none'
+        });
+      }
+    } else {
+      uni.hideLoading();
+      uni.showToast({
+        title: result.message || '结束使用失败',
+        icon: 'none'
+      });
+    }
+  } catch (error) {
+    uni.hideLoading();
+    console.error('结束使用出错:', error);
+    uni.showToast({
+      title: '结束使用失败，请稍后重试',
+      icon: 'none'
+    });
+  }
+}
+
+function askForHelp() {
+  uni.showModal({
+    title: '需要帮助？',
+    content: '您可以联系店员或拨打客服电话获取帮助',
+    confirmText: '联系客服',
+    cancelText: '取消',
+    success: (res) => {
+      if (res.confirm) {
+        // 拨打客服电话
+        uni.makePhoneCall({
+          phoneNumber: '10086', // 替换为实际的客服电话
+          fail: () => {
+            uni.showToast({
+              title: '拨打电话失败',
+              icon: 'none'
+            });
+          }
+        });
+      }
+    }
+  });
+}
+
+onMounted(async () => {
+  // 获取会员状态
+  await getMembershipStatus();
+  
+  // 获取当前签到详情
+  await getActiveSigninDetail();
+});
+
+onUnmounted(() => {
+  stopTimer(); // 组件卸载时停止定时器，避免内存泄漏
+});
 </script>
 
-<style scoped>
-	.bt {
-		margin: 20rpx 10%;
-		border-radius: 8px;
-		width: 80%;
-		height: 50px !important;
-		min-height: 45px;
-		line-height: 45px;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		color: white;
-		font-size: 36rpx;
-		font-weight: bold;
-		transition: all 0.3s;
-		position: relative;
-		overflow: hidden;
-		box-sizing: border-box;
-		padding: 0;
-	}
+<style>
+/* 全局容器样式 */
+.container {
+  padding: 20rpx;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: 200rpx; /* 为底部按钮留出空间 */
+}
 
-	.content {
-		display: flex;
-		flex-direction: column;
-		padding: 20rpx;
-		/* 内容区域增加内边距 */
-	}
+/* 玻璃态卡片 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 30rpx;
+  box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  margin-bottom: 30rpx;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-	.title {
-		margin-left: 10rpx;
-		font-size: 35rpx;
-		font-weight: bold;
-		color: #333;
-		/* 标题文字颜色 */
-	}
+.glass-card:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 4rpx 16rpx rgba(31, 38, 135, 0.08);
+}
 
-	.divider {
-		height: 2rpx;
-		background-color: gray;
-		margin-top: 15rpx;
-		margin-bottom: 15rpx;
-	}
+/* 活动卡片样式 - 橙色背景 */
+.active-card {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  padding: 30rpx;
+}
 
-	.tips {
-		font-size: 20rpx;
-		color: gray;
-	}
+/* 计时器样式 */
+.timer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
 
-	/* 底部区域 */
-	.footer {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		width: 100%;
-		background: rgba(255, 255, 255, 0.8);
-		backdrop-filter: blur(10px);
-		padding: 10px 0;
-		border-top: 1px solid rgba(229, 231, 235, 0.8);
-		box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-		z-index: 100;
-	}
+.timer-text {
+  font-size: 80rpx;
+  font-weight: bold;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
 
-	.price-summary {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0 20px;
-		margin-bottom: 12px;
-	}
+.timer-label {
+  font-size: 28rpx;
+  margin-top: 10rpx;
+  opacity: 0.9;
+}
 
-	.price-amount {
-		font-weight: bold;
-		font-size: 20px;
-		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-	}
+.divider {
+  height: 2rpx;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin: 20rpx 0;
+}
 
-	.submit-button {
-		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-		border-radius: 8px;
-		width: 80%;
-		height: 50px !important;
-		min-height: 45px;
-		line-height: 45px;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		margin: 0 auto;
-		font-weight: bold;
-		color: white;
-		font-size: 36rpx;
-		box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
-		transition: all 0.3s;
-		position: relative;
-		overflow: hidden;
-		box-sizing: border-box;
-		padding: 0;
-	}
+/* 订单信息样式 */
+.order-info {
+  margin-top: 20rpx;
+}
 
-	.submit-button:active {
-		transform: scale(0.98);
-		box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
-	}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15rpx;
+}
 
-	.submit-button::after {
-		content: "";
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-		transition: 0.5s;
-	}
+.info-label {
+  font-size: 24rpx;
+  opacity: 0.9;
+}
 
-	.submit-button:active::after {
-		left: 100%;
-	}
+.info-value {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 卡片内容样式 */
+.card-content {
+  padding: 30rpx;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.rate-info {
+  font-size: 24rpx;
+  color: #666;
+  background: rgba(249, 203, 20, 0.1);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+/* 价格容器样式 */
+.price-container {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-amount {
+  font-size: 48rpx;
+  font-weight: bold;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-right: 10rpx;
+}
+
+.price-note {
+  font-size: 24rpx;
+  color: #4cd964;
+}
+
+/* 使用记录样式 */
+.usage-record {
+  margin-top: 10rpx;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.record-icon {
+  margin-right: 15rpx;
+}
+
+.record-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 5rpx;
+}
+
+.record-time {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.record-divider {
+  height: 1rpx;
+  background-color: #eee;
+  margin: 15rpx 0;
+}
+
+/* 机台使用状态样式 */
+.play-status {
+  display: flex;
+  align-items: center;
+  background: rgba(249, 249, 249, 0.5);
+  padding: 20rpx;
+  border-radius: 15rpx;
+  margin-top: 10rpx;
+}
+
+.play-status-text {
+  font-size: 28rpx;
+  margin-left: 15rpx;
+}
+
+/* 空状态样式 */
+.empty-card {
+  padding: 60rpx 30rpx;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #666;
+  margin-top: 30rpx;
+}
+
+.empty-subtext {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 10rpx;
+}
+
+/* Debug 样式 */
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  border-bottom: 1px solid #eee;
+}
+
+.debug-content {
+  padding: 20rpx 30rpx;
+  font-size: 24rpx;
+  color: #666;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 底部按钮区域 */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 20rpx 0;
+  border-top: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+.button-container {
+  padding: 0 30rpx;
+}
+
+.submit-button {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-radius: 16rpx;
+  height: 90rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  color: white;
+  font-size: 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(249, 203, 20, 0.3);
+  margin-bottom: 20rpx;
+  transition: all 0.3s;
+}
+
+.submit-button:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 6rpx rgba(249, 203, 20, 0.3);
+}
+
+.help-button {
+  background: #f1f1f1;
+  border-radius: 16rpx;
+  height: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 28rpx;
+  transition: all 0.3s;
+}
+
+.help-button:active {
+  background: #e0e0e0;
+}
 </style>

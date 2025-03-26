@@ -1,6 +1,7 @@
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
+const uniPay = require('uni-pay');
 
 module.exports = {
 	_before: function() { // 通用预处理器
@@ -674,5 +675,536 @@ module.exports = {
 				message: '会员状态更新失败: ' + e.message
 			};
 		}
+	},
+	
+	/**
+	 * 结束签到
+	 * @param {Object} params 包含签到ID和结束时间的对象
+	 * @returns {Object} 操作结果
+	 */
+	async SignIn_End(params) {
+	  const { signinId, endtime } = params;
+	  
+	  if (!signinId || !endtime) {
+	    return {
+	      code: -1,
+	      message: '缺少必要参数'
+	    };
+	  }
+	  
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 1. 查询签到信息，获取关联的预约ID
+	    const signinInfo = await dbJQL.collection('signin')
+	      .where({
+	        _id: signinId,
+	        status: 0 // 确保只能结束"使用中"的签到
+	      })
+	      .get();
+	      
+	    if (signinInfo.data.length === 0) {
+	      return {
+	        code: -1,
+	        message: '未找到有效的签到记录'
+	      };
+	    }
+	    
+	    const reservationId = signinInfo.data[0].reservationid;
+	    
+	    // 2. 更新签到记录
+	    await dbJQL.collection('signin')
+	      .where({
+	        _id: signinId
+	      })
+	      .update({
+	        endtime: endtime,
+	        status: 1, // 更新为已完成
+	        updateTime: Date.now()
+	      });
+	      
+	    // 3. 更新预约状态为已完成
+	    await dbJQL.collection('reservation-log')
+	      .where({
+	        _id: reservationId
+	      })
+	      .update({
+	        status: 2, // 更新为已完成
+	        updateTime: Date.now()
+	      });
+	      
+	    // 4. 返回结果，包含预约ID（可用于后续跳转到订单页面）
+	    return {
+	      code: 0,
+	      message: '签到结束成功',
+	      data: {
+	        reservationId: reservationId,
+	        signinId: signinId
+	      }
+	    };
+	  } catch (error) {
+	    console.error('结束签到失败:', error);
+	    return {
+	      code: -1,
+	      message: '结束签到失败: ' + error.message
+	    };
+	  }
+	},
+
+	/**
+	* 获取当前使用中的签到详情
+	* @param {string} userId 用户ID
+	* @returns {Object} 签到详情，包含关联的预约信息
+	*/
+	async GetActiveSigninDetail(userId) {
+	if (!userId) {
+	  return {
+		code: -1,
+		message: '缺少用户ID参数'
+	  };
 	}
+
+	const dbJQL = uniCloud.databaseForJQL({
+	  clientInfo: this.getClientInfo()
+	});
+
+	try {
+	  // 1. 查询用户当前的签到记录
+	  const signinResult = await dbJQL.collection('signin')
+		.where({
+		  userid: userId,
+		  status: 0 // 使用中的状态
+		})
+		.get();
+		
+	  if (signinResult.data.length === 0) {
+		return {
+		  code: -1,
+		  message: '未找到使用中的签到记录'
+		};
+	  }
+	  
+	  const signinData = signinResult.data[0];
+	  
+	  // 2. 查询关联的预约信息
+	  const reservationResult = await dbJQL.collection('reservation-log')
+		.where({
+		  _id: signinData.reservationid
+		})
+		.get();
+		
+	  if (reservationResult.data.length === 0) {
+		return {
+		  code: -1,
+		  message: '未找到关联的预约记录'
+		};
+	  }
+	  
+	  // 3. 查询机台信息
+	  const machineResult = await dbJQL.collection('machines')
+		.where({
+		  _id: reservationResult.data[0].machineId
+		})
+		.get();
+	  
+	  const machineData = machineResult.data.length > 0 ? machineResult.data[0] : null;
+	  
+	  // 4. 合并数据并返回
+	  return {
+		code: 0,
+		message: '获取成功',
+		data: {
+		  signin: signinData,
+		  reservation: reservationResult.data[0],
+		  machine: machineData
+		}
+	  };
+	} catch (error) {
+	  console.error('获取签到详情失败:', error);
+	  return {
+		code: -1,
+		message: '获取签到详情失败: ' + error.message
+	  };
+	}
+	},
+
+	/**
+	 * 计算签到费用
+	 * @param {Object} params 包含签到ID、开始时间和结束时间的对象
+	 * @returns {Object} 计算的费用信息
+	 */
+	async CalculateSigninFee(params) {
+	  const { signinId, starttime, endtime } = params;
+	  
+	  if (!signinId || !starttime || !endtime) {
+	    return {
+	      code: -1,
+	      message: '缺少必要参数'
+	    };
+	  }
+	  
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 1. 获取签到信息
+	    const signinResult = await dbJQL.collection('signin')
+	      .where({
+	        _id: signinId
+	      })
+	      .get();
+	      
+	    if (signinResult.data.length === 0) {
+	      return {
+	        code: -1,
+	        message: '未找到签到记录'
+	      };
+	    }
+	    
+	    const signinData = signinResult.data[0];
+	    
+	    // 2. 获取关联的预约信息
+	    const reservationResult = await dbJQL.collection('reservation-log')
+	      .where({
+	        _id: signinData.reservationid
+	      })
+	      .get();
+	      
+	    if (reservationResult.data.length === 0) {
+	      return {
+	        code: -1,
+	        message: '未找到关联的预约记录'
+	      };
+	    }
+	    
+	    const reservationData = reservationResult.data[0];
+	    
+	    // 3. 获取用户会员信息 - 直接查询而不是调用方法
+	    const userId = signinData.userid;
+	    
+	    // 查询会员信息
+	    const membershipResult = await dbJQL.collection('membership')
+	      .where({
+	        userID: userId,
+	        status: true,
+	        validthru: dbJQL.command.gt(Date.now())
+	      })
+	      .get();
+	    
+	    const subscriptionResult = await dbJQL.collection('subscription-package')
+	      .where({
+	        userID: userId,
+	        status: true,
+	        validthru: dbJQL.command.gt(Date.now())
+	      })
+	      .get();
+	    
+	    const hasMembership = membershipResult.data.length > 0;
+	    const hasSubscription = subscriptionResult.data.length > 0;
+	    
+	    // 4. 计算使用时长（小时）
+	    const durationMs = endtime - starttime;
+	    const durationHours = durationMs / (1000 * 60 * 60);
+	    
+	    // 5. 根据预约类型、会员信息和是否玩机台计算费用
+	    let fee = 0;
+	    
+	    // 获取价格信息
+	    const priceResult = await dbJQL.collection('prices')
+	      .where({
+	        type: reservationData.isOvernight ? 'overnight' : 'normal'
+	      })
+	      .get();
+	      
+	    const priceData = priceResult.data.length > 0 ? priceResult.data[0] : null;
+	    
+	    if (reservationData.isOvernight) {
+	      // 过夜预约，使用固定价格
+	      fee = priceData ? priceData.price : 50; // 默认50
+	      
+	      // 如果不玩机台，使用不玩机台价格
+	      if (!signinData.isPlay && priceData && priceData.noplayprice !== undefined) {
+	        fee = priceData.noplayprice;
+	      }
+	    } else {
+	      // 普通预约，按小时计费
+	      const basePrice = priceData ? priceData.price : 5; // 默认5元/半小时
+	      const noPlayPrice = priceData && priceData.noplayprice !== undefined ? priceData.noplayprice : 1; // 默认1元/半小时
+	      
+	      // 根据是否玩机台选择价格
+	      const hourlyRate = signinData.isPlay ? basePrice : noPlayPrice;
+	      
+	      // 计算半小时单位数
+	      const halfHourUnits = Math.ceil(durationHours / 0.5);
+	      
+	      if (hasSubscription) {
+	        // 包周/月卡会员，免费
+	        fee = 0;
+	      } else if (hasMembership && signinData.isPlay) {
+	        // 音游会员，每半小时4元，当日封顶40元
+	        fee = Math.min(halfHourUnits * 4, 40);
+	      } else {
+	        // 非会员，正常计费
+	        fee = halfHourUnits * hourlyRate;
+	        
+	        // 如果玩机台且超过5小时，使用过夜价格
+	        if (signinData.isPlay && durationHours >= 5) {
+	          fee = priceData ? priceData.price : 50; // 默认过夜价50
+	        }
+	      }
+	    }
+	    
+	    return {
+	      code: 0,
+	      message: '计算成功',
+	      data: {
+	        fee: fee,
+	        duration: durationHours,
+	        durationText: `${Math.floor(durationHours)}小时${Math.round((durationHours % 1) * 60)}分钟`,
+	        isPlay: signinData.isPlay,
+	        isOvernight: reservationData.isOvernight,
+	        startTime: starttime,
+	        endTime: endtime,
+	        isMember: hasMembership || hasSubscription
+	      }
+	    };
+	  } catch (error) {
+	    console.error('计算费用失败:', error);
+	    return {
+	      code: -1,
+	      message: '计算费用失败: ' + error.message
+	    };
+	  }
+	},
+
+	async CreateOrder(params) {
+	  const { signinId, fee, userId } = params;
+	  
+	  if (!signinId || fee === undefined || !userId) {
+	    return {
+	      code: -1,
+	      message: '缺少必要参数'
+	    };
+	  }
+	  
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 1. 创建基础订单
+	    const baseOrderResult = await dbJQL.collection('uni-id-base-order').add({
+	      user_id: userId,
+	      order_type: 'seat_usage', // 座位使用订单
+	      create_date: Date.now(),
+	      status: 0, // 0: 待支付
+	      total_fee: fee,
+	      description: '座位使用费用',
+	      signinId: signinId // 关联签到记录
+	    });
+	    
+	    const baseOrderId = baseOrderResult.id;
+	    
+	    // 2. 返回订单ID
+	    return {
+	      code: 0,
+	      message: '订单创建成功',
+	      data: {
+	        orderId: baseOrderId,
+	        fee: fee
+	      }
+	    };
+	  } catch (error) {
+	    console.error('创建订单失败:', error);
+	    return {
+	      code: -1,
+	      message: '创建订单失败: ' + error.message
+	    };
+	  }
+	},
+	/**
+	   * 创建订单并获取支付参数
+	   */
+	  async CreateOrderAndPay(params) {
+	    const { signinId, fee, userId, provider = 'wxpay' } = params;
+	    
+	    if (!signinId || fee === undefined || !userId) {
+	      return {
+	        code: -1,
+	        message: '缺少必要参数'
+	      };
+	    }
+	    
+	    const db = uniCloud.database();
+	    
+	    try {
+	      // 1. 获取签到信息和用户信息
+	      const signinInfo = await db.collection('signin').doc(signinId).get();
+	      if (!signinInfo.data || signinInfo.data.length === 0) {
+	        return {
+	          code: -1,
+	          message: '签到记录不存在'
+	        };
+	      }
+	      
+	      // 2. 创建基础订单
+	      const baseOrderData = {
+	        user_id: userId,
+	        order_type: 'seat_usage', // 座位使用订单
+	        create_date: Date.now(),
+	        status: 0, // 0: 待支付
+	        total_fee: fee,
+	        description: '座位使用费用',
+	        signin_id: signinId, // 关联签到记录
+	        seat_id: signinInfo.data[0].seatid,
+	        start_time: signinInfo.data[0].starttime,
+	        end_time: signinInfo.data[0].endtime || Date.now()
+	      };
+	      
+	      const baseOrderResult = await db.collection('uni-id-base-order').add(baseOrderData);
+	      
+	      const orderId = baseOrderResult.id;
+	      
+	      // 3. 使用 uni-pay 创建支付订单
+	      // 获取客户端平台信息
+	      const clientInfo = this.getClientInfo();
+	      const platform = clientInfo.platform;
+	      
+	      // 根据平台和支付方式选择合适的支付方式
+	      let providerOptions = {};
+	      if (provider === 'wxpay') {
+	        if (platform === 'mp-weixin') {
+	          // 小程序支付
+	          providerOptions = {
+	            openid: clientInfo.openId // 小程序支付需要 openid
+	          };
+	        } else if (platform.includes('app')) {
+	          // App 支付
+	          providerOptions.trade_type = 'APP';
+	        } else if (platform.includes('h5')) {
+	          // H5 支付
+	          providerOptions.trade_type = 'MWEB';
+	          providerOptions.scene_info = JSON.stringify({
+	            h5_info: {
+	              type: 'Wap',
+	              wap_url: clientInfo.origin,
+	              wap_name: '座位使用费用'
+	            }
+	          });
+	        }
+	      }
+	      
+	      const payOrderParams = {
+	        provider: provider, // 'wxpay'或'alipay'
+	        orderId: orderId, // 商户订单号
+	        subject: '座位使用费用', // 订单标题
+	        body: `签到ID:${signinId}的座位使用费用`,
+	        totalFee: Math.round(fee * 100), // 金额，单位为分
+	        notifyUrl: 'https://你的服务空间域名/http/uni-pay-co/notify', // 支付结果通知地址
+	        ...providerOptions
+	      };
+	      
+	      console.log('创建支付订单参数:', payOrderParams);
+	      
+	      const payOrderResult = await uniPay.createOrder(payOrderParams);
+	      
+	      console.log('创建支付订单结果:', payOrderResult);
+	      
+	      if (payOrderResult.code !== 0) {
+	        return {
+	          code: -1,
+	          message: '创建支付订单失败: ' + payOrderResult.message
+	        };
+	      }
+	      
+	      // 4. 返回支付所需数据
+	      return {
+	        code: 0,
+	        message: '创建订单成功',
+	        data: {
+	          orderId: orderId,
+	          paymentData: payOrderResult.data // 包含了调起支付所需的参数
+	        }
+	      };
+	    } catch (error) {
+	      console.error('创建订单失败:', error);
+	      return {
+	        code: -1,
+	        message: '创建订单失败: ' + error.message
+	      };
+	    }
+	  },
+	  
+	  /**
+	   * 获取订单详情
+	   */
+	  async GetOrderDetail(params) {
+	    const { orderId } = params;
+	    
+	    if (!orderId) {
+	      return {
+	        code: -1,
+	        message: '缺少订单ID'
+	      };
+	    }
+	    
+	    const db = uniCloud.database();
+	    
+	    try {
+	      // 查询基础订单
+	      const baseOrderResult = await db.collection('uni-id-base-order')
+	        .doc(orderId)
+	        .get();
+	      
+	      if (!baseOrderResult.data || baseOrderResult.data.length === 0) {
+	        return {
+	          code: -1,
+	          message: '订单不存在'
+	        };
+	      }
+	      
+	      const baseOrder = baseOrderResult.data[0];
+	      
+	      // 查询支付订单
+	      const payOrderResult = await db.collection('uni-pay-orders')
+	        .where({
+	          order_no: orderId
+	        })
+	        .get();
+	      
+	      const payOrder = payOrderResult.data.length > 0 ? payOrderResult.data[0] : null;
+	      
+	      // 如果有签到记录，获取签到信息
+	      let signinInfo = null;
+	      if (baseOrder.signin_id) {
+	        const signinResult = await db.collection('signin')
+	          .doc(baseOrder.signin_id)
+	          .get();
+	        
+	        signinInfo = signinResult.data.length > 0 ? signinResult.data[0] : null;
+	      }
+	      
+	      // 合并订单信息
+	      const orderDetail = {
+	        ...baseOrder,
+	        payment_info: payOrder,
+	        signin_info: signinInfo
+	      };
+	      
+	      return {
+	        code: 0,
+	        message: '获取成功',
+	        data: orderDetail
+	      };
+	    } catch (error) {
+	      console.error('获取订单详情失败:', error);
+	      return {
+	        code: -1,
+	        message: '获取订单详情失败: ' + error.message
+	      };
+	    }
+	  }
 }
