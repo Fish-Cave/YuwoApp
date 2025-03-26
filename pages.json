@@ -13,7 +13,6 @@
 		{
 			"path": "pages/signIn/signIn",
 			"style": {
-				"navigationBarTitleText": "签到"
 			}
 		},
 		{
@@ -142,14 +141,28 @@
 			"path" : "pages/using/using",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+				"navigationBarTitleText" : "正在使用"
 			}
 		},
 		{
 			"path" : "pages/recentOrder/recentOrder",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+				"navigationBarTitleText" : "最近订单"
+			}
+		},
+		{
+			"path" : "pages/love/love",
+			"style" : 
+			{
+				"navigationBarTitleText" : "喜爱的机台"
+			}
+		},
+		{
+			"path" : "pages/help/help",
+			"style" : 
+			{
+				"navigationBarTitleText" : "邦住"
 			}
 		}
 	],

@@ -151,4 +151,75 @@
 		margin-left: 8px;
 	}
 	
+	/* 底部区域 */
+	.footer {
+	    position: fixed;
+	    bottom: 0;
+	    left: 0;
+	    width: 100%;
+	    background: rgba(255, 255, 255, 0.8);
+	    backdrop-filter: blur(10px);
+	    padding: 10px 0;
+	    border-top: 1px solid rgba(229, 231, 235, 0.8);
+	    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+	    z-index: 100;
+	}
+	
+	.price-summary {
+	    display: flex;
+	    justify-content: space-between;
+	    align-items: center;
+	    padding: 0 20px;
+	    margin-bottom: 12px;
+	}
+	
+	.price-amount {
+	    font-weight: bold;
+	    font-size: 20px;
+	    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+	    -webkit-background-clip: text;
+	    -webkit-text-fill-color: transparent;
+	}
+	
+	.submit-button {
+	    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+	    border-radius: 8px;
+	    width: 80%;
+	    height: 50px !important; 
+	    min-height: 45px; 
+	    line-height: 45px; 
+	    display: flex;
+	    justify-content: center;
+	    align-items: center;
+	    margin: 0 auto;
+	    font-weight: bold;
+	    color: white;
+	    font-size: 15px;
+	    box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
+	    transition: all 0.3s;
+	    position: relative;
+	    overflow: hidden;
+	    box-sizing: border-box;
+	    padding: 0;
+	}
+	
+	.submit-button:active {
+	    transform: scale(0.98);
+	    box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
+	}
+	
+	.submit-button::after {
+	    content: "";
+	    position: absolute;
+	    top: 0;
+	    left: -100%;
+	    width: 100%;
+	    height: 100%;
+	    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+	    transition: 0.5s;
+	}
+	
+	.submit-button:active::after {
+	    left: 100%;
+	}
 </style>

@@ -146,7 +146,7 @@
 			</view>
 
 			<view class="orders-container">
-				<view v-for="data in displayedData" :key="data._id" class="order-item">
+				<view v-for="data in displayedData.slice(0,3)" :key="data._id" class="order-item">
 					<view class="order-icon">
 						<uni-icons type="headphones" size="28" color="#FF9800"></uni-icons>
 					</view>
@@ -210,6 +210,7 @@
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	console.log(res)
 	const profile = ref({})
 
 	// 会员信息数据结构

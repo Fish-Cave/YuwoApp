@@ -66,12 +66,28 @@
 				</uni-col>
 			</uni-row>
 		</uni-card>
-		<text>
-			{{Data}}
-		</text>
+
+		<uni-card title="debug">
+			<template v-slot:title>
+				<view style="display: flex; justify-content: space-between; align-items: center;">
+					<uni-section title="Debug" type="line"></uni-section>
+					<switch @change="switchChange"></switch>
+				</view>
+			</template>
+			<view v-if="debug">
+				<text>
+					{{Data}}
+				</text>
+			</view>
+		</uni-card>
+
 
 		<!--按钮看着调吧-->
-		<button class="bt" @click="submit()">确认开始使用</button>
+		<view class="">
+			<view class="submit-button" @click="submit()">
+				<text>确认开始使用</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -80,6 +96,13 @@
 	import { onMounted, reactive, getCurrentInstance, ref } from 'vue';
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const todo = uniCloud.importObject('todo')
+	//Debug
+	const debug = ref(false)
+	function switchChange(e) {
+		console.log('switch1 发生 change 事件，携带值为', e.detail.value)
+		debug.value = e.detail.value
+	}
+	
 	interface signInData {
 		"reservationid" : string,
 		"userid" : string,
@@ -122,9 +145,6 @@
 			if (result.data.length == 0) {
 				console.log(result.data[0])
 				pushData()
-				uni.redirectTo({
-					url:"/pages/using/using"
-				})
 			} else if (result.data.length > 0) {
 				uni.showToast({
 					title: "同时只能签到一次!",
@@ -142,7 +162,9 @@
 				const res = await todo.SignIn_Add(Data)
 				console.log(res)
 				updateReservation(Data.reservationid, 4)
-				
+				uni.redirectTo({
+					url: "/pages/using/using"
+				})
 			} else {
 				uni.showToast({
 					icon: "error",
@@ -206,5 +228,77 @@
 	.tips {
 		font-size: 20rpx;
 		color: gray;
+	}
+
+	/* 底部区域 */
+	.footer {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(10px);
+		padding: 10px 0;
+		border-top: 1px solid rgba(229, 231, 235, 0.8);
+		box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+		z-index: 100;
+	}
+
+	.price-summary {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 20px;
+		margin-bottom: 12px;
+	}
+
+	.price-amount {
+		font-weight: bold;
+		font-size: 20px;
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
+	.submit-button {
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		border-radius: 8px;
+		width: 80%;
+		height: 50px !important;
+		min-height: 45px;
+		line-height: 45px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 0 auto;
+		font-weight: bold;
+		color: white;
+		font-size: 15px;
+		box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
+		transition: all 0.3s;
+		position: relative;
+		overflow: hidden;
+		box-sizing: border-box;
+		padding: 0;
+	}
+
+	.submit-button:active {
+		transform: scale(0.98);
+		box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
+	}
+
+	.submit-button::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		transition: 0.5s;
+	}
+
+	.submit-button:active::after {
+		left: 100%;
 	}
 </style>
