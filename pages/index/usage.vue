@@ -421,7 +421,6 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		/* 顶部对齐 */
 		margin-bottom: 20rpx;
 		position: relative;
 	}
@@ -496,16 +495,12 @@
 
 	.status-available {
 		background-color: rgba(76, 175, 80, 0.2);
-		/* 浅绿色背景 */
 		color: #4CAF50;
-		/* 绿色文字 */
 	}
 
 	.status-error {
 		background-color: rgba(244, 67, 54, 0.2);
-		/* 浅红色背景 */
 		color: #f44336;
-		/* 红色文字 */
 	}
 
 	/* 时间轴样式 */
@@ -592,7 +587,6 @@
 		}
 	}
 
-	/* 按钮组样式 - 响应式 */
 	.button-group {
 		display: flex;
 		justify-content: space-around;
@@ -752,6 +746,5 @@
 	.price-status-container {
 		display: flex;
 		align-items: center;
-		/* 垂直居中对齐 */
 	}
 </style>

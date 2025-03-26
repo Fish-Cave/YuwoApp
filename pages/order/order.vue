@@ -33,7 +33,7 @@
 					<span>18:00</span>
 					<span>24:00</span>
 				</view>
-				<!-- 替换神秘条形图为实际的时间轴条形图 -->
+
 				<view class="timeline-container mb-4">
 
 					<view class="timeline-bar">
@@ -942,8 +942,8 @@ async function submitOrder() {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     min-height: 100vh;
     box-sizing: border-box;
-    padding: 20px; /* 全局内边距 */
-    position: relative; /* 确保定位正确 */
+    padding: 20px; 
+    position: relative; 
 }
 
 /* 滚动视图样式 */
@@ -960,11 +960,11 @@ async function submitOrder() {
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    overflow: visible; /* 确保阴影不被裁剪 */
+    overflow: visible; 
     padding: 16px;
     margin-bottom: 20px;
-		margin-left: 10px; /* 阴影显示完整 */
-		margin-right: 10px; /* 阴影显示完整 */
+		margin-left: 10px; 
+		margin-right: 10px; 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1014,24 +1014,20 @@ async function submitOrder() {
     align-self: flex-start;
 }
 
-/* 分隔线 */
 .divider {
     height: 1px;
     background-color: rgba(242, 242, 242, 0.8);
     margin: 2px 0;
 }
 
-/* 日历容器 */
 .calendar-container {
     margin: 0;
 }
 
-/* 图表容器 */
 .chart-container {
     margin: 0;
 }
 
-/* 时间轴样式 */
 .timeline-hours {
     display: flex;
     justify-content: space-between;
@@ -1105,12 +1101,10 @@ async function submitOrder() {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 预约容器 */
 .booking-container {
     margin: 0;
 }
 
-/* 预约类型 */
 .segment-label {
     font-size: 14px;
     color: #4b5563;
@@ -1124,7 +1118,6 @@ async function submitOrder() {
     margin-bottom: 12px;
 }
 
-/* 预约时间警告 */
 .booking-time-warning {
     background-color: rgba(253, 242, 225, 0.7);
     color: #f59e0b;
@@ -1140,7 +1133,6 @@ async function submitOrder() {
     box-shadow: 0 2px 8px rgba(249, 203, 20, 0.15);
 }
 
-/* 时间选择区域 */
 .time-selection {
     margin-top: 10px;
 }
@@ -1182,7 +1174,6 @@ async function submitOrder() {
     transform: translateY(1px);
 }
 
-/* 提示框 */
 .attention-box {
     background: rgba(253, 251, 231, 0.7);
     border-radius: 8px;
@@ -1208,7 +1199,6 @@ async function submitOrder() {
     border: 1px solid rgba(209, 213, 219, 0.5);
 }
 
-/* 底部区域 */
 .footer {
     position: fixed;
     bottom: 0;
@@ -1324,7 +1314,7 @@ async function submitOrder() {
     }
 }
 
-/* 添加的一些交互增强效果 */
+/* 交互增强效果 */
 @keyframes glow {
   0% { box-shadow: 0 0 3px rgba(249, 203, 20, 0.3); }
   50% { box-shadow: 0 0 10px rgba(249, 203, 20, 0.5); }
@@ -1335,7 +1325,6 @@ async function submitOrder() {
   animation: glow 2s infinite;
 }
 
-/* Fix for card shadow clipping - use internal shadows and padding instead */
 .header-container,
 .calendar-container,
 .chart-container,

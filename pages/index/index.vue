@@ -12,7 +12,6 @@
 		<view style="padding: 0 15px; font-size: 15px; color: #666; text-align: center; margin-bottom: 10px;">
 					登录后如果为会员将会自动显示会员价格
 				</view>
-        <!-- 新增的 "不游玩机台？请点击这里" 卡片 -->
         <view class="glass-card not-playing-card" @click="goToNoPlayPage">
           <text>不游玩机台？</text>
           <text class="link-text">请点击这里</text>
@@ -203,18 +202,18 @@ onMounted(() => {
 	}
 
     .not-playing-card {
-        margin: 20rpx 15px; /* 调整外边距，使其与页面边距对齐，并与下方 usage 组件保持距离 */
+        margin: 20rpx 15px; 
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 30rpx 24rpx; /* 调整 padding */
+        padding: 30rpx 24rpx; 
         cursor: pointer;
         text-align: center;
     }
 
     .link-text {
-        color: #007bff; /* 链接文本颜色 */
-        text-decoration: underline; /* 下划线 */
+        color: #007bff; 
+        text-decoration: underline; 
         margin-left: 5rpx;
     }
 </style>
