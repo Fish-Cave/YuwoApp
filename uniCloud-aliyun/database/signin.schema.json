@@ -1,6 +1,6 @@
 {
 	"bsonType": "object",
-	"required": ["reservationid", "userid", "isPlay", "starttime", "createTime"],
+	"required": ["reservationid", "userid", "isPlay","isOvernight","starttime", "createTime"],
 	"permission": {
 		"read": true,
 		"create": true,
@@ -24,11 +24,11 @@
 		"isPlay": {
 			"bsonType": "boolean",
 			"description": "本次签到玩不玩机器 0 不玩 1 玩",
-			"defaultValue": false
+			"defaultValue": true
 		},
 		"isOvernight": {
 			"bsonType": "boolean",
-			"description": "本次签到玩不玩机器 0 不玩 1 玩",
+			"description": "本次签到过不过夜 0 不玩 1 玩",
 			"defaultValue": false
 		},
 		"starttime": {

@@ -181,6 +181,13 @@
         "backgroundColor": "#F8F8F8",
         "navigationBarTitleText": "收银台"
     }
+},
+{
+	"path" : "pages/payment/payment",
+	"style" : 
+	{
+		"navigationBarTitleText" : ""
+	}
 }
 ],
 	"globalStyle": {

@@ -398,6 +398,7 @@ module.exports = {
 		}).update({
 			status: statusnumber
 		})
+		console.log("订单状态已变更")
 	},
 
 	GetReservationInfo: function(content) {
@@ -415,8 +416,24 @@ module.exports = {
 			"isOvernight": true,
 			"status": true,
 			"startTime": true,
-			"isPlay": true
-		}).orderBy("startTime", "desc").get()
+			"isPlay": true,
+			"isOvernight": true,
+		}).orderBy("createTime", "desc").get()
+	},
+	
+	SearchReservationInfo: function(content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
+		const collectionJQL = dbJQL.collection('reservation-log', machines)
+	
+		return collectionJQL.where({
+			_id: content,
+		}).field({
+			"machineId": true,
+			"endtime": true
+		}).get()
 	},
 
 	GetOrderInfo: async function(content) {
@@ -441,7 +458,7 @@ module.exports = {
 			"startTime": true,
 			"endTime": true,
 			"isPlay": true
-		}).orderBy("startTime", "desc")
+		}).orderBy("createTime", "desc")
 
 		// 1. 获取总记录数
 		const countResult = await baseQuery.count()
@@ -559,10 +576,30 @@ module.exports = {
 			"status": true,
 			"reservationid": true,
 			"isPlay": true,
+			"isOvernight": true,
 			"starttime": true
 		}).get()
 	},
-
+	
+	SignIn_Settle: function(signInId,resId) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const signin = dbJQL.collection('signin')
+		signin.where({
+			_id : signInId
+		}).update({
+			status : 1
+		})
+		const res = dbJQL.collection('reservation-log')
+		res.where({
+			_id : resId
+		}).update({
+			status : 2
+		})
+		return "Settle Succeed"
+	},
+	
 	Loved_Update: async function(uid, content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()

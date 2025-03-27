@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view class="container">
 		<!--这一块是显示当前预约的机台信息的卡片，信息应该是从signIn页面传进来的，我还没弄-->
 		<uni-card style="background-color: rgb(254, 155, 0);
 		border-radius: 35rpx;">
@@ -83,9 +83,11 @@
 
 
 		<!--按钮看着调吧-->
-		<view class="">
-			<view class="submit-button" @click="submit()">
-				<text>确认开始使用</text>
+		<view class="footer">
+			<view class="button-container">
+				<view class="submit-button" @click="submit">
+					<text>确认开始使用</text>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -107,13 +109,15 @@
 		"reservationid" : string,
 		"userid" : string,
 		"isPlay" : boolean,
+		"isOvernight" : boolean,
 		"starttime" : number,
 	}
 	const segmentedValues = ["玩!", "不玩!"]
 	const Data : signInData = reactive({
 		"reservationid": "",
 		"userid": res.uid,
-		"isPlay": false,
+		"isPlay": true,
+		"isOvernight" : false,
 		"starttime": 0,
 	})
 	const showDetail = reactive({
@@ -121,7 +125,6 @@
 		startTime: "",
 		isPlay: false,
 	})
-	const isOvernight = ref(false)
 	//这个数组是计费说明显示的内容
 	const listData = reactive([
 		"按分钟计费，5元/小时",
@@ -188,15 +191,50 @@
 			console.log('acceptDataFromOpenerPage', data)
 			Data.reservationid = data.reservationID
 			Data.isPlay = data.isPlay
+			Data.isOvernight = data.isOvernight
 			showDetail.isPlay = data.isPlay
 			showDetail.machineName = data.machineName
 			showDetail.startTime = data.startTime
-			isOvernight.value = data.isOvernight
 		})
 	})
 </script>
 
 <style>
+	/* 全局容器样式 */
+	.container {
+		padding: 0;
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		min-height: 100vh;
+		box-sizing: border-box;
+		padding-bottom: 200rpx;
+		/* 为底部按钮留出空间 */
+	}
+	
+	/* 玻璃态卡片 */
+	.glass-card {
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		border-radius: 30rpx;
+		box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		overflow: hidden;
+		margin-bottom: 30rpx;
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+		padding: 16rpx;
+	}
+	
+	.glass-card:active {
+		transform: translateY(2rpx);
+		box-shadow: 0 4rpx 16rpx rgba(31, 38, 135, 0.08);
+	}
+	
+	/* 活动卡片样式 - 橙色背景 */
+	.active-card {
+		background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+		color: white;
+		padding: 30rpx;
+	}
+	
 	.bt {
 		margin: 30rpx 30rpx;
 		background-color: rgb(249, 203, 20);
@@ -300,5 +338,13 @@
 
 	.submit-button:active::after {
 		left: 100%;
+	}
+	
+	.debug-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 20rpx 30rpx;
+		border-bottom: 1px solid #eee;
 	}
 </style>

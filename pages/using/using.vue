@@ -12,7 +12,7 @@
 				<view class="order-info">
 					<view class="info-row">
 						<text class="info-label">机台名称</text>
-						<text class="info-value">{{ machineData.name || '未知机台' }}</text>
+						<text class="info-value">{{ reservationData.machineName ||'未知机台' }}</text>
 					</view>
 					<view class="info-row">
 						<text class="info-label">预约类型</text>
@@ -38,7 +38,7 @@
 					</view>
 					<view class="price-container">
 						<text class="price-amount">¥ {{ totalPrice }}</text>
-						<text class="price-note" v-if="membershipType !== 'none'">{{ membershipNote }}</text>
+						<text class="price-note" v-if="membershipType !== 'none'"></text>
 					</view>
 				</view>
 			</view>
@@ -84,12 +84,12 @@
 				<view v-if="debug" class="debug-content">
 					<text>预约信息</text>
 					<text>{{Data}}</text>
-					<text>单价{{singlePrice}}</text>
 					<text>会员类型: {{ membershipType }}</text>
+					<text>单价{{singlePrice}}</text>
 					<text>最高价格{{overnightPrice}}</text>
 					<text>{{totalPrice}}</text>
-					<text>{{isPlay}}</text>
-					<text>{{isOvernight}}</text>
+					<text>isPlay {{isPlay}}</text>
+					<text>isOvernight {{isOvernight}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -115,7 +115,7 @@
 
 <script setup lang="ts">
 	import dayjs from 'dayjs';
-	import { onMounted, ref, onUnmounted, computed, toRaw } from 'vue' // 引入 onUnmounted 和 computed
+	import { onMounted, ref, onUnmounted, computed, toRaw, reactive } from 'vue' // 引入 onUnmounted 和 computed
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
@@ -125,16 +125,21 @@
 		"_id" : string
 		"reservationid" : string
 		"isPlay" : boolean
+		"isOvernight" : boolean
 		"starttime" : number
 		"endtime" : number
 	}
-	interface reservationData {
-
+	interface billInformation{
+		"signInID" : string
+		"starttime" : string
+		"endtime" : string
+		"machineName" : string
+		"singlePrice" : string
+		"totalPrice" : string
 	}
-	interface machineData {
-
-	}
+	
 	const Data = ref<signInData[]>([])
+	const machineName = ref("")
 
 	//价格相关
 	const singlePrice = ref(5)
@@ -145,9 +150,21 @@
 		if (membershipType.value === "weekly_monthly") {
 			return "包周/月会员免费";
 		} else if (membershipType.value === "music_game") {
-			return "音游会员: 4元/半小时 (封顶40元)";
+			if(isOvernight.value){
+				return "音游会员: 包夜40元";
+			}
+			if (isPlay.value) {
+				return "音游会员: 4元/半小时";
+			}
+			return "音游会员: 不游玩机台0元/半小时";
 		} else {
-			return `${singlePrice.value}元/半小时`;
+			if(isOvernight.value){
+				return "普通用户: 包夜50元";
+			}
+			if (isPlay.value) {
+				return "普通用户: 5元/半小时";
+			}
+			return "普通用户: 不游玩机台1元/半小时";
 		}
 	});
 
@@ -155,8 +172,13 @@
 	const startTime = ref<number | null>(null) // 开始时间戳，从 Data 中获取
 	const elapsedTime = ref("00:00:00") // 格式化后的已用时间
 	const estimatedEndTime = computed(() => {
-		// 默认显示开始时间+2小时
-		return formatDate(Data.value[0].starttime + 2 * 60 * 60 * 1000);
+		// 如果是过夜预约，预计结束时间是开始时间+10小时（22:00-08:00）
+		if (isOvernight.value) {
+			return formatDate(Data.value[0].starttime + 10 * 60 * 60 * 1000);
+		} else {
+			// 默认显示开始时间+2小时
+			return formatDate(Data.value[0].starttime + 2 * 60 * 60 * 1000);
+		}
 	});
 	let timerInterval : number | null = null // 定时器 interval id
 
@@ -167,12 +189,14 @@
 		debug.value = e.detail.value
 	}
 
-	function submit() {
+	async function submit() {
+		const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
 		uni.showToast({
-			title: "结束使用并支付 (功能待完善)",
-			icon: 'none'
+			title: res
 		})
-		// TODO: 调用云函数结束使用，计算总价，跳转支付页面
+		uni.switchTab({
+			url: "/pages/signIn/signIn"
+		})
 	}
 	function askForHelp() {
 		uni.showToast({
@@ -181,10 +205,12 @@
 		})
 		// TODO: 打开客服/帮助页面或弹窗
 	}
+	//日期格式化
 	function formatDate(timestamp : number) {
 		if (!timestamp) return "未知时间";
 		return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
 	}
+	//通过会员种类获取价格
 	async function getMembershipStatus() {
 		try {
 			const userInfo = uniCloud.getCurrentUserInfo();
@@ -251,6 +277,8 @@
 			if (result.data && result.data.length > 0) {
 				Data.value = result.data
 				isPlay.value = Data.value[0].isPlay
+				isOvernight.value = Data.value[0].isOvernight
+				getReservationData(Data.value[0].reservationid)
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
 				if (startTime.value && startTime.value !== 0) {
 					startTimer(); // 开始计时
@@ -269,6 +297,17 @@
 			stopTimer(); // 停止计时器，防止意外运行
 		}
 	}
+	
+	const reservationData = reactive({
+		"endtime" : 0,
+		"machineName" : "",
+	})
+	async function getReservationData(content:string){
+		const res = await todo.SearchReservationInfo(content)
+		reservationData.machineName = res.data[0].machineId[0].name
+		reservationData.endtime = res.data[0].endtime
+		console.log(res.data)
+	}
 
 	function startTimer() {
 		if (startTime.value === null || startTime.value === 0) return; // 确保有开始时间
@@ -286,52 +325,62 @@
 	}
 
 	function calculateFee(elapsedMilliseconds : number) {
-		// 如果没有签到数据或预约数据，不计算费用
-		//if (!signinData.value || !reservationData.value) return;
-
-		// 如果是包周/月会员，费用为0
-		if (membershipType.value === "weekly_monthly") {
+		// 如果是周/月卡会员，费用为0
+		if (membershipType.value == "weekly_monthly") {
 			totalPrice.value = 0;
 			return;
 		}
 		// 计算已用时间（分钟）
 		const elapsedMinutes = elapsedMilliseconds / (1000 * 60);
+		// 向上取整，不满半小时也算半小时
+		const halfHourUnits = Math.ceil(elapsedMinutes / 30);
 		// 是否过夜预约
 		//const isOvernight = reservationData.value.isOvernight;
-
-		if (isOvernight) {
+		if (isOvernight.value) {
 			// 过夜预约使用固定价格
-			totalPrice.value = isPlay ? overnightPrice.value : (overnightPrice.value * 0.2); // 不玩机台按20%收费
+			totalPrice.value = isPlay.value ? overnightPrice.value : (overnightPrice.value * 0.2); 
+			// 不玩机台按20%收费
 		} else {
-			// 普通预约按时间计费
-			const halfHourUnits = Math.ceil(elapsedMinutes / 30); // 向上取整，不满半小时也算半小时
+			//普通预约按游玩时间计算，先确认是否游玩机台
+			if (isPlay.value) {
+				// 普通预约按时间计费
+				if (membershipType.value == "music_game") {
+					// 音游会员，每半小时4元，当日封顶40元
+					const baseRate = singlePrice.value; // 不玩机台每半小时0元
+					const calculatedPrice = halfHourUnits * baseRate;
+					// 如果玩机台且超过封顶价格，使用封顶价格
+					if (calculatedPrice > overnightPrice.value) {
+						totalPrice.value = overnightPrice.value;
+					} else {
+						totalPrice.value = calculatedPrice;
+					}
 
-			if (membershipType.value === "music_game" && isPlay) {
-				// 音游会员，每半小时4元，当日封顶40元
-				const baseRate = isPlay ? singlePrice.value : 0; // 不玩机台每半小时0元
-				const calculatedPrice = halfHourUnits * baseRate;
-				
-				// 如果玩机台且超过封顶价格，使用封顶价格
-				if (isPlay && calculatedPrice > overnightPrice.value) {
-					totalPrice.value = overnightPrice.value;
-				} else {
-					totalPrice.value = calculatedPrice;
+				} else if (membershipType.value == "none") {
+					// 非会员，每半小时5元，当日封顶50元
+					const baseRate = singlePrice.value; // 不玩机台每半小时1元
+					const calculatedPrice = halfHourUnits * baseRate;
+					// 如果玩机台且超过封顶价格，使用封顶价格
+					if (calculatedPrice > overnightPrice.value) {
+						totalPrice.value = overnightPrice.value;
+					} else {
+						totalPrice.value = calculatedPrice;
+					}
 				}
 				
-			} else if(membershipType.value === "none" && isPlay) {
-				// 非会员，每半小时4元，当日封顶40元
-				const baseRate = isPlay ? singlePrice.value : 1; // 不玩机台每半小时1元
-				const calculatedPrice = halfHourUnits * baseRate;
-
-				// 如果玩机台且超过封顶价格，使用封顶价格
-				if (isPlay && calculatedPrice > overnightPrice.value) {
-					totalPrice.value = overnightPrice.value;
-				} else {
+			}else{
+				if (membershipType.value == "music_game") {
+					// 音游会员，每半小时4元，当日封顶40元
+					const baseRate = 0; // 不玩机台每半小时0元
+					const calculatedPrice = halfHourUnits * baseRate;
 					totalPrice.value = calculatedPrice;
+				} else if (membershipType.value == "none") {
+					// 非会员，每半小时5元，当日封顶50元
+					const baseRate = 1; // 不玩机台每半小时1元
+					const calculatedPrice = halfHourUnits * baseRate;
+					totalPrice.value = calculatedPrice;		
 				}
 			}
 		}
-
 		// 保留两位小数
 		totalPrice.value = Math.round(totalPrice.value * 100) / 100;
 	}
@@ -359,7 +408,6 @@
 	onMounted(() => {
 		searchSignin()
 		getMembershipStatus()
-		setSinglePrice()
 		console.log(Data)
 	})
 

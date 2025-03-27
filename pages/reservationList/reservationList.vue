@@ -8,8 +8,9 @@
 				<view class="reservation-info">
 					<text class="machine-name">{{ data.machineId[0].name }}</text>
 					<text class="reservation-time">
-						预约时间：<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.startTime'></uni-dateformat>
-					</text>
+						预约时间：
+					<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.startTime'></uni-dateformat>
+					</text>		
 				</view>
 				<view class="status-badge" :class="getStatusClass(data.status)">
 					<text>{{ getStatusText(data.status) }}</text>
@@ -21,14 +22,10 @@
 					<text class="id-label">预约ID：</text>
 					<text class="id-value">{{ data._id }}</text>
 				</view>
-				
 				<view v-if="data.status == 1" class="sign-in-button" 
 					@click="goToStart(data.machineId[0].name, data.startTime, data._id, data.isOvernight, data.isPlay)">
-					签到
-				</view>
-				
-				<view v-if="data.isPlay" class="mark-badge">
-					Mark
+					<text>签到</text>
+					
 				</view>
 			</view>
 		</view>
