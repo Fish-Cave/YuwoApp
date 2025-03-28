@@ -7,7 +7,7 @@
       </view>
     </view>
     <!-- 这里修改为使用 filteredMachineData -->
-    <view v-for="machineData in filteredMachineData" :key="machineData.machineInfo.machinenum"
+    <view v-for="machineData in filteredMachineData.slice(0,8)" :key="machineData.machineInfo.machinenum"
       class="machine-item">
       <view class="glass-card">
         <!-- 机台信息区域 -->
@@ -75,7 +75,7 @@
             <uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
             <text class="button-text reserve-text">预约</text>
           </view>
-          <view v-else-if="machineData.machineInfo.status == 1" class="action-button error-button"
+          <view v-else-if="machineData.machineInfo.status == 1" class="error-button"
             @click="unuseable()">
             <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
             <text class="button-text error-text">机台故障</text>
@@ -707,6 +707,15 @@ function mergeReservations(reservations) {
 	}
 
 	.error-button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 12rpx;
+		padding: 18rpx 24rpx;
+		width: 85%;
+		height: 80rpx;
+		transition: all 0.2s;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 		background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
 		color: #ffffff;
 	}
