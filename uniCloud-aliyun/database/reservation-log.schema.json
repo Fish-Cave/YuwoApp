@@ -1,7 +1,6 @@
 {
 	"bsonType": "object",
-	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime",
-		"updateTime"
+	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime","updateTime"
 	],
 	"permission": {
 		"read": true,
@@ -37,7 +36,13 @@
 		},
 		"isOvernight": {
 			"bsonType": "boolean",
-			"description": "是否过夜"
+			"description": "是否过夜",
+			"defaultValue": false
+		},
+		"isPlay": {
+			"bsonType": "boolean",
+			"description": "玩不玩机台",
+			"defaultValue": true
 		},
 		"priceId": {
 			"bsonType": "string",
@@ -68,11 +73,6 @@
 				"text": "使用中",
 				"value": 4
 			}],
-		},
-		"isPlay": {
-			"bsonType": "boolean",
-			"description": "玩不玩机台",
-			"defaultValue": true
 		},
 		"notes": {
 			"bsonType": "string",

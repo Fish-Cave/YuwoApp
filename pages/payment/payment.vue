@@ -215,7 +215,6 @@ export default {
 </script>
 
 <style>
-/* 样式保持不变 */
 .container {
   padding: 30rpx;
   background-color: #f8f9fa;

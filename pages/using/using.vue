@@ -1,7 +1,7 @@
 <template>
 	<view class="container">
-		<!-- 使用 v-if 来判断 signinData 是否有数据 -->
-		<view v-if="signinData">
+
+		<view v-if="Data && Data.length > 0" v-for="data in Data.slice(0,1)" :key="data._id">
 			<!-- 当前预约的机台信息卡片 -->
 			<view class="glass-card active-card">
 				<view class="timer-container">
@@ -39,6 +39,7 @@
 					<view class="price-container">
 						<text class="price-amount">¥ {{ totalPrice }}</text>
 						<text class="price-note" v-if="membershipType !== 'none'">{{ membershipNote }}</text>
+
 					</view>
 				</view>
 			</view>
@@ -70,6 +71,7 @@
 							</view>
 						</view>
 					</view>
+
 				</view>
 			</view>
 
@@ -84,6 +86,7 @@
 							:color="signinData.isPlay ? '#4cd964' : '#dd524d'" size="24"></uni-icons>
 						<text class="play-status-text">{{ signinData.isPlay ? '正在游玩机台' : '不游玩机台' }}</text>
 					</view>
+
 				</view>
 			</view>
 
@@ -91,10 +94,12 @@
 			<view class="glass-card" v-if="debug">
 				<template v-slot:title>
 					<view class="debug-header">
+
 						<uni-section title="Debug" type="line"></uni-section>
 						<switch @change="switchChange"></switch>
 					</view>
 				</template>
+
 				<view class="debug-content">
 					<text>签到数据: {{ JSON.stringify(signinData) }}</text>
 					<text>预约数据: {{ JSON.stringify(reservationData) }}</text>
@@ -105,6 +110,7 @@
 					<text>总价: {{ totalPrice }}</text>
 				</view>
 			</view>
+
 		</view>
 		<view v-else>
 			<view class="glass-card empty-card">
@@ -120,6 +126,7 @@
 		<view class="footer">
 			<view class="button-container">
 				<view class="submit-button" @click="endUsage">结束使用并支付</view>
+
 				<view class="help-button" @click="askForHelp">遇到问题</view>
 			</view>
 		</view>
@@ -127,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { onMounted, ref, reactive, onUnmounted, computed } from 'vue';
 import dayjs from 'dayjs';
 
