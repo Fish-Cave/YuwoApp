@@ -90,6 +90,7 @@
 					<text>{{totalPrice}}</text>
 					<text>isPlay {{isPlay}}</text>
 					<text>isOvernight {{isOvernight}}</text>
+					<text>endtime {{reservationData.endtime}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -176,6 +177,10 @@
 		if (isOvernight.value) {
 			return formatDate(Data.value[0].starttime + 10 * 60 * 60 * 1000);
 		} else {
+			//如果订单中存在结束时间，就显示预计结束时间
+			if(reservationData.endtime!=0){
+				return formatDate(reservationData.endtime + 2 * 60 * 60 * 1000);
+			}
 			// 默认显示开始时间+2小时
 			return formatDate(Data.value[0].starttime + 2 * 60 * 60 * 1000);
 		}
@@ -305,7 +310,7 @@
 	async function getReservationData(content:string){
 		const res = await todo.SearchReservationInfo(content)
 		reservationData.machineName = res.data[0].machineId[0].name
-		reservationData.endtime = res.data[0].endtime
+		reservationData.endtime = res.data[0].endTime
 		console.log(res.data)
 	}
 

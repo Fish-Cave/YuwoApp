@@ -4,14 +4,19 @@
 		<view class="user-info-card glass-card">
 			<view class="user-info-header">
 				<!-- 头像 -->
-				<view class="avatar-container">
+				<view class="avatar-container" style="width: 160rpx; height: 160rpx;">
 					<uni-id-pages-avatar width="160rpx" height="160rpx"></uni-id-pages-avatar>
 				</view>
 
 				<!-- 用户信息 -->
 				<view class="user-details">
 					<view class="username-container">
-						<text class="username">{{ userInfo.nickname || '未设置昵称' }}</text>
+						<text class="username" style="font-size: 40rpx;">
+							{{ userInfo.nickname || '未设置昵称' }}
+						</text>
+						<view class="settings-button" @click="goToUserInfoPage()">
+							<uni-icons type="gear" size="30"></uni-icons>
+						</view>
 					</view>
 
 					<!-- 会员徽章区域 -->
@@ -31,59 +36,57 @@
 					<text class="user-id">UID: {{ userInfo._id }}</text>
 				</view>
 
-				<!-- 设置按钮 -->
-				<view class="settings-button" @click="goToUserInfoPage">
-					<uni-icons type="gear-filled" size="24" color="#ffffff"></uni-icons>
-				</view>
 			</view>
 
 			<!-- 会员有效期信息卡片 -->
 			<view class="membership-info-card glass-card">
-			    <view class="membership-info-header">
-			        <uni-icons type="vip-filled" size="20" color="#FFD700"></uni-icons>
-			        <text class="membership-info-title">{{ hasMembership ? '会员权益' : '还不是🐟窝会员！' }}</text>
-			    </view>
-			
-			    <view v-if="hasMembership" class="membership-details">
-			        <view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
-			            class="membership-item">
-			            <view class="membership-icon premium-icon">
-			                <uni-icons type="star-filled" size="16" color="#ffffff"></uni-icons>
-			            </view>
-			            <view class="membership-content">
-			                <view class="membership-name">包月会员</view>
-			                <view class="membership-validity">
-			                    <text class="validity-label">有效期至:</text>
-			                    <text class="validity-date">{{ formatDate(membershipInfo.subscriptionPackage[0].validthru) }}</text>
-			                </view>
-			            </view>
-			        </view>
-			
-			        <view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
-			            class="membership-item">
-			            <view class="membership-icon standard-icon">
-			                <uni-icons type="medal-filled" size="16" color="#ffffff"></uni-icons>
-			            </view>
-			            <view class="membership-content">
-			                <view class="membership-name">音游会员</view>
-			                <view class="membership-validity">
-			                    <text class="validity-label">有效期至:</text>
-			                    <text class="validity-date">{{ formatDate(membershipInfo.membership[0].validthru) }}</text>
-			                </view>
-			            </view>
-			        </view>
-			        
-			        <!-- 添加续费按钮 -->
-			        <view class="becamemember-button glass-button" @click="goToRecharge()">
-			            <text>续费会员</text>
-			        </view>
-			    </view>
-			
-			    <view v-else>
-			        <view class="becamemember-button glass-button" @click="goToRecharge()">
-			            <text>成为会员！</text>
-			        </view>
-			    </view>
+				<view class="membership-info-header">
+					<uni-icons type="vip-filled" size="20" color="#FFD700"></uni-icons>
+					<text class="membership-info-title">{{ hasMembership ? '会员权益' : '还不是🐟窝会员！' }}</text>
+				</view>
+
+				<view v-if="hasMembership" class="membership-details">
+					<view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
+						class="membership-item">
+						<view class="membership-icon premium-icon">
+							<uni-icons type="star-filled" size="16" color="#ffffff"></uni-icons>
+						</view>
+						<view class="membership-content">
+							<view class="membership-name">包月会员</view>
+							<view class="membership-validity">
+								<text class="validity-label">有效期至:</text>
+								<text
+									class="validity-date">{{ formatDate(membershipInfo.subscriptionPackage[0].validthru) }}</text>
+							</view>
+						</view>
+					</view>
+
+					<view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
+						class="membership-item">
+						<view class="membership-icon standard-icon">
+							<uni-icons type="medal-filled" size="16" color="#ffffff"></uni-icons>
+						</view>
+						<view class="membership-content">
+							<view class="membership-name">音游会员</view>
+							<view class="membership-validity">
+								<text class="validity-label">有效期至:</text>
+								<text
+									class="validity-date">{{ formatDate(membershipInfo.membership[0].validthru) }}</text>
+							</view>
+						</view>
+					</view>
+
+					<!-- 添加续费按钮 -->
+					<view class="becamemember-button glass-button" @click="goToRecharge()">
+						<text>续费会员</text>
+					</view>
+				</view>
+
+				<view v-else>
+					<view class="becamemember-button glass-button" @click="goToRecharge()">
+						<text>成为会员！</text>
+					</view>
+				</view>
 			</view>
 
 			<!-- 统计信息 -->
@@ -312,7 +315,7 @@
 			url: '/pages/reservationList/reservationList'
 		});
 	}
-	
+
 	function goToRecharge() {
 		uni.navigateTo({
 			url: '/pages/recharge/recharge'
@@ -436,41 +439,35 @@
 		background: linear-gradient(20deg, rgba(255, 152, 0, 0.8) 0%, rgba(243, 184, 6, 0.6) 100%);
 		margin-bottom: 24px;
 	}
-
+	
 	.user-info-header {
 		display: flex;
 		align-items: center;
-		padding: 16px 8px;
-		position: relative;
+		padding: 8px;
 	}
 
 	.avatar-container {
-		position: relative;
-		width: 80px;
-		height: 80px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 3px solid rgba(255, 255, 255, 0.8);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		border: 2px solid #fff;
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 		margin-right: 16px;
-		aspect-ratio: 1/1;
-		/* 保持头像容器为正方形 */
 	}
 
 	.user-details {
-		flex: 1;
+		flex : 1;
 		display: flex;
 		flex-direction: column;
 	}
 
 	.username-container {
 		display: flex;
+		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 6px;
 	}
 
 	.username {
-		font-size: 20px;
 		font-weight: bold;
 		color: #fff;
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -481,7 +478,7 @@
 		display: flex;
 		flex-direction: column;
 		/* 修改为垂直排列 */
-		gap: 8px;
+		gap: 10rpx;
 		margin-bottom: 8px;
 		margin-top: 8px;
 		/* 调整与昵称的间距 */
@@ -869,6 +866,7 @@
 		transform: translateY(2px);
 		box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 	}
+
 	/* 退出登录按钮 */
 	.becamemember-button {
 		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
@@ -884,6 +882,7 @@
 		display: flex;
 		justify-content: center;
 	}
+
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
 	/* 小屏幕设备 */
 	@media screen and (max-width: 375px) {

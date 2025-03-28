@@ -432,7 +432,7 @@ module.exports = {
 			_id: content,
 		}).field({
 			"machineId": true,
-			"endtime": true
+			"endTime": true
 		}).get()
 	},
 
