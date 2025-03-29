@@ -375,9 +375,9 @@
 			// 4. 更新全局状态 (uni-id-pages store)
 			mutations.logout()
 
-			// 5. 跳转到登录页
+			// 5. 滚回主页
 			uni.reLaunch({
-				url: '/uni_modules/uni-id-pages/pages/login/login-withpwd'
+				url: '/pages/index/index'
 			});
 
 			// 6. （可选）处理成功提示

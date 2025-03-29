@@ -98,9 +98,9 @@ const goToNoPlayPage = () => {
 
 
 uni.$on("uni-id-pages-login-success",function(){
-	uni.switchTab({
-		url: "pages/index/index"
-	})
+	uni.reLaunch({
+		url: '/pages/index/index'
+	});
 })
 
 onMounted(() => {
@@ -115,9 +115,8 @@ onMounted(() => {
     console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
 
 	// 获取用户信息
-	uniCloud.getCurrentUserInfo('uni_id_token').then(res => {
-		isAdmin.value = res.role.includes("admin"); // 设置 isAdmin 的值
-	});
+	uniCloud.getCurrentUserInfo('uni_id_token');
+	isAdmin.value = res.role.includes("admin");
 });
 
 

@@ -59,7 +59,7 @@
 
         <!-- 按钮区域 -->
         <view class="button-group">
-          <view v-if="(isSuperUser || isUser)"
+          <view v-if="(isSuperUser || isUser)&&machineData.machineInfo.status != 1"
             class="action-button view-button" @click="viewReservations(machineData)">
             <uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
             <text class="button-text">查看预约</text>
