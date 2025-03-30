@@ -91,6 +91,8 @@
 					<text>isPlay {{isPlay}}</text>
 					<text>isOvernight {{isOvernight}}</text>
 					<text>endtime {{reservationData.endtime}}</text>
+					<text>订单信息</text>
+					<text>{{orderData}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -107,6 +109,7 @@
 		<view class="footer">
 			<view class="button-container">
 				<view class="submit-button" @click="submit">结束使用并支付</view>
+				<uni-pay ref="pay"></uni-pay>
 				<view class="help-button" @click="askForHelp">遇到问题</view>
 			</view>
 		</view>
@@ -130,17 +133,27 @@
 		"starttime" : number
 		"endtime" : number
 	}
-	interface billInformation{
-		"signInID" : string
-		"starttime" : string
-		"endtime" : string
-		"machineName" : string
-		"singlePrice" : string
-		"totalPrice" : string
+	interface billInformation {
+		"user_id" : string
+		"reservation_id" : string
+		"total_fee" : number
+		"singlePrice" : number
+		"status" : string
+		"starttime" : number
+		"endtime" : number
 	}
-	
+
 	const Data = ref<signInData[]>([])
 	const machineName = ref("")
+	const orderData : billInformation = reactive({
+		"user_id": uniCloud.getCurrentUserInfo('uni_id_token').uid,
+		"reservation_id": "",
+		"total_fee": 0,
+		"singlePrice": 0,
+		"status": 0,
+		"starttime": 0,
+		"endtime": 0
+	})
 
 	//价格相关
 	const singlePrice = ref(5)
@@ -151,7 +164,7 @@
 		if (membershipType.value === "weekly_monthly") {
 			return "包周/月会员免费";
 		} else if (membershipType.value === "music_game") {
-			if(isOvernight.value){
+			if (isOvernight.value) {
 				return "音游会员: 包夜40元";
 			}
 			if (isPlay.value) {
@@ -159,7 +172,7 @@
 			}
 			return "音游会员: 不游玩机台0元/半小时";
 		} else {
-			if(isOvernight.value){
+			if (isOvernight.value) {
 				return "普通用户: 包夜50元";
 			}
 			if (isPlay.value) {
@@ -178,7 +191,7 @@
 			return formatDate(Data.value[0].starttime + 10 * 60 * 60 * 1000);
 		} else {
 			//如果订单中存在结束时间，就显示预计结束时间
-			if(reservationData.endtime!=0){
+			if (reservationData.endtime != 0) {
 				return formatDate(reservationData.endtime + 2 * 60 * 60 * 1000);
 			}
 			// 默认显示开始时间+2小时
@@ -193,15 +206,31 @@
 		console.log('switch1 发生 change 事件，携带值为', e.detail.value)
 		debug.value = e.detail.value
 	}
-
+	let options = {
+		total_fee: 1, // 支付金额，单位分 100 = 1元
+		type: "goods", // 支付回调类型
+		order_no: "", // 业务系统订单号
+		// 插件支付单号
+		description: "签到结算", // 支付描述
+	};
 	async function submit() {
-		const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
-		uni.showToast({
-			title: res
-		})
-		uni.switchTab({
-			url: "/pages/signIn/signIn"
-		})
+		//const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
+		orderData.endtime = dayjs().unix() * 1000
+		//options.total_fee = orderData.total_fee
+		await todo.Order_Add(orderData)
+		orderHandle()
+	}
+	async function orderHandle() {
+		try {
+			const result = await todo.Order_Get(orderData.user_id)
+			console.log(result.data[0])
+			options.order_no = toRaw(result.data[0]._id)
+			let optionsStr = encodeURI(JSON.stringify(options));
+			console.log(options)
+			uni.navigateTo({
+				url: `/pages/pay/pay?options=${optionsStr}`
+			});
+		} catch (e) { }
 	}
 	function askForHelp() {
 		uni.showToast({
@@ -261,16 +290,19 @@
 			case "weekly_monthly":
 				singlePrice.value = 0
 				overnightPrice.value = 0
+				orderData.singlePrice = singlePrice.value * 100
 				break;
 			case "music_game":
 				// 当 expression 表达式值 等于 value2 时执行该代码块
 				singlePrice.value = 4
 				overnightPrice.value = 40
+				orderData.singlePrice = singlePrice.value * 100
 				break;
 			default:
 				// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
 				singlePrice.value = 5
 				overnightPrice.value = 50
+				orderData.singlePrice = singlePrice.value * 100
 				break;
 		}
 	}
@@ -285,6 +317,9 @@
 				isOvernight.value = Data.value[0].isOvernight
 				getReservationData(Data.value[0].reservationid)
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
+
+				orderData.starttime = startTime.value
+				orderData.reservation_id = Data.value[0].reservationid
 				if (startTime.value && startTime.value !== 0) {
 					startTimer(); // 开始计时
 				}
@@ -302,16 +337,15 @@
 			stopTimer(); // 停止计时器，防止意外运行
 		}
 	}
-	
+
 	const reservationData = reactive({
-		"endtime" : 0,
-		"machineName" : "",
+		"endtime": 0,
+		"machineName": "",
 	})
-	async function getReservationData(content:string){
+	async function getReservationData(content : string) {
 		const res = await todo.SearchReservationInfo(content)
 		reservationData.machineName = res.data[0].machineId[0].name
 		reservationData.endtime = res.data[0].endTime
-		console.log(res.data)
 	}
 
 	function startTimer() {
@@ -333,6 +367,7 @@
 		// 如果是周/月卡会员，费用为0
 		if (membershipType.value == "weekly_monthly") {
 			totalPrice.value = 0;
+			orderData.total_fee = totalPrice.value * 100
 			return;
 		}
 		// 计算已用时间（分钟）
@@ -343,7 +378,8 @@
 		//const isOvernight = reservationData.value.isOvernight;
 		if (isOvernight.value) {
 			// 过夜预约使用固定价格
-			totalPrice.value = isPlay.value ? overnightPrice.value : (overnightPrice.value * 0.2); 
+			totalPrice.value = isPlay.value ? overnightPrice.value : (overnightPrice.value * 0.2);
+			orderData.total_fee = totalPrice.value * 100
 			// 不玩机台按20%收费
 		} else {
 			//普通预约按游玩时间计算，先确认是否游玩机台
@@ -356,8 +392,10 @@
 					// 如果玩机台且超过封顶价格，使用封顶价格
 					if (calculatedPrice > overnightPrice.value) {
 						totalPrice.value = overnightPrice.value;
+						orderData.total_fee = totalPrice.value * 100
 					} else {
 						totalPrice.value = calculatedPrice;
+						orderData.total_fee = totalPrice.value * 100
 					}
 
 				} else if (membershipType.value == "none") {
@@ -367,12 +405,14 @@
 					// 如果玩机台且超过封顶价格，使用封顶价格
 					if (calculatedPrice > overnightPrice.value) {
 						totalPrice.value = overnightPrice.value;
+						orderData.total_fee = totalPrice.value * 100
 					} else {
 						totalPrice.value = calculatedPrice;
+						orderData.total_fee = totalPrice.value * 100
 					}
 				}
-				
-			}else{
+
+			} else {
 				if (membershipType.value == "music_game") {
 					// 音游会员，每半小时4元，当日封顶40元
 					const baseRate = 0; // 不玩机台每半小时0元
@@ -382,7 +422,7 @@
 					// 非会员，每半小时5元，当日封顶50元
 					const baseRate = 1; // 不玩机台每半小时1元
 					const calculatedPrice = halfHourUnits * baseRate;
-					totalPrice.value = calculatedPrice;		
+					totalPrice.value = calculatedPrice;
 				}
 			}
 		}

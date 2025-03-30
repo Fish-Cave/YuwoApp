@@ -1,0 +1,97 @@
+{
+	"bsonType": "object",
+	"required": [
+		"user_id",
+		"reservation_id",
+		"total_fee",
+		"singlePrice",
+		"status",
+		"starttime",
+		"endtime"
+	],
+	"permission": {
+		"read": true,
+		"create": true,
+		"update": true,
+		"delete": false
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"user_id": {
+			"title": "用户ID",
+			"bsonType": "string",
+			"description": "用户id，参考uni-id-users表",
+			"foreignKey": "uni-id-users._id"
+		},
+		"reservation_id": {
+			"title": "预约订单id",
+			"bsonType": "string",
+			"description": "预约订单id，参考reservation-log表",
+			"foreignKey": "reservation-log._id"
+		},
+		"total_fee": {
+			"title": "订单总金额",
+			"bsonType": "int",
+			"description": "订单总金额，单位为分，100等于1元"
+		},
+		"singlePrice": {
+			"title": "订单单价",
+			"bsonType": "int",
+			"description": "订单单价，单位为分，100等于1元"
+		},
+		"starttime": {
+			"bsonType": "timestamp",
+			"description": "这次签到的开始时间，由签到页面生成"
+		},
+		"endtime": {
+			"bsonType": "timestamp",
+			"description": "这次签到的结束时间，由签到页面生成"
+		},
+		"status": {
+			"bsonType": "number",
+			"description": "订单状态 (0表示'待确认',1表示 '已完成', 2表示 '未完成')",
+			"enum": [{
+				"text": "待确认",
+				"value": 0
+			}, {
+				"text": "已完成",
+				"value": 1
+			},{
+				"text": "未完成",
+				"value": 2
+			}]
+		},
+		"device_id": {
+			"bsonType": "string",
+			"description": "客户端设备ID"
+		},
+		"client_ip": {
+			"title": "客户端IP",
+			"bsonType": "string",
+			"description": "创建支付的客户端ip",
+			"trim": "both"
+		},
+		"description": {
+			"title": "支付描述",
+			"bsonType": "string",
+			"description": "支付描述",
+			"trim": "both"
+		},
+		"user_order_success": {
+			"title": "回调状态",
+			"bsonType": "bool",
+			"description": "用户异步通知逻辑是否全部执行完成，且无异常（建议前端通过此参数是否为true来判断是否支付成功）"
+		},
+		"create_date": {
+			"title": "创建时间",
+			"bsonType": "timestamp",
+			"description": "创建时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		}
+	},
+	"version": "0.0.1"
+}

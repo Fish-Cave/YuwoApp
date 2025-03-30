@@ -420,14 +420,14 @@ module.exports = {
 			"isOvernight": true,
 		}).orderBy("createTime", "desc").get()
 	},
-	
+
 	SearchReservationInfo: function(content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
 		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
 		const collectionJQL = dbJQL.collection('reservation-log', machines)
-	
+
 		return collectionJQL.where({
 			_id: content,
 		}).field({
@@ -580,26 +580,26 @@ module.exports = {
 			"starttime": true
 		}).get()
 	},
-	
-	SignIn_Settle: function(signInId,resId) {
+
+	SignIn_Settle: function(signInId, resId) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
 		const signin = dbJQL.collection('signin')
 		signin.where({
-			_id : signInId
+			_id: signInId
 		}).update({
-			status : 1
+			status: 1
 		})
 		const res = dbJQL.collection('reservation-log')
 		res.where({
-			_id : resId
+			_id: resId
 		}).update({
-			status : 2
+			status: 2
 		})
 		return "Settle Succeed"
 	},
-	
+
 	Loved_Update: async function(uid, content) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
@@ -639,34 +639,66 @@ module.exports = {
 			}
 		}
 	},
-	
+
 	// 查询用户的收藏列表
 	Loved_Query: async function(uid) {
-	    const dbJQL = uniCloud.databaseForJQL({ 
-	        clientInfo: this.getClientInfo()
-	    });
-	    const Loved = dbJQL.collection('loved');
-	    
-	    // 查询该用户的收藏记录
-	    const res = await Loved.where({
-	        userid: uid
-	    }).get();
-	    
-	    // 如果用户没有收藏记录，返回空数组
-	    if (res.data.length === 0) {
-	        return {
-	            code: 0,
-	            data: [],
-	            message: "用户暂无收藏内容"
-	        };
-	    }
-	    
-	    // 返回用户的收藏内容
-	    return {
-	        code: 0,
-	        data: res.data[0].love || [],
-	        message: "查询成功"
-	    };
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		const Loved = dbJQL.collection('loved');
+
+		// 查询该用户的收藏记录
+		const res = await Loved.where({
+			userid: uid
+		}).get();
+
+		// 如果用户没有收藏记录，返回空数组
+		if (res.data.length === 0) {
+			return {
+				code: 0,
+				data: [],
+				message: "用户暂无收藏内容"
+			};
+		}
+
+		// 返回用户的收藏内容
+		return {
+			code: 0,
+			data: res.data[0].love || [],
+			message: "查询成功"
+		};
+	},
+
+	//新增订单
+	Order_Add: function(content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const signin = dbJQL.collection('fishcave-orders')
+		signin.add(content)
+		while (1) {
+			if (signin.where({
+					user_id: content.user_id,
+					status: 0
+				}).get()) {
+				break
+			}
+			console.log("1")
+		}
+		return "success"
+	},
+
+	Order_Get: function(content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const signin = dbJQL.collection('fishcave-orders')
+		return signin.where({
+			user_id: content,
+			status: 0
+		}).field({
+			_id: true
+		}).get()
 	},
 
 	/**

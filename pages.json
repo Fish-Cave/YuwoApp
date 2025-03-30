@@ -120,76 +120,79 @@
 			}
 		},
 		{
-			"path" : "pages/config/config",
-			"style" : 
-			{
-				"navigationBarTitleText" : "配置"
+			"path": "pages/config/config",
+			"style": {
+				"navigationBarTitleText": "配置"
 			}
 		},
 		{
-			"path" : "pages/reservationList/reservationList",
-			"style" : 
-			{
-				"navigationBarTitleText" : "已经预约的订单！"
+			"path": "pages/reservationList/reservationList",
+			"style": {
+				"navigationBarTitleText": "已经预约的订单！"
 			}
 		},
 		{
-			"path" : "pages/usageDetail/usageDetail",
-			"style" : 
-			{
-				"navigationBarTitleText" : "机台使用情况"
+			"path": "pages/usageDetail/usageDetail",
+			"style": {
+				"navigationBarTitleText": "机台使用情况"
 			}
 		},
 		{
-			"path" : "pages/using/using",
-			"style" : 
-			{
-				"navigationBarTitleText" : "正在使用"
+			"path": "pages/using/using",
+			"style": {
+				"navigationBarTitleText": "正在使用"
 			}
 		},
 		{
-			"path" : "pages/recentOrder/recentOrder",
-			"style" : 
-			{
-				"navigationBarTitleText" : "最近订单"
+			"path": "pages/recentOrder/recentOrder",
+			"style": {
+				"navigationBarTitleText": "最近订单"
 			}
 		},
 		{
-			"path" : "pages/help/help",
+			"path": "pages/help/help",
+			"style": {
+				"navigationBarTitleText": "邦住"
+			}
+		}, {
+			"path": "uni_modules/uni-pay/pages/success/success",
+			"style": {
+				"backgroundColor": "#F8F8F8",
+				"navigationBarTitleText": "支付成功"
+			}
+		}, {
+			"path": "uni_modules/uni-pay/pages/ad-interactive-webview/ad-interactive-webview",
+			"style": {
+				"backgroundColor": "#F8F8F8",
+				"navigationBarTitleText": "ad"
+			}
+		}, {
+			"path": "uni_modules/uni-pay/pages/pay-desk/pay-desk",
+			"style": {
+				"backgroundColor": "#F8F8F8",
+				"navigationBarTitleText": "收银台"
+			}
+		},
+		{
+			"path": "pages/payment/payment",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/pay/pay",
+			"style": {
+				"navigationBarTitleText": "收银台"
+			}
+		},
+		{
+			"path" : "pages/pay/paysuccess/paysuccess",
 			"style" : 
 			{
-				"navigationBarTitleText" : "邦住"
+				"navigationBarTitleText" : ""
 			}
 		}
-	,{
-    "path": "uni_modules/uni-pay/pages/success/success",
-    "style": {
-        "backgroundColor": "#F8F8F8",
-        "navigationBarTitleText": "支付成功"
-    }
-}
-,{
-    "path": "uni_modules/uni-pay/pages/ad-interactive-webview/ad-interactive-webview",
-    "style": {
-        "backgroundColor": "#F8F8F8",
-        "navigationBarTitleText": "ad"
-    }
-}
-,{
-    "path": "uni_modules/uni-pay/pages/pay-desk/pay-desk",
-    "style": {
-        "backgroundColor": "#F8F8F8",
-        "navigationBarTitleText": "收银台"
-    }
-},
-{
-	"path" : "pages/payment/payment",
-	"style" : 
-	{
-		"navigationBarTitleText" : ""
-	}
-}
-],
+	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "🐟窝预约小程序",
