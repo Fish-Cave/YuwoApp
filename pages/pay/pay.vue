@@ -45,7 +45,7 @@
 			</view>
 			<view class="tips-container">
 				<text class="tips">
-					支付方式选择暂时没有效果:P
+					支付方式选择暂时没有效果,默认既为微信支付:P
 				</text>
 			</view>
 		</view>

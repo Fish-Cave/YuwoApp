@@ -174,22 +174,16 @@
 			}
 		},
 		{
-			"path": "pages/payment/payment",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
 			"path": "pages/pay/pay",
 			"style": {
-				"navigationBarTitleText": "收银台"
+				"navigationBarTitleText": "🐟窝收银台"
 			}
 		},
 		{
 			"path" : "pages/pay/paysuccess/paysuccess",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+				"navigationBarTitleText" : "支付成功"
 			}
 		}
 	],
@@ -203,9 +197,14 @@
 		"loginPage": "/uni_modules/uni-id-pages/pages/login/login-withpwd",
 		"resToLogin": true,
 		"needLogin": [
-			"pages/signIn/signIn",
-			"pages/user/user",
-			"pages/order/order"
+			"/pages/signIn/signIn",
+			"/pages/user/user",
+			"/pages/order/order",
+			"/pages/recharge/recharge",
+			"/pages/start/start",
+			"/pages/reservationList/reservationList",
+			"/pages/using/using",
+			"/pages/pay/pay"
 		]
 	},
 	"tabBar": {

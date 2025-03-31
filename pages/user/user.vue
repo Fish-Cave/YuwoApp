@@ -1,7 +1,10 @@
 <template>
 	<view class="container">
 		<!-- 用户信息展示部分 -->
-		<view class="user-info-card glass-card">
+		<view v-if="res.uid==null" class="launch-button glass-button" @click="goToLaunch()">
+			<text>登录</text>
+		</view>
+		<view v-else class="user-info-card glass-card">
 			<view class="user-info-header">
 				<!-- 头像 -->
 				<view class="avatar-container" style="width: 160rpx; height: 160rpx;">
@@ -189,7 +192,7 @@
 		</view>
 
 		<!-- 退出登录按钮 -->
-		<button class="logout-button glass-button" @click="logOut()">退出登录</button>
+		<button v-if="res.uid!=null" class="logout-button glass-button" @click="logOut()">退出登录</button>
 
 	</view>
 </template>
@@ -317,9 +320,16 @@
 	}
 
 	function goToRecharge() {
-		uni.navigateTo({
-			url: '/pages/recharge/recharge'
-		});
+		if (res.role.includes('admin')) {
+			uni.navigateTo({
+				url: '/pages/recharge/recharge'
+			});
+		}else{
+			uni.showToast({
+				title : "暂不开放,请联系管理充值",
+				icon : "error"
+			})
+		}
 	}
 
 	async function goToUsing() {
@@ -403,12 +413,18 @@
 			url: '/pages/recentOrder/recentOrder' // 确保路径正确
 		});
 	}
+	function goToLaunch() {
+		uni.redirectTo({
+			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
+		});
+	}
 
 	onMounted(() => {
 		getPriceList()
 		getReservationData() // 获取订单数据
 		getMembershipInfo() // 获取会员信息
 		console.log("单价" + price.value + "过夜" + priceOvernight.value)
+		console.log(res)
 	})
 </script>
 
@@ -439,7 +455,7 @@
 		background: linear-gradient(20deg, rgba(255, 152, 0, 0.8) 0%, rgba(243, 184, 6, 0.6) 100%);
 		margin-bottom: 24px;
 	}
-	
+
 	.user-info-header {
 		display: flex;
 		align-items: center;
@@ -455,7 +471,7 @@
 	}
 
 	.user-details {
-		flex : 1;
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 	}
@@ -867,7 +883,7 @@
 		box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 	}
 
-	/* 退出登录按钮 */
+	/*会员充值按钮 */
 	.becamemember-button {
 		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
 		color: white;
@@ -881,6 +897,25 @@
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		display: flex;
 		justify-content: center;
+	}
+
+	/*登录按钮*/
+	.launch-button {
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		color: white;
+		border: none;
+		border-radius: 24px;
+		padding: 12px 24px;
+		font-size: 40rpx;
+		font-weight: 600;
+		margin-top: 20px;
+		margin-bottom: 20px;
+		height: 80rpx;
+		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */

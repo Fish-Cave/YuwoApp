@@ -23,7 +23,7 @@
 			</view>
 		</view>
 
-		<view class="glass-card" v-if="showDetail.isPlay">
+		<view class="glass-card" v-if="showDetail.isPlay == false">
 			<view class="card-content">
 				<view class="card-header">
 					<view class="card-title">
@@ -81,7 +81,7 @@
 			</view>
 		</view>
 
-		<uni-group title="debug" class="glass-card">
+		<uni-group v-if="res.role.includes('admin')" title="debug" class="glass-card">
 			<template v-slot:title>
 				<view style="display: flex; justify-content: space-between; align-items: center;">
 					<uni-section title="Debug" type="line"></uni-section>
@@ -91,6 +91,9 @@
 			<view v-if="debug">
 				<text>
 					{{Data}}
+				</text>
+				<text>
+					{{showDetail}}
 				</text>
 			</view>
 		</uni-group>

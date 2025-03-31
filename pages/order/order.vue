@@ -61,7 +61,7 @@
 			<view class="booking-container glass-card">
 				<uni-title type="h1" title="确认预约信息"></uni-title>
 
-				<view style="margin-bottom: 10rpx;">
+				<view v-if="res.role.includes('admin')" style="margin-bottom: 10rpx;">
 					<text style="margin-right: 20rpx;">Debug 信息:</text>
 					<switch :checked="debug" @change="debugSwitchChange" />
 				</view>

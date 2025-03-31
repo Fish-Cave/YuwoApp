@@ -74,7 +74,7 @@
 			</view>
 
 			<!-- Debug 信息 -->
-			<uni-group title="debug" class="glass-card">
+			<uni-group v-if="res.role.includes('admin')" title="debug" class="glass-card">
 				<template v-slot:title>
 					<view style="display: flex; justify-content: space-between; align-items: center;">
 						<uni-section title="Debug" type="line"></uni-section>
@@ -138,7 +138,7 @@
 		"reservation_id" : string
 		"total_fee" : number
 		"singlePrice" : number
-		"status" : string
+		"status" : number
 		"starttime" : number
 		"endtime" : number
 	}
@@ -216,18 +216,37 @@
 	async function submit() {
 		//const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
 		orderData.endtime = dayjs().unix() * 1000
+		const result = await todo.Order_Get(orderData.user_id)
+		console.log(result.data)
 		//options.total_fee = orderData.total_fee
-		await todo.Order_Add(orderData)
-		orderHandle()
+		if (result.data != "") {
+			orderHandle()
+		} else {
+			await todo.Order_Add(orderData)
+			if (orderData.total_fee == 0) {
+				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
+				uni.showToast({
+					title: "感谢使用"
+				})
+				uni.reLaunch({
+					url: "/pages/index/index"
+				})
+				console.log("success")
+				stopTimer();
+			} else {
+				orderHandle()
+			}
+		}
 	}
 	async function orderHandle() {
 		try {
 			const result = await todo.Order_Get(orderData.user_id)
 			console.log(result.data[0])
 			options.order_no = toRaw(result.data[0]._id)
+			options.total_fee = orderData.total_fee
 			let optionsStr = encodeURI(JSON.stringify(options));
 			console.log(options)
-			uni.navigateTo({
+			uni.redirectTo({
 				url: `/pages/pay/pay?options=${optionsStr}`
 			});
 		} catch (e) { }
@@ -367,6 +386,7 @@
 		// 如果是周/月卡会员，费用为0
 		if (membershipType.value == "weekly_monthly") {
 			totalPrice.value = 0;
+			orderData.status = 1
 			orderData.total_fee = totalPrice.value * 100
 			return;
 		}

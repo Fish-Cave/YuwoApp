@@ -1,7 +1,10 @@
 <template>
 	<view class="container">
 		<!-- 个人信息卡片 -->
-		<view class="user-info-card glass-card">
+		<view v-if="res.uid==null" class="launch-button glass-button" @click="goToLaunch()">
+			<text>登录</text>
+		</view>
+		<view v-else class="user-info-card glass-card">
 			<view class="user-info-header">
 				<view class="avatar-container">
 					<!-- 使用 uni-id-pages-avatar 组件显示头像 -->
@@ -91,6 +94,12 @@
 				})
 			}
 		} catch { }
+	}
+	
+	function goToLaunch(){
+		uni.redirectTo({
+			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
+		});
 	}
 </script>
 
@@ -255,6 +264,24 @@
 		font-size: 28rpx;
 		color: #4b5563;
 		line-height: 1.5;
+	}
+	/*登陆按钮*/
+	.launch-button {
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		color: white;
+		border: none;
+		border-radius: 24px;
+		padding: 12px 24px;
+		font-size: 40rpx;
+		font-weight: 600;
+		margin-top: 20px;
+		margin-bottom: 20px;
+		height: 80rpx;
+		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
