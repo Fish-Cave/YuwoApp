@@ -26,8 +26,16 @@
 
 			<view class="divider" />
 			<view class="calendar-container glass-card">
-				<wu-calendar :insert="true" type="week" :fold="false" startWeek="mon" color="#f59e0b"
-					@change="calendarChange"></wu-calendar>
+			  <wu-calendar 
+			    :insert="true" 
+			    :date="selectedDate" 
+			    type="week" 
+			    :fold="false" 
+			    startWeek="mon" 
+			    color="#f59e0b"
+				mode="single"
+			    @change="calendarChange">
+			  </wu-calendar>
 			</view>
 
 			<view class="divider" />
