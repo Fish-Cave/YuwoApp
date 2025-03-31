@@ -1,5 +1,12 @@
 <template>
 	<view class="container">
+		<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time"
+			:minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter"
+			@confirm="confirmStartTime"></uv-datetime-picker>
+			<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time"
+					:minHour="minEndTimeHour" :maxHour="maxEndTimeHour" :filter="timeFilter"
+					:minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
+			
 		<scroll-view scroll-y class="scroll-view">
 			<view class="header-container glass-card">
 				<uni-row>
@@ -103,9 +110,7 @@
 								<text>{{ selectedStartTime || '请选择时间' }}</text>
 								<uni-icons type="down" size="16"></uni-icons>
 							</view>
-							<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time"
-								:minHour="minStartTimeHour" :maxHour="maxStartTimeHour" :filter="timeFilter"
-								@confirm="confirmStartTime"></uv-datetime-picker>
+				
 						</view>
 						<view class="option">
 							<text class="option-label">结束时间</text>
@@ -113,10 +118,7 @@
 								<text>{{ selectedEndTime || '请选择时间' }}</text>
 								<uni-icons type="down" size="16"></uni-icons>
 							</view>
-							<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time"
-								:minHour="minEndTimeHour" :maxHour="maxEndTimeHour" :filter="timeFilter"
-								:minMinute="minEndTimeMinute" @confirm="confirmEndTime"></uv-datetime-picker>
-						</view>
+							</view>
 					</view>
 					<view>
 						<uni-row class="attention-box">
@@ -130,13 +132,17 @@
 				</view>
 
 				<view class="membership-info" v-if="membershipInfo.membership.length > 0 || membershipInfo.subscriptionPackage.length > 0">
-					<uni-title type="h2" title="会员信息"></uni-title>
-					<view v-if="membershipInfo.membership.length > 0">
-						<text>您是音游会员，享受半小时4元，当日40元封顶优惠</text>
-					</view>
-					<view v-if="membershipInfo.subscriptionPackage.length > 0">
-						<text>您是包周/月会员，本次预约免费</text>
-					</view>
+				  <uni-title type="h2" title="会员信息" class="membership-title"></uni-title>
+				  <view class="membership-card">
+				    <view v-if="membershipInfo.membership.length > 0" class="membership-item">
+				      <uni-icons type="star-filled" size="20" color="#f59e0b" class="membership-icon"></uni-icons>
+				      <text class="membership-text">您是音游会员，享受半小时4元，当日40元封顶优惠</text>
+				    </view>
+				    <view v-if="membershipInfo.subscriptionPackage.length > 0" class="membership-item">
+				      <uni-icons type="medal-filled" size="20" color="#10b981" class="membership-icon"></uni-icons>
+				      <text class="membership-text">您是包周/月会员，本次预约免费</text>
+				    </view>
+				  </view>
 				</view>
 
 			</view>
@@ -466,20 +472,33 @@ function openEndTimePicker() {
 // 确认开始时间
 function confirmStartTime(e) {
   selectedStartTime.value = e.value;
-
-  // 使用完整的日期时间字符串创建 dayjs 对象
+  
+  // 更新开始时间戳
+  updateStartTimestamp();
+  
+  // 计算结束时间（开始时间 + 30分钟）
   const dateStr = selectedDate.value || dayjs().format('YYYY-MM-DD');
-  const startTimeStr = `${dateStr} ${selectedStartTime.value}`;
-  const startTime = dayjs(startTimeStr);
-
-  // 确保 startTime 是有效的日期对象
-  if (startTime.isValid()) {
-    const endTime = startTime.add(30, 'minute');
-    selectedEndTime.value = endTime.format('HH:mm');
-    updateEndTimestamp(); // 更新结束时间戳，用于价格计算等
-  } else {
-    console.error('无效的开始时间:', selectedStartTime.value);
+  const startTimeArr = selectedStartTime.value.split(':');
+  const startHour = parseInt(startTimeArr[0]);
+  const startMinute = parseInt(startTimeArr[1]);
+  
+  // 计算结束时间（小时和分钟）
+  let endHour = startHour;
+  let endMinute = startMinute + 30;
+  
+  // 处理进位
+  if (endMinute >= 60) {
+    endHour += 1;
+    endMinute -= 60;
   }
+  
+  // 格式化结束时间
+  const formattedEndHour = endHour.toString().padStart(2, '0');
+  const formattedEndMinute = endMinute.toString().padStart(2, '0');
+  selectedEndTime.value = `${formattedEndHour}:${formattedEndMinute}`;
+  
+  // 更新结束时间戳
+  updateEndTimestamp();
 }
 
 // 确认结束时间
@@ -1268,6 +1287,44 @@ async function submitOrder() {
 
 .submit-button:active::after {
     left: 100%;
+}
+
+/* 会员信息样式 */
+.membership-info {
+  margin-top: 20px;
+}
+
+.membership-title {
+  margin-bottom: 10px;
+}
+
+.membership-card {
+  background: rgba(253, 251, 231, 0.7);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 12px rgba(249, 203, 20, 0.15);
+  border: 1px solid rgba(253, 230, 138, 0.5);
+}
+
+.membership-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.membership-item:last-child {
+  margin-bottom: 0;
+}
+
+.membership-icon {
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.membership-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.4;
 }
 
 /* 媒体查询：针对不同尺寸设备的响应式样式 */
