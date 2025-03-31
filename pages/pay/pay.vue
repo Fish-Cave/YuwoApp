@@ -1,27 +1,52 @@
 <template>
 	<!-- 自定义收银台页面模式 -->
-	<view class="uni-pay">
-		<view class="mobile-pay-popup" v-if="insideData && insideData.currentProviders">
-			<view class="mobile-pay-popup-amount-box">
-				<view>待支付金额：</view>
-				<view class="mobile-pay-popup-amount">{{ (options.total_fee / 100).toFixed(2) }}</view>
+	<view class="container">
+		<view class="" v-if="insideData && insideData.currentProviders">
+			<view class="price-card">
+				<view class="price-header">
+					<text class="title">本次消费</text>
+					<view class="divider"></view>
+				</view>
+				<view class="price-summary">
+					<view>
+						<text class="price-amount">{{ (options.total_fee / 100).toFixed(2) }}¥</text>
+					</view>
+				</view>
+				<view class="order-info">
+					<view class="info-row">
+						<view class="info-label">订单号</view>
+						<view class="info-value">{{options.order_no}}</view>
+					</view>
+					<view class="info-row">
+						<view class="info-label">本次消费类型</view>
+						<view class="info-value">
+							<text v-if="options.type == 'goods'">签到结算</text>
+							<text v-else>会员充值</text>
+						</view>
+					</view>
+				</view>
 			</view>
-			<view>
-				<text>这是自定义支付页面</text>
+			<uni-section title="选择支付方式" type="line"></uni-section>
+			<uni-list v-if="insideData && insideData.currentProviders">
+				<!-- #ifdef MP-WEIXIN || H5 || APP -->
+				<uni-list-item v-if="insideData.currentProviders.indexOf('wxpay') > -1" :thumb="insideData.images.wxpay"
+					title="微信支付" clickable link></uni-list-item>
+				<!-- #endif -->
+				<!-- #ifdef MP-ALIPAY || H5 || APP -->
+				<uni-list-item v-if="insideData.currentProviders.indexOf('alipay') > -1"
+					:thumb="insideData.images.alipay" title="支付宝" @click="createOrder({ provider: 'alipay' })" clickable
+					link></uni-list-item>
+				<!-- #endif -->
+			</uni-list>
+			<view class="footer">
+				<view class="submit-button" @click="createOrder({ provider: 'wxpay' })">
+					<text>确认购买</text>
+				</view>
 			</view>
-			<view class="mobile-pay-popup-provider-list">
-				<uni-list>
-					<!-- #ifdef MP-WEIXIN || H5 || APP -->
-					<uni-list-item v-if="insideData.currentProviders.indexOf('wxpay') > -1"
-						:thumb="insideData.images.wxpay" title="微信支付" @click="createOrder({ provider: 'wxpay' })"
-						clickable link></uni-list-item>
-					<!-- #endif -->
-					<!-- #ifdef MP-ALIPAY || H5 || APP -->
-					<uni-list-item v-if="insideData.currentProviders.indexOf('alipay') > -1"
-						:thumb="insideData.images.alipay" title="支付宝" @click="createOrder({ provider: 'alipay' })"
-						clickable link></uni-list-item>
-					<!-- #endif -->
-				</uni-list>
+			<view class="tips-container">
+				<text class="tips">
+					支付方式选择暂时没有效果:P
+				</text>
 			</view>
 		</view>
 		<!-- 挂载支付组件 -->
@@ -32,7 +57,7 @@
 
 <script>
 	const todo = uniCloud.importObject('todo')
-	export default {	
+	export default {
 		data() {
 			return {
 				options: {
@@ -96,35 +121,161 @@
 		}
 	}
 </script>
-<style lang="scss" scoped>
-	.mobile-pay-popup {
-		min-height: calc(100vh - var(--window-bottom) - var(--window-top));
-		background-color: #f3f3f3;
-		border-radius: 30rpx 30rpx 0 0;
+<style scoped>
+	.container {
+		padding: 20px;
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		min-height: 100vh;
+		position: relative;
+	}
+
+	/* 玻璃拟态卡片 */
+	.glass-card {
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		border-radius: 20px;
+		box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.18);
 		overflow: hidden;
+		padding: 16px;
+		margin-bottom: 20px;
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+	}
 
-		.mobile-pay-popup-title {
-			background-color: #ffffff;
-			text-align: center;
-			font-weight: bold;
-			font-size: 40rpx;
-			padding: 20rpx;
-		}
+	.glass-card:active {
+		transform: translateY(2px);
+		box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
+	}
 
-		.mobile-pay-popup-amount-box {
-			background-color: #ffffff;
-			padding: 30rpx;
+	/* 底部区域 */
+	.footer {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(10px);
+		padding: 10px 0;
+		border-top: 1px solid rgba(229, 231, 235, 0.8);
+		box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+		z-index: 100;
+	}
 
-			.mobile-pay-popup-amount {
-				color: #e43d33;
-				font-size: 60rpx;
-				margin-top: 20rpx;
-			}
-		}
+	.price-card {
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		border-radius: 20px;
+		box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		overflow: hidden;
+		padding: 16px;
+		margin-bottom: 20px;
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+	}
 
-		.mobile-pay-popup-provider-list {
-			background-color: #ffffff;
-			margin-top: 20rpx;
-		}
+	.price-header {
+		width: 100%;
+	}
+
+	.price-summary {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 20px;
+		margin-bottom: 12px;
+	}
+
+	.price-amount {
+		font-weight: bold;
+		font-size: 140rpx;
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
+	.submit-button {
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		border-radius: 8px;
+		width: 80%;
+		height: 50px !important;
+		min-height: 45px;
+		line-height: 45px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 0 auto;
+		font-weight: bold;
+		color: white;
+		font-size: 15px;
+		box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
+		transition: all 0.3s;
+		position: relative;
+		overflow: hidden;
+		box-sizing: border-box;
+		padding: 0;
+	}
+
+	.submit-button:active {
+		transform: scale(0.98);
+		box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
+	}
+
+	.submit-button::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		transition: 0.5s;
+	}
+
+	.submit-button:active::after {
+		left: 100%;
+	}
+
+	.divider {
+		height: 2rpx;
+		background-color: lightgray;
+		margin: 20rpx 0;
+	}
+	
+	/*说明区域*/
+	.tips-container {
+		padding: 0 20rpx;
+		margin: 20rpx 0;
+	}
+	
+	.tips {
+		font-size: 20rpx;
+		color: gray;
+	}
+
+	/* 订单信息样式 */
+	.order-info {
+		margin-top: 20rpx;
+	}
+
+	.info-row {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: 15rpx;
+	}
+
+	.info-label {
+		font-size: 24rpx;
+		opacity: 0.9;
+	}
+
+	.info-value {
+		font-size: 28rpx;
+		font-weight: 500;
+	}
+	
+	.title {
+		font-size : 40rpx;
+		font-weight: bold;
 	}
 </style>
