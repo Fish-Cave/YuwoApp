@@ -58,34 +58,51 @@
         </view>
 
         <!-- 按钮区域 -->
-        <view class="button-group">
-          <view v-if="(isSuperUser || isUser)&&machineData.machineInfo.status != 1"
-            class="action-button view-button" @click="viewReservations(machineData)">
-            <uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
-            <text class="button-text">查看预约</text>
-          </view>
-          <view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
-            class="action-button needlog-button" @click="unlogin()">
-            <uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
-            <text class="button-text error-text">登陆后查看</text>
-          </view>
-          <view v-if="machineData.machineInfo.status == 0 &&(isSuperUser || isUser)"
-            class="action-button reserve-button"
-            @click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
-            <uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
-            <text class="button-text reserve-text">预约</text>
-          </view>
-          <view v-else-if="machineData.machineInfo.status == 1" class="error-button"
-            @click="unuseable()">
-            <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-            <text class="button-text error-text">机台故障</text>
-          </view>
-          <view v-else-if="machineData.machineInfo.status == 0 && (isSuperUser == false && isUser == false)"
-            class="action-button needlog-button" @click="unlogin()">
-            <uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-            <text class="button-text error-text">登陆后预约</text>
-          </view>
-        </view>
+		<view class="button-group">
+		  <!-- 优先判断机台故障状态 -->
+		  <view v-if="machineData.machineInfo.status == 1" class="error-button"
+			@click="unuseable()">
+			<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+			<text class="button-text error-text">机台故障</text>
+		  </view>
+		  <!-- 机台非故障时，根据角色判断 -->
+		  <template v-else>
+			<!-- 超级管理员或普通用户 -->
+			<template v-if="isSuperUser || isUser">
+			  <view v-if="machineData.machineInfo.status != 1" class="action-button view-button" @click="viewReservations(machineData)">
+				<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
+				<text class="button-text">查看预约</text>
+			  </view>
+			  <view v-if="machineData.machineInfo.status == 0" class="action-button reserve-button"
+				@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
+				<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
+				<text class="button-text reserve-text">预约</text>
+			  </view>
+			</template>
+			<!-- 预备用户 -->
+			<template v-else-if="isPreUser"> 
+			  <view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
+				<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+				<text class="button-text error-text">无权限查看</text>
+			  </view>
+			  <view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
+				<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+				<text class="button-text error-text">无权限预约</text>
+			  </view>
+			</template>
+			<!-- 其他未登录或角色未知用户 -->
+			<template v-else>  
+			  <view v-if="machineData.machineInfo.status != 1" class="action-button needlog-button" @click="unlogin()">
+				<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+				<text class="button-text error-text">登陆后查看</text>
+			  </view>
+			  <view v-if="machineData.machineInfo.status == 0" class="action-button needlog-button" @click="unlogin()">
+				<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+				<text class="button-text error-text">登陆后预约</text>
+			  </view>
+			</template>
+		  </template>
+		</view>
       </view>
     </view>
   </view>
@@ -98,15 +115,28 @@ import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 const uniIdCo = uniCloud.importObject("uni-id-co")
 const isSuperUser = ref(false)
 const isUser = ref(false)
+const isPreUser = ref(false)
 const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
 
 function roleJudge() {
   const res = uniCloud.getCurrentUserInfo('uni_id_token')
   if (res.role.includes("admin") || res.role.includes("superUser")) {
     isSuperUser.value = true
+    isUser.value = false
+    isPreUser.value = false
   } else if (res.role.includes("user")) {
     isSuperUser.value = false
     isUser.value = true
+    isPreUser.value = false
+  } else if (res.role.includes("preUser")) { 
+    isSuperUser.value = false
+    isUser.value = false
+    isPreUser.value = true
+  }
+  else { // Other roles or no login
+    isSuperUser.value = false
+    isUser.value = false
+    isPreUser.value = false
   }
   getMembershipStatus(); // 获取会员状态
 }
@@ -120,22 +150,22 @@ async function getMembershipStatus() {
       membershipType.value = "none";
       return;
     }
-    
+
     // 调用云对象方法获取会员信息
     const result = await todo.getUserMembershipInfo(userInfo.uid);
     console.log("会员信息查询结果:", result);
-    
+
     if (result) {
       // 检查包周/月会员
       if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
         membershipType.value = "weekly_monthly";
         console.log('用户拥有包周/月会员');
-      } 
+      }
       // 检查音游会员
       else if (result.membership && result.membership.length > 0) {
         membershipType.value = "music_game";
         console.log('用户拥有音游会员');
-      } 
+      }
       // 无会员
       else {
         membershipType.value = "none";
@@ -298,170 +328,170 @@ function calculateSegmentStyle(reservation: Reservation, dayStartTime: number, d
 }
 
 function mergeReservations(reservations) {
-    if (!reservations || reservations.length === 0) return [];
-    
-    // 按开始时间排序
-    const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
-    
-    const mergedReservations = [];
-    let currentMerged = {...sortedReservations[0]};
-    
-    for (let i = 1; i < sortedReservations.length; i++) {
-      const current = sortedReservations[i];
-      
-      // 如果当前预约与合并中的预约有重叠，则合并
-      if (current.startTime <= currentMerged.endTime) {
-        // 更新结束时间为较晚的那个
-        currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
-      } else {
-        // 没有重叠，将当前合并的添加到结果中，并开始新的合并
-        mergedReservations.push(currentMerged);
-        currentMerged = {...current};
-      }
-    }
-    
-    // 添加最后一个合并的预约
-    mergedReservations.push(currentMerged);
-    
-    return mergedReservations;
-  }
-  
-  function getReservationCount(allReservations, mergedReservation) {
-    // 计算有多少预约与当前合并的预约时间段有重叠
-    return allReservations.filter(res => 
-      (res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
-    ).length;
-  }
-  
-  // 添加收藏筛选的状态
-  const showFavoritesOnly = ref(false);
+  if (!reservations || reservations.length === 0) return [];
 
-  // 添加筛选后的机台数据计算属性
-  const filteredMachineData = computed(() => {
-    if (!showFavoritesOnly.value) {
-      return machineReservationData.value;
+  // 按开始时间排序
+  const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
+
+  const mergedReservations = [];
+  let currentMerged = { ...sortedReservations[0] };
+
+  for (let i = 1; i < sortedReservations.length; i++) {
+    const current = sortedReservations[i];
+
+    // 如果当前预约与合并中的预约有重叠，则合并
+    if (current.startTime <= currentMerged.endTime) {
+      // 更新结束时间为较晚的那个
+      currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
+    } else {
+      // 没有重叠，将当前合并的添加到结果中，并开始新的合并
+      mergedReservations.push(currentMerged);
+      currentMerged = { ...current };
     }
-    
-    // 只显示已收藏的机台
-    return machineReservationData.value.filter(machine => 
-      favorites.value.has(machine.machineInfo._id)
-    );
+  }
+
+  // 添加最后一个合并的预约
+  mergedReservations.push(currentMerged);
+
+  return mergedReservations;
+}
+
+function getReservationCount(allReservations, mergedReservation) {
+  // 计算有多少预约与当前合并的预约时间段有重叠
+  return allReservations.filter(res =>
+    (res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
+  ).length;
+}
+
+// 添加收藏筛选的状态
+const showFavoritesOnly = ref(false);
+
+// 添加筛选后的机台数据计算属性
+const filteredMachineData = computed(() => {
+  if (!showFavoritesOnly.value) {
+    return machineReservationData.value;
+  }
+
+  // 只显示已收藏的机台
+  return machineReservationData.value.filter(machine =>
+    favorites.value.has(machine.machineInfo._id)
+  );
+});
+
+// 切换筛选状态
+function toggleFavoritesFilter() {
+  showFavoritesOnly.value = !showFavoritesOnly.value;
+
+  uni.showToast({
+    icon: 'none',
+    title: showFavoritesOnly.value ? '只显示收藏的机台' : '显示全部机台',
+    duration: 1500
   });
+}
 
-  // 切换筛选状态
-  function toggleFavoritesFilter() {
-    showFavoritesOnly.value = !showFavoritesOnly.value;
-    
+// 更新收藏状态到本地存储
+function saveUserFavorites() {
+  try {
+    uni.setStorageSync('machine_favorites', JSON.stringify([...favorites.value]));
+  } catch (e) {
+    console.error("保存收藏状态失败:", e);
+  }
+}
+
+// 修改toggleFavorite函数以保存收藏状态
+async function toggleFavorite(machineId: string) {
+  try {
+    const userInfo = uniCloud.getCurrentUserInfo();
+    if (!userInfo || !userInfo.uid) {
+      uni.showToast({
+        icon: 'none',
+        title: '请先登录',
+        duration: 1500
+      });
+      return;
+    }
+
+    if (favorites.value.has(machineId)) {
+      favorites.value.delete(machineId);
+    } else {
+      favorites.value.add(machineId);
+    }
+
+    // 保存到本地存储
+    saveUserFavorites();
+
+    // 同步到云端
+    await todo.Loved_Update(userInfo.uid, machineId);
+
     uni.showToast({
-      icon: 'none',
-      title: showFavoritesOnly.value ? '只显示收藏的机台' : '显示全部机台',
+      icon: 'success',
+      title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
+      duration: 1500
+    });
+  } catch (error) {
+    console.error("收藏操作失败:", error);
+    uni.showToast({
+      icon: 'error',
+      title: '操作失败',
       duration: 1500
     });
   }
-  
-  // 更新收藏状态到本地存储
-  function saveUserFavorites() {
-    try {
-      uni.setStorageSync('machine_favorites', JSON.stringify([...favorites.value]));
-    } catch (e) {
-      console.error("保存收藏状态失败:", e);
-    }
-  }
-  
-  // 修改toggleFavorite函数以保存收藏状态
-  async function toggleFavorite(machineId: string) {
-    try {
-      const userInfo = uniCloud.getCurrentUserInfo();
-      if (!userInfo || !userInfo.uid) {
-        uni.showToast({
-          icon: 'none',
-          title: '请先登录',
-          duration: 1500
-        });
-        return;
-      }
+}
 
-      if (favorites.value.has(machineId)) {
-        favorites.value.delete(machineId);
-      } else {
-        favorites.value.add(machineId);
-      }
-      
-      // 保存到本地存储
+// 加载用户收藏数据
+async function loadUserFavorites() {
+  try {
+    const userInfo = uniCloud.getCurrentUserInfo();
+    if (!userInfo || !userInfo.uid) {
+      console.log('未登录，不加载收藏数据');
+      return;
+    }
+
+    // 调用云函数获取收藏数据
+    const result = await todo.Loved_Query(userInfo.uid);
+    if (result && result.data) {
+      // 更新收藏集合
+      favorites.value = new Set(result.data);
+      // 同步到本地存储
       saveUserFavorites();
-      
-      // 同步到云端
-      await todo.Loved_Update(userInfo.uid, machineId);
-      
-      uni.showToast({
-        icon: 'success',
-        title: favorites.value.has(machineId) ? '已加入收藏' : '已取消收藏',
-        duration: 1500
-      });
-    } catch (error) {
-      console.error("收藏操作失败:", error);
-      uni.showToast({
-        icon: 'error',
-        title: '操作失败',
-        duration: 1500
-      });
-    } // 这里缺少了闭合的花括号
+    }
+  } catch (error) {
+    console.error("加载收藏数据失败:", error);
   }
-  
-  // 加载用户收藏数据
-  async function loadUserFavorites() {
-    try {
-      const userInfo = uniCloud.getCurrentUserInfo();
-      if (!userInfo || !userInfo.uid) {
-        console.log('未登录，不加载收藏数据');
-        return;
-      }
-      
-      // 调用云函数获取收藏数据
-      const result = await todo.Loved_Query(userInfo.uid);
-      if (result && result.data) {
-        // 更新收藏集合
-        favorites.value = new Set(result.data);
-        // 同步到本地存储
-        saveUserFavorites();
-      }
-    } catch (error) {
-      console.error("加载收藏数据失败:", error);
-    }
-  }
-  
-  onMounted(() => {
-    console.log("usage 组件 onMounted");
-    if (props.startTime && props.endTime) {
-      loadMachineReservations();
-    }
-    console.log(machineReservationData.value);
-    roleJudge();
-    
-    // 先从本地存储加载收藏状态
-    try {
-      const storedFavorites = uni.getStorageSync('machine_favorites');
-      if (storedFavorites) {
-        favorites.value = new Set(JSON.parse(storedFavorites));
-      }
-    } catch (e) {
-      console.error("读取收藏状态失败:", e);
-    }
-    
-    // 然后从云端加载收藏数据
-    loadUserFavorites();
-  })
-  
-  // 页面显示时刷新数据和会员状态
-  uni.$on('onShow', () => {
-    loadMachineReservations(); // 每次页面显示时刷新
-    getMembershipStatus(); // 刷新会员状态
-  });
-  
-  // 预约成功后刷新数据
-  uni.$on('reservationSuccess', () => {
+}
+
+onMounted(() => {
+  console.log("usage 组件 onMounted");
+  if (props.startTime && props.endTime) {
     loadMachineReservations();
-  });
+  }
+  console.log(machineReservationData.value);
+  roleJudge();
+
+  // 先从本地存储加载收藏状态
+  try {
+    const storedFavorites = uni.getStorageSync('machine_favorites');
+    if (storedFavorites) {
+      favorites.value = new Set(JSON.parse(storedFavorites));
+    }
+  } catch (e) {
+    console.error("读取收藏状态失败:", e);
+  }
+
+  // 然后从云端加载收藏数据
+  loadUserFavorites();
+})
+
+// 页面显示时刷新数据和会员状态
+uni.$on('onShow', () => {
+  loadMachineReservations(); // 每次页面显示时刷新
+  getMembershipStatus(); // 刷新会员状态
+});
+
+// 预约成功后刷新数据
+uni.$on('reservationSuccess', () => {
+  loadMachineReservations();
+});
 </script>
 
 <style>
@@ -866,6 +896,30 @@ function mergeReservations(reservations) {
 	
 	.filter-active .filter-text {
 	  color: #f472b6;
+	}
+	
+	.no-permission-button {
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  border-radius: 12rpx;
+	  padding: 18rpx 24rpx;
+	  flex: 1;
+	  min-width: 180rpx;
+	  max-width: 240rpx;
+	  height: 80rpx;
+	  transition: all 0.2s;
+	  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	  background-color: rgba(224, 224, 224, 0.8); /* 浅灰色背景，略微透明 */
+	  border: 1px solid rgba(209, 213, 219, 0.3); /* 浅色边框，可选 */
+	  color: #94a3b8; /* 深灰色文字 */
+	  cursor: not-allowed; /* 鼠标悬停时显示禁止图标 */
+	  pointer-events: none; /* 阻止点击事件和hover效果 */
+	}
+	
+	.no-permission-button:active {
+	  transform: none; /* 取消 active 时的位移效果 */
+	  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* 保持默认阴影或略微调整 */
 	}
 	
 </style>
