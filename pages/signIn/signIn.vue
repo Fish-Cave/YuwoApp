@@ -95,8 +95,8 @@
 			}
 		} catch { }
 	}
-	
-	function goToLaunch(){
+
+	function goToLaunch() {
 		uni.redirectTo({
 			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
 		});
@@ -162,6 +162,14 @@
 		font-weight: bold;
 		margin-bottom: 8px;
 		color: #333;
+		/* 允许长单词/URL换行 */
+		overflow-wrap: break-word;
+		/* 中文/日文等任意字符处换行 */
+		word-break: break-all;
+		/* 保留空白符但允许换行 */
+		white-space: pre-line;
+		/* 触发换行的容器宽度 */
+		max-width: 400rpx;
 	}
 
 	.user-id {
@@ -265,6 +273,7 @@
 		color: #4b5563;
 		line-height: 1.5;
 	}
+
 	/*登陆按钮*/
 	.launch-button {
 		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);

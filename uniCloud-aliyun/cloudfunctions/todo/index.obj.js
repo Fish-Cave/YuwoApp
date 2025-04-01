@@ -674,10 +674,10 @@ module.exports = {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		const signin = dbJQL.collection('fishcave-orders')
-		signin.add(content)
+		const fishOrder = dbJQL.collection('fishcave-orders')
+		fishOrder.add(content)
 		while (1) {
-			if (signin.where({
+			if (fishOrder.where({
 					user_id: content.user_id,
 					status: 0
 				}).get()) {
@@ -692,13 +692,23 @@ module.exports = {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		const signin = dbJQL.collection('fishcave-orders')
-		return signin.where({
+		const fishOrder = dbJQL.collection('fishcave-orders')
+		return fishOrder.where({
 			user_id: content,
 			status: 0
 		}).field({
 			_id: true
 		}).get()
+	},
+	
+	Get_fishOrderList: function(content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const fishOrder = dbJQL.collection('fishcave-orders')
+		return fishOrder.where({
+			user_id: content,
+		}).orderBy("createTime", "desc").get()
 	},
 
 	/**

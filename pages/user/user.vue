@@ -149,29 +149,7 @@
 				<text class="card-title">最近订单</text>
 				<text style="color:#6b7280;">查看更多</text>
 			</view>
-
-			<view class="orders-container">
-				<view v-for="data in displayedData.slice(0,3)" :key="data._id" class="order-item">
-					<view class="order-icon">
-						<uni-icons type="headphones" size="28" color="#FF9800"></uni-icons>
-					</view>
-
-					<view class="order-details">
-						<text class="order-machine">{{ data.machineId[0].name }}</text>
-						<uni-dateformat :date="data.startTime" format="yyyy-MM-dd hh:mm" class="order-date">
-						</uni-dateformat>
-					</view>
-
-					<view class="order-status" :class="data.status == 1 ? 'status-completed' : 'status-pending'">
-						<text class="status-text">{{ data.status == 1 ? '已完成' : '未完成' }}</text>
-					</view>
-				</view>
-
-				<view v-if="displayedData.length === 0" class="empty-orders">
-					<text>暂无订单记录</text>
-				</view>
-			</view>
-
+			<recent></recent>
 		</view>
 
 		<!-- 底部功能按钮 -->
@@ -211,6 +189,7 @@
 		mutations
 	} from '@/uni_modules/uni-id-pages/common/store.js'
 	import dayjs from 'dayjs'  // 确保导入dayjs用于日期格式化
+	import recent from './recent'
 
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const todo = uniCloud.importObject('todo')
@@ -324,10 +303,10 @@
 			uni.navigateTo({
 				url: '/pages/recharge/recharge'
 			});
-		}else{
+		} else {
 			uni.showToast({
-				title : "暂不开放,请联系管理充值",
-				icon : "error"
+				title: "暂不开放,请联系管理充值",
+				icon: "error"
 			})
 		}
 	}
@@ -421,7 +400,7 @@
 
 	onMounted(() => {
 		getPriceList()
-		getReservationData() // 获取订单数据
+		//getReservationData() // 获取订单数据
 		getMembershipInfo() // 获取会员信息
 		console.log("单价" + price.value + "过夜" + priceOvernight.value)
 		console.log(res)
@@ -487,6 +466,14 @@
 		font-weight: bold;
 		color: #fff;
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+		/* 允许长单词/URL换行 */
+		overflow-wrap: break-word;
+		/* 中文/日文等任意字符处换行 */
+		word-break: break-all;
+		/* 保留空白符但允许换行 */
+		white-space: pre-line;
+		/* 触发换行的容器宽度 */
+		max-width: 300rpx;
 	}
 
 	/* 会员徽章容器 */
