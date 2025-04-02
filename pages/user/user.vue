@@ -24,16 +24,20 @@
 
 					<!-- 会员徽章区域 -->
 					<view class="membership-badges-container">
-						<view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
-							class="membership-badge premium-badge">
-							<uni-icons type="star-filled" size="14" color="#ffffff"></uni-icons>
-							<text>包月会员</text>
-						</view>
-						<view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
-							class="membership-badge standard-badge">
-							<uni-icons type="medal-filled" size="14" color="#ffffff"></uni-icons>
-							<text>音游会员</text>
-						</view>
+					    <view v-if="res.role && res.role.includes('admin')" class="membership-badge admin-badge">
+					        <uni-icons type="staff" size="14" color="#ffffff"></uni-icons>
+					        <text>管理员</text>
+					    </view>
+					    <view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
+					        class="membership-badge premium-badge">
+					        <uni-icons type="star-filled" size="14" color="#ffffff"></uni-icons>
+					        <text>包月会员</text>
+					    </view>
+					    <view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
+					        class="membership-badge standard-badge">
+					        <uni-icons type="medal-filled" size="14" color="#ffffff"></uni-icons>
+					        <text>音游会员</text>
+					    </view>
 					</view>
 
 					<text class="user-id">UID: {{ userInfo._id }}</text>
@@ -190,6 +194,9 @@
 	} from '@/uni_modules/uni-id-pages/common/store.js'
 	import dayjs from 'dayjs'  // 确保导入dayjs用于日期格式化
 	import recent from './recent'
+	const isAdmin = computed(() => {
+		return res && res.role && res.role.includes('admin');
+	});
 
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const todo = uniCloud.importObject('todo')
@@ -528,18 +535,16 @@
 
 	/* 会员徽章容器 */
 	.membership-badges-container {
-		display: flex;
-		flex-direction: column;
-		/* 修改为垂直排列 */
-		gap: 10rpx;
-		margin-bottom: 8px;
-		margin-top: 8px;
-		/* 调整与昵称的间距 */
+	    display: flex;
+	    flex-direction: row;  
+	    flex-wrap: wrap;      
+	    gap: 8px;            
+	    margin-bottom: 8px;
+	    margin-top: 8px;
 	}
-
 	/* 会员徽章样式 */
 	.membership-badge {
-		display: flex;
+		display: inline-flex;  /* 改为 inline-flex */
 		align-items: center;
 		padding: 3px 10px;
 		border-radius: 12px;
@@ -547,6 +552,9 @@
 		font-weight: 500;
 		color: #ffffff;
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+		width: auto;  /* 自适应宽度 */
+		margin-right: 8px;  /* 如果多个徽章并排，添加右边距 */
+		margin-bottom: 6px; /* 如果徽章换行，添加下边距 */
 	}
 
 	.membership-badge text {
@@ -562,6 +570,12 @@
 		background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
 		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
+
+	.admin-badge {
+		background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
 
 	/* 会员信息卡片 */
 	.membership-info-card {
