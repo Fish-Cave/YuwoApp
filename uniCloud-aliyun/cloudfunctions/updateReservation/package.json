@@ -1,7 +1,21 @@
 {
-  "name": "updateReservation",
-  "dependencies": {},
-  "extensions": {
-    "uni-cloud-jql": {}
-  }
+    "name": "updateReservation",
+    "dependencies": [],
+    "extensions": {
+        "uni-cloud-jql": []
+    },
+    "cloudfunction-config": {
+        "memorySize": 128,
+        "timeout": 5,
+        "triggers": [
+            {
+                "name": "myTrigger",
+                "type": "timer",
+                "config": "0 0 0/1 * * * *"
+            }
+        ],
+        "path": "",
+        "runtime": "Nodejs16",
+        "concurrency": 1
+    }
 }

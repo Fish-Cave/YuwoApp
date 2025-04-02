@@ -54,72 +54,108 @@
 	</view>
 
 </template>
-
 <script>
-	const todo = uniCloud.importObject('todo')
-	export default {
-		data() {
-			return {
-				options: {
-					total_fee: "",
-				},
-				insideData: {}, // uni-pay组件mounted事件获得的数据
-				adpid: "", // 广告id
-				return_url: "", // 支付成功后点击查看订单跳转的订单详情页面地址
-				main_color: "", // 支付成功页面的主色调
-			}
-		},
-		// 监听 - 页面每次【加载时】执行(如：前进)
-		onLoad(options = {}) {
-			options = JSON.parse(decodeURI(options.options));
-			//console.log('options: ', options)
-			this.options = options;
-		},
-		// 监听 - 页面【首次渲染完成时】执行。注意如果渲染速度快，会在页面进入动画完成前触发
-		onReady() {},
-		// 监听 - 页面每次【显示时】执行(如：前进和返回) (页面每次出现在屏幕上都触发，包括从下级页面点返回露出当前页面)
-		onShow() {},
-		// 监听 - 页面每次【隐藏时】执行(如：返回)
-		onHide() {},
-		// 函数
-		methods: {
-			// 监听 - 支付组件加载完毕事件
-			onMounted(insideData) {
-				this.insideData = insideData;
-			},
-			// 发起支付
-			createOrder(provider) {
-				Object.assign(this.options, provider);
-				this.$refs.uniPay.createOrder(this.options);
-			},
-			// 监听事件 - 支付成功
-			onSuccess(res) {
-				console.log('success: ', res);
-				if (res.user_order_success) {
-					// 代表用户已付款，且你自己写的回调成功并正确执行了
-					console.log("正确执行")
-					uni.redirectTo({
-						url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
-					});
-				} else {
-					// 代表用户已付款，但你自己写的回调没有执行成功（通常是因为你的回调代码有问题）
-					console.log("回调代码有问题")
-					uni.redirectTo({
-						url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
-					});
+const todo = uniCloud.importObject('todo')
 
-				}
-			},
-		},
-		// 监听器
-		watch: {
+// 添加格式化时长的函数（仅用于控制台日志输出）
+function formatDuration(minutes) {
+    if (!minutes) return '0分钟';
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0) {
+        return `${hours}小时${mins > 0 ? mins + '分钟' : ''}`;
+    } else {
+        return `${mins}分钟`;
+    }
+}
 
-		},
-		// 计算属性
-		computed: {
+export default {
+    data() {
+        return {
+            options: {
+                total_fee: "",
+            },
+            insideData: {}, // uni-pay组件mounted事件获得的数据
+            adpid: "", // 广告id
+            return_url: "", // 支付成功后点击查看订单跳转的订单详情页面地址
+            main_color: "", // 支付成功页面的主色调
+        }
+    },
+    // 监听 - 页面每次【加载时】执行(如：前进)
+    onLoad(options = {}) {
+        options = JSON.parse(decodeURI(options.options));
+        //console.log('options: ', options)
+        this.options = options;
+    },
+    // 其他生命周期函数保持不变
+    methods: {
+        // 监听 - 支付组件加载完毕事件
+        onMounted(insideData) {
+            this.insideData = insideData;
+        },
+        // 发起支付
+        createOrder(provider) {
+            Object.assign(this.options, provider);
+            this.$refs.uniPay.createOrder(this.options);
+        },
+        
+        // 更新用户统计数据
+        async updateUserStatistics() {
+            try {
+                // 只有商品支付（签到结算）才需要更新统计
+                if (this.options.type === 'goods' && this.options.signInId && this.options.reservationId && this.options.userId) {
+                    // 调用云函数进行结账并更新统计
+                    const result = await todo.SignIn_Settle(
+                        this.options.signInId, 
+                        this.options.reservationId, 
+                        this.options.userId
+                    );
+                    
+                    // 获取最新的用户统计数据（仅用于日志输出）
+                    const userStatsResult = await todo.getUserStatistics(this.options.userId);
+                    
+                    // 仅在控制台输出用户的使用情况
+                    if (userStatsResult.errCode === 0) {
+                        const stats = userStatsResult.data;
+                        console.log(`使用次数: ${stats.total_sessions}`);
+                        console.log(`总时长: ${formatDuration(stats.total_duration)}`);
+                        console.log(`总消费: ${(stats.total_spending / 100).toFixed(2)}元`);
+                    }
+                    
+                    return result;
+                }
+            } catch (e) {
+                console.error("更新统计数据失败:", e);
+            }
+        },
+        
+        // 监听事件 - 支付成功
+        async onSuccess(res) {
+            console.log('success: ', res);
+            if (res.user_order_success) {
+                // 代表用户已付款，且你自己写的回调成功并正确执行了
+                console.log("正确执行");
+                
+                // 更新用户统计数据（后台操作，不影响UI）
+                await this.updateUserStatistics();
+                
+                // 直接跳转，不需要延迟
+                uni.redirectTo({
+                    url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
+                });
+            } else {
+                // 代表用户已付款，但你自己写的回调没有执行成功（通常是因为你的回调代码有问题）
+                console.log("回调代码有问题");
+                uni.redirectTo({
+                    url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
+                });
+            }
+        },
+    }
+}
 
-		}
-	}
 </script>
 <style scoped>
 	.container {
