@@ -19,6 +19,12 @@
 			<uni-list-item v-if="hasPwd" class="item" @click="changePassword" title="修改密码" link>
 			</uni-list-item>
 		</uni-list>
+		<uni-list class="mt10">
+	<!-- connectCode相关，暂未完善 -->
+			<uni-list-item  class="item" @click="copyConnectCode" title="ConnectCode(待完善)" :rightText="userInfo.connectcode||'未设置'" link>
+			</uni-list-item>
+			<uni-list-item @click="getConnectCode" title="获取ConnectCode(待完善)"></uni-list-item>
+		</uni-list>
 		<!-- #ifndef MP -->
 		<uni-list class="mt10">
 			<uni-list-item @click="deactivate" title="注销账号" link="navigateTo"></uni-list-item>
