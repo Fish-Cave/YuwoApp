@@ -581,7 +581,7 @@ module.exports = {
 		}).get()
 	},
 
-	SignIn_Settle: function(signInId, resId) {
+	SignIn_Settle: function(signInId, resId, uid) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
@@ -596,6 +596,13 @@ module.exports = {
 			_id: resId
 		}).update({
 			status: 2
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		order.where({
+			user_id: uid,
+			status: 0
+		}).update({
+			status: 1
 		})
 		return "Settle Succeed"
 	},
@@ -708,50 +715,16 @@ module.exports = {
 		const fishOrder = dbJQL.collection('fishcave-orders')
 		return fishOrder.where({
 			user_id: content,
-		}).orderBy("createTime", "desc").get()
+		}).orderBy("create_date", "desc").get()
 	},
-
-	/**
-	 * 定时任务：更新会员状态
-	 * 此函数应该配置为定时触发，例如每天凌晨执行一次
-	 */
-	async updateMembershipStatus() {
-		try {
-			const now = Date.now();
-			const membershipCollection = db.collection('membership');
-			const subscriptionPackageCollection = db.collection('subscription-package');
-
-			// 更新 membership
-			await membershipCollection
-				.where({
-					status: true,
-					validthru: db.command.lt(now)
-				})
-				.update({
-					status: false
-				});
-
-			// 更新 subscription-package
-			await subscriptionPackageCollection
-				.where({
-					status: true,
-					validthru: db.command.lt(now)
-				})
-				.update({
-					status: false
-				});
-
-			console.log('会员状态更新完成');
-			return {
-				success: true,
-				message: '会员状态更新完成'
-			};
-		} catch (e) {
-			console.error('会员状态更新失败:', e);
-			return {
-				success: false,
-				message: '会员状态更新失败: ' + e.message
-			};
-		}
-	}
+	
+	HowManyPlayer: function() {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const signin = dbJQL.collection('signin')
+		return signin.where({
+			status : 0, 
+		}).get()
+	},
 }

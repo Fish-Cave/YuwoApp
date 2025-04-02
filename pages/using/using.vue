@@ -219,12 +219,12 @@
 		const result = await todo.Order_Get(orderData.user_id)
 		console.log(result.data)
 		//options.total_fee = orderData.total_fee
-		if (result.data != "") {
+		if (result.data.length) {
 			orderHandle()
 		} else {
 			await todo.Order_Add(orderData)
 			if (orderData.total_fee == 0) {
-				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
+				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid,res.uid)
 				uni.showToast({
 					title: "感谢使用"
 				})
@@ -233,6 +233,7 @@
 				})
 				console.log("success")
 				stopTimer();
+				
 			} else {
 				orderHandle()
 			}
@@ -313,13 +314,19 @@
 				break;
 			case "music_game":
 				// 当 expression 表达式值 等于 value2 时执行该代码块
-				singlePrice.value = 4
+				singlePrice.value = 0
+				if(isPlay.value){
+					singlePrice.value = 4
+				}
 				overnightPrice.value = 40
 				orderData.singlePrice = singlePrice.value * 100
 				break;
 			default:
 				// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
-				singlePrice.value = 5
+				singlePrice.value = 1
+				if(isPlay.value){
+					singlePrice.value = 5
+				}
 				overnightPrice.value = 50
 				orderData.singlePrice = singlePrice.value * 100
 				break;

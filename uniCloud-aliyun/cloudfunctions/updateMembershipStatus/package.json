@@ -1,0 +1,7 @@
+{
+  "name": "updateMembershipStatus",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

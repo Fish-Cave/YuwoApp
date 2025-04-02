@@ -9,9 +9,11 @@
 			color="#f59e0b"
 			:startDate="todayDate" />
 		</view>
-		<view style="padding: 0 15px; font-size: 15px; color: #666; text-align: center; margin-bottom: 10px;">
-					登录后如果为会员将会自动显示会员价格
-				</view>
+		<view class="tips-container">
+			<text class="tips">
+				登录后如果为会员将会自动显示会员价格
+			</text>		
+		</view>
         <view class="glass-card not-playing-card" @click="goToNoPlayPage">
           <text>不游玩机台？</text>
           <text class="link-text">请点击这里</text>
@@ -215,4 +217,17 @@ onMounted(() => {
         text-decoration: underline; 
         margin-left: 5rpx;
     }
+	
+	/*说明区域*/
+	.tips-container {
+		padding: 0 20rpx;
+		margin: 20rpx 0;
+		display: flex;
+		justify-content: center;
+	}
+	
+	.tips {
+		font-size: 20rpx;
+		color: gray;
+	}
 </style>

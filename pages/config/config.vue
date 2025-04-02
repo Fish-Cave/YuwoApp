@@ -11,7 +11,7 @@
 
 <script setup>
 	import {
-		reactive, ref
+		reactive, ref, onMounted
 	} from 'vue'
 	const todo = uniCloud.importObject('todo')
 	const Machine = reactive({
@@ -64,6 +64,14 @@
 			prices.value = await todo.Prices_List()
 		}catch{}
 	}
+	onMounted(()=>{
+		const res = uniCloud.callFunction({
+			name : "updateMembershipStatus"
+		})
+		const res1 = uniCloud.callFunction({
+			name : "updateReservation"
+		})
+	})
 </script>
 
 <style>

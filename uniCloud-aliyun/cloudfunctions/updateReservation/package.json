@@ -1,0 +1,7 @@
+{
+  "name": "updateReservation",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
