@@ -35,8 +35,12 @@ const userProfile = useProfileStore()
 const res = uniCloud.getCurrentUserInfo('uni_id_token')
 const isAdmin = ref(res.role.includes("admin"))
 const todayDate = computed(() => {
-		return dayjs().format('YYYY-MM-DD');
-	});
+  if (isAdmin.value) {
+    return ''; //  管理员可以查看所有日期，startDate 设置为空字符串
+  } else {
+    return dayjs().format('YYYY-MM-DD'); // 其他用户只能查看今天及以后的日期
+  }
+});
 // 用于存储选中的日期的开始和结束时间戳
 const selectedStartTime = ref<number | null>(null);
 const selectedEndTime = ref<number | null>(null);
