@@ -163,8 +163,7 @@ module.exports = {
 			console.log("Calculated maxCapacity:", maxCapacity);
 			console.log("Type of maxCapacity:", typeof maxCapacity);
 
-			// 2. 获取用户会员信息 - 修改这里的调用方式
-			// ===== 修改开始 =====
+			// 2. 获取用户会员信息
 			// 直接在这里实现获取会员信息的逻辑，而不是调用其他方法
 			const dbJQL = uniCloud.databaseForJQL({
 				clientInfo: this.getClientInfo()
@@ -205,8 +204,6 @@ module.exports = {
 					errMsg: '获取会员信息失败: ' + e.message
 				};
 			}
-			// ===== 修改结束 =====
-
 			console.log("Membership Info:", membershipInfo);
 
 			// 3. 根据会员信息修改价格
@@ -579,32 +576,6 @@ module.exports = {
 			"isOvernight": true,
 			"starttime": true
 		}).get()
-	},
-
-	SignIn_Settle: function(signInId, resId, uid) {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		const signin = dbJQL.collection('signin')
-		signin.where({
-			_id: signInId
-		}).update({
-			status: 1
-		})
-		const res = dbJQL.collection('reservation-log')
-		res.where({
-			_id: resId
-		}).update({
-			status: 2
-		})
-		const order = dbJQL.collection('fishcave-orders')
-		order.where({
-			user_id: uid,
-			status: 0
-		}).update({
-			status: 1
-		})
-		return "Settle Succeed"
 	},
 
 	Loved_Update: async function(uid, content) {
@@ -1168,5 +1139,132 @@ module.exports = {
 				errMsg: '获取用户月度报告失败: ' + e.message
 			};
 		}
+	},
+	/**
+	 * 获取筛选后的订单并支持分页
+	 * @param {Object} params 查询参数
+	 * @param {string} params.userId 用户ID
+	 * @param {number} [params.status] 订单状态 (0:待确认, 1:已完成, 2:未完成, 3:已退款)，不传则查询所有状态
+	 * @param {number} [params.pageSize=10] 每页数量
+	 * @param {number} [params.pageNumber=1] 页码
+	 * @param {string} [params.sortField="create_date"] 排序字段
+	 * @param {string} [params.sortOrder="desc"] 排序方向 (desc:降序, asc:升序)
+	 * @returns {Object} 订单列表及分页信息
+	 */
+	async Get_FilteredOrders(params) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  // 提取参数
+	  const userId = params.userId;
+	  const status = params.status; // 状态筛选
+	  const pageSize = params.pageSize || 10; // 默认每页10条
+	  const pageNumber = params.pageNumber || 1; // 默认第一页
+	  const sortField = params.sortField || "create_date"; // 默认按创建时间排序
+	  const sortOrder = params.sortOrder || "desc"; // 默认降序
+	  
+	  // 验证必要参数
+	  if (!userId) {
+	    return {
+	      code: -1,
+	      errMsg: "缺少用户ID参数"
+	    };
+	  }
+	  
+	  // 构建查询条件
+	  const query = {
+	    user_id: userId
+	  };
+	  
+	  // 如果提供了状态参数，添加到查询条件
+	  if (status !== undefined && status !== null) {
+	    query.status = Number(status);
+	  }
+	  
+	  try {
+	    // 构建基础查询
+	    let baseQuery = dbJQL.collection('fishcave-orders')
+	      .where(query)
+	      .orderBy(sortField, sortOrder);
+	    
+	    // 1. 获取总记录数
+	    const countResult = await baseQuery.count();
+	    const total = countResult.total;
+	    
+	    // 2. 应用分页获取数据
+	    const result = await baseQuery
+	      .skip((pageNumber - 1) * pageSize)
+	      .limit(pageSize)
+	      .get();
+	    
+	    // 3. 计算分页信息
+	    const totalPages = Math.ceil(total / pageSize);
+	    
+	    // 4. 构建返回数据
+	    return {
+	      code: 0,
+	      data: result.data,
+	      pagination: {
+	        total,
+	        totalPages,
+	        pageSize,
+	        pageNumber,
+	        hasNext: pageNumber < totalPages,
+	        hasPrev: pageNumber > 1
+	      }
+	    };
+	  } catch (e) {
+	    console.error("Get_FilteredOrders error:", e);
+	    return {
+	      code: -2,
+	      errMsg: "获取订单数据失败: " + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 按状态统计订单数量
+	 * @param {string} userId 用户ID
+	 * @returns {Object} 不同状态的订单数量
+	 */
+	async Get_OrdersCount(userId) {
+	  if (!userId) {
+	    return {
+	      code: -1,
+	      errMsg: "缺少用户ID参数"
+	    };
+	  }
+	  
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 获取不同状态的订单数量
+	    const [pendingCount, completedCount, unfinishedCount, refundedCount] = await Promise.all([
+	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 0 }).count(),
+	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 1 }).count(),
+	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 2 }).count(),
+	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 3 }).count()
+	    ]);
+	    
+	    return {
+	      code: 0,
+	      data: {
+	        pending: pendingCount.total, // 待确认
+	        completed: completedCount.total, // 已完成
+	        unfinished: unfinishedCount.total, // 未完成
+	        refunded: refundedCount.total, // 已退款
+	        total: pendingCount.total + completedCount.total + unfinishedCount.total + refundedCount.total
+	      }
+	    };
+	  } catch (e) {
+	    console.error("Get_OrdersCount error:", e);
+	    return {
+	      code: -2,
+	      errMsg: "统计订单数量失败: " + e.message
+	    };
+	  }
 	}
 }
