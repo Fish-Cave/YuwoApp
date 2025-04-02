@@ -1,0 +1,28 @@
+// 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
+{
+	"bsonType": "object",
+	"required": [
+		"userid"
+	],
+	"permission": {
+		"read": true,
+		"create": true,
+		"update": true,
+		"delete": false
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"userid": {
+			"bsonType":"string",
+			"description":"对应用户的用户ID",
+			"foreignKey" : "uni-id-users._id"
+		},
+		"connectcode": {
+			"bsonType": "array",
+			"arrayType": "string",
+			"description": "用户的connectCode"
+		}
+	}
+}

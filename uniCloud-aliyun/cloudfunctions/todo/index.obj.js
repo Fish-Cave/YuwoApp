@@ -727,4 +727,446 @@ module.exports = {
 			status : 0, 
 		}).get()
 	},
+	
+	/**
+	 * 更新用户统计信息
+	 * 在订单完成时调用此方法，更新用户的使用统计
+	 * @param {string} userId 用户ID
+	 * @param {string} reservationId 预约ID
+	 * @returns {object} 更新结果
+	 */
+	async updateUserStatistics(userId, reservationId) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		try {
+			console.log("开始更新用户统计信息, userId:", userId, "reservationId:", reservationId);
+			
+			// 1. 获取订单信息
+			const orderInfo = await dbJQL.collection('fishcave-orders')
+				.where({
+					user_id: userId,
+					reservation_id: reservationId,
+					status: 1 // 只统计已完成的订单
+				})
+				.get();
+				
+			if (orderInfo.data.length === 0) {
+				console.log("未找到相关订单信息");
+				return {
+					errCode: 'ORDER_NOT_FOUND',
+					errMsg: '未找到相关订单信息'
+				};
+			}
+			
+			const order = orderInfo.data[0];
+			
+			// 计算使用时长（分钟）
+			const startTime = new Date(order.starttime);
+			const endTime = new Date(order.endtime);
+			const durationMinutes = Math.round((endTime - startTime) / (1000 * 60));
+			
+			// 提取年月信息用于月度统计
+			const yearMonth = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}`;
+			
+			// 2. 查询用户的统计信息
+			const userStatsCollection = dbJQL.collection('user-statistics');
+			const userStats = await userStatsCollection
+				.where({
+					user_id: userId
+				})
+				.get();
+				
+			const db = uniCloud.database();
+			const statsCollection = db.collection('user-statistics');
+			
+			if (userStats.data.length === 0) {
+				// 创建新的统计记录
+				console.log("创建新的用户统计记录");
+				await statsCollection.add({
+					user_id: userId,
+					total_sessions: 1,
+					total_duration: durationMinutes,
+					total_spending: order.total_fee,
+					monthly_stats: [{
+						year_month: yearMonth,
+						sessions: 1,
+						duration: durationMinutes,
+						spending: order.total_fee
+					}],
+					last_update: Date.now()
+				});
+			} else {
+				// 更新现有统计记录
+				console.log("更新现有的用户统计记录");
+				const existingStats = userStats.data[0];
+				const dbCmd = db.command;
+				
+				// 检查月度统计中是否已有该月份
+				const monthIndex = existingStats.monthly_stats ? 
+					existingStats.monthly_stats.findIndex(m => m.year_month === yearMonth) : -1;
+					
+				let updateObj = {
+					total_sessions: existingStats.total_sessions + 1,
+					total_duration: existingStats.total_duration + durationMinutes,
+					total_spending: existingStats.total_spending + order.total_fee,
+					last_update: Date.now()
+				};
+				
+				if (monthIndex === -1) {
+					// 该月份不存在，添加新的月度统计
+					updateObj.monthly_stats = dbCmd.push({
+						year_month: yearMonth,
+						sessions: 1,
+						duration: durationMinutes,
+						spending: order.total_fee
+					});
+				} else {
+					// 更新现有月份的统计
+					updateObj[`monthly_stats.${monthIndex}.sessions`] = existingStats.monthly_stats[monthIndex].sessions + 1;
+					updateObj[`monthly_stats.${monthIndex}.duration`] = existingStats.monthly_stats[monthIndex].duration + durationMinutes;
+					updateObj[`monthly_stats.${monthIndex}.spending`] = existingStats.monthly_stats[monthIndex].spending + order.total_fee;
+				}
+				
+				await statsCollection.doc(existingStats._id).update(updateObj);
+			}
+			
+			console.log("用户统计信息更新成功");
+			return {
+				errCode: 0,
+				errMsg: '统计信息更新成功'
+			};
+		} catch (e) {
+			console.error("更新用户统计信息失败:", e);
+			return {
+				errCode: 'UPDATE_STATS_ERROR',
+				errMsg: '更新统计信息失败: ' + e.message
+			};
+		}
+	},
+	
+	/**
+	 * 获取用户统计信息
+	 * @param {string} userId 用户ID
+	 * @returns {object} 用户统计信息
+	 */
+	async getUserStatistics(userId) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		try {
+			const userStatsCollection = dbJQL.collection('user-statistics');
+			const userStats = await userStatsCollection
+				.where({
+					user_id: userId
+				})
+				.get();
+				
+			if (userStats.data.length === 0) {
+				// 用户没有统计记录，返回默认值
+				return {
+					errCode: 0,
+					data: {
+						user_id: userId,
+						total_sessions: 0,
+						total_duration: 0,
+						total_spending: 0,
+						monthly_stats: []
+					},
+					errMsg: '用户暂无统计数据'
+				};
+			}
+			
+			return {
+				errCode: 0,
+				data: userStats.data[0],
+				errMsg: 'success'
+			};
+		} catch (e) {
+			console.error("获取用户统计信息失败:", e);
+			return {
+				errCode: 'GET_STATS_ERROR',
+				errMsg: '获取统计信息失败: ' + e.message
+			};
+		}
+	},
+	
+	/**
+	 * 修改后的结账函数，在完成结账的同时更新用户统计信息
+	 * @param {string} signInId 签到ID
+	 * @param {string} resId 预约ID
+	 * @param {string} uid 用户ID
+	 * @returns {string} 结果信息
+	 */
+	SignIn_Settle: async function(signInId, resId, uid) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		try {
+			// 1. 更新签到状态
+			await dbJQL.collection('signin').where({
+				_id: signInId
+			}).update({
+				status: 1
+			});
+			
+			// 2. 更新预约状态
+			await dbJQL.collection('reservation-log').where({
+				_id: resId
+			}).update({
+				status: 2
+			});
+			
+			// 3. 更新订单状态
+			const orderResult = await dbJQL.collection('fishcave-orders').where({
+				user_id: uid,
+				reservation_id: resId,
+				status: 0
+			}).update({
+				status: 1
+			});
+			
+			// 4. 更新用户统计信息
+			await this.updateUserStatistics(uid, resId);
+			
+			return "Settle Succeed";
+		} catch (e) {
+			console.error("结账失败:", e);
+			return "Settle Failed: " + e.message;
+		}
+	},
+	/**
+	 * 获取所有用户的消费排行榜
+	 * @param {object} options 选项，包含 limit 和 sortBy
+	 * @returns {object} 排行榜数据
+	 */
+	async getUserRankings(options = {}) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		const limit = options.limit || 10; // 默认获取前10名
+		const sortBy = options.sortBy || 'total_spending'; // 默认按消费金额排序
+		const sortOrder = options.sortOrder || 'desc'; // 默认降序排列
+		
+		try {
+			// 获取用户统计数据
+			const statsCollection = dbJQL.collection('user-statistics');
+			
+			// 联表查询，获取用户昵称和头像
+			const usersTemp = dbJQL.collection('uni-id-users')
+				.field('_id, nickname, avatar, avatar_file')
+				.getTemp();
+				
+			const result = await statsCollection
+				.where({}) // 获取所有用户
+				.field(`user_id, ${sortBy}, total_sessions, total_duration, total_spending`)
+				.foreignKey('user_id')
+				.loadTemp(usersTemp, 'userInfo')
+				.orderBy(sortBy, sortOrder)
+				.limit(limit)
+				.get();
+				
+			// 处理结果，添加排名信息
+			const rankings = result.data.map((item, index) => {
+				return {
+					rank: index + 1,
+					user_id: item.user_id,
+					nickname: item.userInfo && item.userInfo.length > 0 ? item.userInfo[0].nickname : '未知用户',
+					avatar: item.userInfo && item.userInfo.length > 0 ? (item.userInfo[0].avatar || '') : '',
+					avatar_file: item.userInfo && item.userInfo.length > 0 ? (item.userInfo[0].avatar_file || null) : null,
+					total_sessions: item.total_sessions,
+					total_duration: item.total_duration,
+					total_spending: item.total_spending
+				};
+			});
+			
+			return {
+				errCode: 0,
+				data: rankings,
+				errMsg: 'success'
+			};
+		} catch (e) {
+			console.error("获取用户排行榜失败:", e);
+			return {
+				errCode: 'GET_RANKINGS_ERROR',
+				errMsg: '获取用户排行榜失败: ' + e.message
+			};
+		}
+	},
+	
+	/**
+	 * 重建所有用户的统计数据
+	 * 用于系统初始化或数据修复
+	 * 注意: 这个操作可能会很耗时，建议在低峰期执行
+	 * @returns {object} 重建结果
+	 */
+	async rebuildAllUserStatistics() {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		try {
+			console.log("开始重建所有用户统计数据");
+			
+			// 1. 清空现有的统计数据
+			const statsCollection = dbJQL.collection('user-statistics');
+			await statsCollection.where({}).remove();
+			
+			// 2. 获取所有已完成的订单
+			const ordersCollection = dbJQL.collection('fishcave-orders');
+			const orders = await ordersCollection
+				.where({
+					status: 1 // 只统计已完成的订单
+				})
+				.get();
+				
+			if (orders.data.length === 0) {
+				console.log("没有找到已完成的订单");
+				return {
+					errCode: 0,
+					errMsg: '没有找到已完成的订单'
+				};
+			}
+			
+			// 3. 按用户分组统计
+			const userStats = {};
+			
+			for (const order of orders.data) {
+				const userId = order.user_id;
+				const startTime = new Date(order.starttime);
+				const endTime = new Date(order.endtime);
+				const durationMinutes = Math.round((endTime - startTime) / (1000 * 60));
+				const yearMonth = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}`;
+				
+				// 初始化用户统计
+				if (!userStats[userId]) {
+					userStats[userId] = {
+						user_id: userId,
+						total_sessions: 0,
+						total_duration: 0,
+						total_spending: 0,
+						monthly_stats: {}
+					};
+				}
+				
+				// 累加总计数据
+				userStats[userId].total_sessions += 1;
+				userStats[userId].total_duration += durationMinutes;
+				userStats[userId].total_spending += order.total_fee;
+				
+				// 累加月度数据
+				if (!userStats[userId].monthly_stats[yearMonth]) {
+					userStats[userId].monthly_stats[yearMonth] = {
+						year_month: yearMonth,
+						sessions: 0,
+						duration: 0,
+						spending: 0
+					};
+				}
+				
+				userStats[userId].monthly_stats[yearMonth].sessions += 1;
+				userStats[userId].monthly_stats[yearMonth].duration += durationMinutes;
+				userStats[userId].monthly_stats[yearMonth].spending += order.total_fee;
+			}
+			
+			// 4. 批量插入统计数据
+			const batchInsertData = Object.values(userStats).map(stats => {
+				// 将月度统计对象转换为数组
+				stats.monthly_stats = Object.values(stats.monthly_stats);
+				stats.last_update = Date.now();
+				return stats;
+			});
+			
+			const db = uniCloud.database();
+			const result = await db.collection('user-statistics').add(batchInsertData);
+			
+			console.log(`重建完成，成功更新 ${batchInsertData.length} 个用户的统计数据`);
+			return {
+				errCode: 0,
+				data: {
+					updated_users: batchInsertData.length
+				},
+				errMsg: '重建统计数据成功'
+			};
+		} catch (e) {
+			console.error("重建用户统计数据失败:", e);
+			return {
+				errCode: 'REBUILD_ERROR',
+				errMsg: '重建统计数据失败: ' + e.message
+			};
+		}
+	},
+			
+	/**
+	 * 获取用户月度统计报告
+	 * @param {string} userId 用户ID
+	 * @param {number} months 要获取的月份数，默认6个月
+	 * @returns {object} 月度报告数据
+	 */
+	async getUserMonthlyReport(userId, months = 6) {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		
+		try {
+			// 获取用户统计数据
+			const userStats = await dbJQL.collection('user-statistics')
+				.where({
+					user_id: userId
+				})
+				.get();
+				
+			if (userStats.data.length === 0) {
+				// 用户没有统计记录
+				return {
+					errCode: 0,
+					data: {
+						user_id: userId,
+						months: []
+					},
+					errMsg: '用户暂无统计数据'
+				};
+			}
+			
+			// 获取月度统计数据
+			const monthlyStats = userStats.data[0].monthly_stats || [];
+			
+			// 按时间排序并限制返回数量
+			const sortedMonths = monthlyStats
+				.sort((a, b) => b.year_month.localeCompare(a.year_month))
+				.slice(0, months);
+				
+			// 获取用户信息
+			const userInfo = await dbJQL.collection('uni-id-users')
+				.where({
+					_id: userId
+				})
+				.field('nickname, avatar, avatar_file')
+				.get();
+				
+			return {
+				errCode: 0,
+				data: {
+					user_id: userId,
+					nickname: userInfo.data.length > 0 ? userInfo.data[0].nickname : '未知用户',
+					avatar: userInfo.data.length > 0 ? (userInfo.data[0].avatar || '') : '',
+					total_sessions: userStats.data[0].total_sessions,
+					total_duration: userStats.data[0].total_duration,
+					total_spending: userStats.data[0].total_spending,
+					months: sortedMonths
+				},
+				errMsg: 'success'
+			};
+		} catch (e) {
+			console.error("获取用户月度报告失败:", e);
+			return {
+				errCode: 'GET_REPORT_ERROR',
+				errMsg: '获取用户月度报告失败: ' + e.message
+			};
+		}
+	}
 }

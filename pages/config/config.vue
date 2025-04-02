@@ -6,6 +6,7 @@
 		<button @click="todoAddPrices()">添加价格信息</button>
 		<text>{{Price}}</text><br />
 		<text>{{prices}}</text>
+		<button @click="rebuildStatistics()">重建用户统计数据</button>
 	</view>
 </template>
 
@@ -63,6 +64,13 @@
 		try{
 			prices.value = await todo.Prices_List()
 		}catch{}
+	}
+	// 系统初始化时重建统计数据（管理员功能）
+	async function rebuildStatistics() {
+	  const cloudObject = uniCloud.importObject('todo');
+	  const result = await cloudObject.rebuildAllUserStatistics();
+	  console.log("重建统计结果:", result);
+	  return result;
 	}
 	onMounted(()=>{
 		const res = uniCloud.callFunction({

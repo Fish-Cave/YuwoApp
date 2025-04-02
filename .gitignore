@@ -3,3 +3,4 @@
 /.hbuilderx
 uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-id/config.json
 uni_modules/uni-id-pages/config.js
+uni_modules/uni-id-common/config.js

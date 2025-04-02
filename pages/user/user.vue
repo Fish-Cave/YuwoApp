@@ -269,11 +269,12 @@
 	// 计算属性获取用户信息
 	const userInfo = computed(() => store.userInfo)
 
-	// 示例数据，你需要替换为实际从后端获取的数据
-	const totalUsageCount = ref(120);
-	const totalUsageDuration = ref('30小时');
-	const totalConsumptionAmount = ref('¥199');
-
+	// 初始化统计数据
+	const totalUsageCount = ref(0);
+	const totalUsageDuration = ref('0:00');
+	const totalConsumptionAmount = ref('¥0');
+	
+	
 	async function getPriceList() {
 		try {
 			const result = await todo.GetPriceInfoByRole('superUser')
@@ -397,13 +398,62 @@
 			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
 		});
 	}
-
-	onMounted(() => {
+	
+	// 格式化时长函数 
+	function formatDuration(durationInSeconds) {
+		if (durationInSeconds === undefined || durationInSeconds === null) {
+			return '0小时'; // 或者其他默认值
+		}
+		const hours = Math.floor(durationInSeconds / 3600);
+		const minutes = Math.floor((durationInSeconds % 3600) / 60);
+		// 可以根据需要更精细的格式化，例如显示分钟和秒
+		return `${hours}:${minutes}`; // 示例格式： "X小时Y分钟"
+	}
+	
+	// 格式化金额函数 
+	function formatAmount(amountInCents) {
+		if (amountInCents === undefined || amountInCents === null) {
+			return '¥0'; // 或者其他默认值
+		}
+		const amountInYuan = (amountInCents / 100).toFixed(2); // 转换为元，保留两位小数
+		return `¥${amountInYuan}`;
+	}
+	
+	onMounted(async () => {
 		getPriceList()
 		//getReservationData() // 获取订单数据
 		getMembershipInfo() // 获取会员信息
 		console.log("单价" + price.value + "过夜" + priceOvernight.value)
 		console.log(res)
+		if (res.uid) { // 确保用户已登录
+				try {
+					const statsResult = await todo.getUserStatistics(res.uid); // 调用云函数, 替换 todo 为你的云函数对象 (userStatsFunctions 或 todo)
+		
+					if (statsResult.errCode === 0 && statsResult.data) {
+						// 成功获取到统计数据
+						totalUsageCount.value = statsResult.data.total_sessions; // 使用 total_sessions 更新 总使用次数
+						totalUsageDuration.value = formatDuration(statsResult.data.total_duration); // 格式化时长并更新 总使用时长
+						totalConsumptionAmount.value = formatAmount(statsResult.data.total_spending); // 格式化金额并更新 总消费金额
+					} else {
+						console.error('获取用户统计信息失败:', statsResult);
+						uni.showToast({
+							icon: 'none',
+							title: '获取统计信息失败: ' + statsResult.errMsg
+						});
+						// 可以选择保留初始值或设置其他默认值
+					}
+				} catch (error) {
+					console.error('调用云函数 getUserStatistics 失败:', error);
+					uni.showToast({
+						icon: 'none',
+						title: '调用统计服务失败，请稍后重试'
+					});
+					// 可以选择保留初始值或设置其他默认值
+				}
+			} else {
+				console.warn('用户未登录，无法获取统计信息');
+				// 用户未登录，可以选择不显示统计信息或显示默认值
+			}
 	})
 </script>
 
