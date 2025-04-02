@@ -1266,5 +1266,77 @@ module.exports = {
 	      errMsg: "统计订单数量失败: " + e.message
 	    };
 	  }
-	}
+	},
+	/**
+	 * 获取角色为 preUser 的用户列表
+	 * @returns {object} 包含 preUser 用户的列表
+	 */
+	async getPreUsers() {
+		const dbJQL = uniCloud.databaseForJQL({
+			clientInfo: this.getClientInfo()
+		});
+		try {
+			const res = await dbJQL.collection('uni-id-users')
+				.where({
+					role: 'preUser'
+				})
+				.field({
+					"_id": true,
+					"nickname": true,
+				})
+				.get();
+
+			return {
+				errCode: 0,
+				data: res.data
+			};
+		} catch (e) {
+			console.error('云函数 getPreUsers 错误', e);
+			return {
+				errCode: 500,
+				errMsg: '获取 preUser 列表失败: ' + e.message
+			};
+		}
+	},
+	/**
+	* 提升用户角色从 preUser 到 user
+	* @param {object} params
+	* @param {string} params.userId 要提升权限的用户ID
+	* @returns {object} 操作结果
+	*/
+	async promoteUserRole(params) {
+		const dbJQL = uniCloud.databaseForJQL({
+		  clientInfo: this.getClientInfo()
+		});
+		const userId = params.userId;
+		const userRoleId = "user"; // **Corrected role_id: "user" for "普通会员"
+
+		if (!userId) {
+		  return {
+			errCode: 400,
+			errMsg: '缺少用户ID'
+		  };
+		}
+
+		try {
+		  await dbJQL.collection('uni-id-users')
+			.where({
+			  _id: userId
+			})
+			.update({
+			  role: [userRoleId] 
+			});
+
+		  return {
+			errCode: 0,
+			errMsg: '权限提升成功'
+		  };
+		} catch (e) {
+		  console.error('云函数 promoteUserRole 错误', e);
+		  return {
+			errCode: 500,
+			errMsg: '提升用户权限失败: ' + e.message
+		  };
+		}
+	},
 }
