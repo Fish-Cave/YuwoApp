@@ -99,8 +99,8 @@
 		total_fee: number,
 		status: number,
 		create_date: number,
-		starttime : number,
-		endtime : number
+		starttime: number,
+		endtime: number
 	}
 	const Data = ref < fishOrderData[] > ([])
 	const reservationData = ref([])
@@ -302,5 +302,89 @@
 	.tips {
 		font-size: 20rpx;
 		color: gray;
+	}
+
+	/* 黑夜模式 */
+	@media (prefers-color-scheme: dark) {
+
+		/* 全局样式 */
+		.container {
+			padding: 20px;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+		}
+
+		.button-container {
+			margin-top: 20rpx;
+			display: flex;
+			justify-content: flex-end;
+		}
+
+		.divider {
+			height: 2rpx;
+			background-color: rgb(51, 49, 50);
+			margin: 10rpx 0;
+		}
+
+		/* 玻璃拟态卡片 */
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+		
+		.order-time {
+			font-size: 13px;
+			color: white;
+			background: rgb(59, 59, 61);
+			padding: 2px 8px;
+			border-radius: 12px;
+			align-self: flex-start;
+		}
+
+		/* 预约项目 */
+
+		.reservation-info {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+		}
+
+		.machine-name {
+			font-size: 18px;
+			font-weight: bold;
+			margin-bottom: 6px;
+			color: white;
+		}
+
+		.reservation-time {
+			font-size: 13px;
+			color: lightgray;
+			background: rgb(59, 59, 61);
+			padding: 2px 8px;
+			border-radius: 12px;
+			align-self: flex-start;
+		}
+
+		.id-label {
+			font-size: 12px;
+			color: gray;
+			margin-right: 4px;
+		}
+
+		.id-value {
+			font-size: 12px;
+			color: gray;
+			max-width: 150px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
 	}
 </style>

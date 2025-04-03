@@ -110,7 +110,7 @@
 			<view class="button-container">
 				<view class="submit-button" @click="submit">结束使用并支付</view>
 				<uni-pay ref="pay"></uni-pay>
-				<view class="help-button" @click="askForHelp">遇到问题</view>
+				<view v-if="false"class="help-button" @click="askForHelp">遇到问题</view>
 			</view>
 		</view>
 	</view>
@@ -488,7 +488,7 @@
 	})
 </script>
 
-<style>
+<style scoped>
 	/* 全局容器样式 */
 	.container {
 		padding: 30rpx;
@@ -763,5 +763,128 @@
 
 	.help-button:active {
 		background: #e0e0e0;
+	}
+	
+	@media (prefers-color-scheme: dark) {
+		/* 全局容器样式 */
+		.container {
+		    padding: 30rpx;
+		    background: rgb(0,0,0);
+		    min-height: 100vh;
+		    box-sizing: border-box;
+		    padding-bottom: 200rpx;
+		    /* 为底部按钮留出空间 */
+		}
+		
+		.glass-card {
+		    background: rgb(22, 22, 24);
+		    backdrop-filter: blur(10px);
+		    border-radius: 30rpx;
+		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+		    border: 1px solid rgba(255, 255, 255, 0.18);
+		    overflow: hidden;
+		    margin-bottom: 30rpx;
+		    transition: transform 0.3s ease, box-shadow 0.3s ease;
+		    padding: 16rpx;
+		}
+		.card-title {
+		    font-size: 32rpx;
+		    font-weight: bold;
+		    color: white;
+		}
+		.rate-info {
+		    font-size: 24rpx;
+		    color: lightgray;
+		    background: rgb(59, 59, 61);
+		    padding: 4rpx 16rpx;
+		    border-radius: 20rpx;
+		}
+		
+		.record-label {
+		    font-size: 28rpx;
+		    color: lightgray;
+		    margin-bottom: 5rpx;
+		}
+		
+		.record-time {
+		    font-size: 24rpx;
+		    color: darkgray;
+		}
+		
+		.record-divider {
+		    height: 1rpx;
+		    background-color: rgb(51, 49, 50);
+		    margin: 15rpx 0;
+		}
+		/* 空状态样式 */
+		.empty-text {
+			font-size: 32rpx;
+			color: lightgray;
+			margin-top: 30rpx;
+		}
+		
+		.empty-subtext {
+			font-size: 24rpx;
+			color: white;
+			margin-top: 10rpx;
+		}
+		
+		.active-card {
+		    background: rgb(191, 105, 18);
+		    color: white;
+		    padding: 30rpx;
+		}
+		
+		/* 计时器样式 */
+		.timer-container {
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    margin-bottom: 20rpx;
+		}
+		
+		.timer-text {
+		    font-size: 80rpx;
+		    font-weight: bold;
+		    letter-spacing: 2rpx;
+		    text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+		}
+		
+		.timer-label {
+		    font-size: 28rpx;
+		    margin-top: 10rpx;
+		    opacity: 0.9;
+		}
+		
+		.divider {
+		    height: 2rpx;
+		    background-color: rgba(255, 255, 255, 0.3);
+		    margin: 20rpx 0;
+		}
+		
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+		
+		.glass-card {
+		    background: rgb(22, 22, 24);
+		    backdrop-filter: blur(10px);
+		    border-radius: 30rpx;
+		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+		    border: 1px solid rgba(255, 255, 255, 0.18);
+		    overflow: hidden;
+		    margin-bottom: 30rpx;
+		    transition: transform 0.3s ease, box-shadow 0.3s ease;
+		    padding: 16rpx;
+		}
 	}
 </style>

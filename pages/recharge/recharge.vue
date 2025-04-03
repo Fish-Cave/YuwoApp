@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex; flex-direction: column; padding: 20rpx;">
+	<view class="container" style="display: flex; flex-direction: column; padding: 20rpx;">
 		<view>
 			<view class="user-info-card glass-card">
 				<view class="user-info-header">
@@ -97,7 +97,7 @@
 		</view>
 		<view class="footer">
 			<view class="price-summary">
-				<text>当前价格</text>
+				<text class="detail">当前价格</text>
 				<text class="price-amount">{{orderData.total_fee / 100}}¥</text>
 			</view>
 			<view class="submit-button" @click="submit()">
@@ -409,5 +409,105 @@
 	.goods-detail {
 		font-size: 40rpx;
 		font-weight: bold;
+	}
+	
+	@media (prefers-color-scheme: dark) {
+		.container {
+			padding: 20px;
+			background: rgb(0,0,0);
+			min-height: 100vh;
+			position: relative;
+		}
+		
+		/* 玻璃拟态卡片 */
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+		
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+		
+		.nickname {
+		    font-size: 36rpx;
+		    font-weight: bold;
+		    margin-bottom: 8px;
+		    color: white;
+		}
+		.recharge-info-title {
+		    font-size: 16px;
+		    font-weight: 600;
+		    color: lightgray;
+		    margin-left: 8px;
+		}
+
+		.user-id {
+		    font-size: 24rpx;
+		    color: lightgray;
+		    background: rgb(59, 59, 61);
+		    padding: 4px 10px;
+		    border-radius: 12px;
+		    align-self: flex-start;
+		}
+		
+		.tips {
+		    font-size: 20rpx;
+		    color: lightgray;
+		}
+		
+		.goods-card {
+		    background: rgb(22, 22, 24);
+		    backdrop-filter: blur(10px);
+		    border-radius: 20px;
+		    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+		    border: 1px solid rgba(255, 255, 255, 0.18);
+		    overflow: hidden;
+		    padding: 16px;
+		    margin-bottom: 20px;
+		    transition: transform 0.3s ease, box-shadow 0.3s ease;
+		    height: 160rpx;
+		}
+		
+		.goods-content {
+		    display: flex;
+		    flex-direction: column;
+		    justify-content: space-between;
+		    height: 100%;
+		}
+		
+		.goods-price {
+		    display: flex;
+		    justify-content: flex-end;
+		    padding: 0 20rpx;
+		}
+		
+		.goods-info {
+		    display: flex;
+		    justify-content: space-between;
+		    padding: 0 10rpx;
+		}
+		
+		.goods-detail {
+		    font-size: 40rpx;
+		    font-weight: bold;
+			color : white
+		}
 	}
 </style>

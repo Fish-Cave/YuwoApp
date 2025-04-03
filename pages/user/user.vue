@@ -24,20 +24,20 @@
 
 					<!-- 会员徽章区域 -->
 					<view class="membership-badges-container">
-					    <view v-if="res.role && res.role.includes('admin')" class="membership-badge admin-badge">
-					        <uni-icons type="staff" size="14" color="#ffffff"></uni-icons>
-					        <text>管理员</text>
-					    </view>
-					    <view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
-					        class="membership-badge premium-badge">
-					        <uni-icons type="star-filled" size="14" color="#ffffff"></uni-icons>
-					        <text>包月会员</text>
-					    </view>
-					    <view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
-					        class="membership-badge standard-badge">
-					        <uni-icons type="medal-filled" size="14" color="#ffffff"></uni-icons>
-					        <text>音游会员</text>
-					    </view>
+						<view v-if="res.role && res.role.includes('admin')" class="membership-badge admin-badge">
+							<uni-icons type="staff" size="14" color="#ffffff"></uni-icons>
+							<text>管理员</text>
+						</view>
+						<view v-if="membershipInfo.subscriptionPackage && membershipInfo.subscriptionPackage.length > 0"
+							class="membership-badge premium-badge">
+							<uni-icons type="star-filled" size="14" color="#ffffff"></uni-icons>
+							<text>包月会员</text>
+						</view>
+						<view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
+							class="membership-badge standard-badge">
+							<uni-icons type="medal-filled" size="14" color="#ffffff"></uni-icons>
+							<text>音游会员</text>
+						</view>
 					</view>
 
 					<text class="user-id">UID: {{ userInfo._id }}</text>
@@ -151,7 +151,7 @@
 		<view class="orders-card glass-card">
 			<view class="card-header" @click="goTooderlist()">
 				<text class="card-title">最近订单</text>
-				<text style="color:#6b7280;">查看更多</text>
+				<text class="card-function">查看更多</text>
 			</view>
 			<recent></recent>
 		</view>
@@ -280,8 +280,8 @@
 	const totalUsageCount = ref(0);
 	const totalUsageDuration = ref('0:00');
 	const totalConsumptionAmount = ref('¥0');
-	
-	
+
+
 	async function getPriceList() {
 		try {
 			const result = await todo.GetPriceInfoByRole('superUser')
@@ -343,9 +343,9 @@
 			url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
 		});
 	}
-	
+
 	// 跳转到全部订单页
-	function goTooderlist(){
+	function goTooderlist() {
 		uni.navigateTo({
 			url: '/pages/orederlist/orederlist'
 		});
@@ -412,7 +412,7 @@
 			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
 		});
 	}
-	
+
 	// 格式化时长函数 
 	function formatDuration(durationInSeconds) {
 		if (durationInSeconds === undefined || durationInSeconds === null) {
@@ -423,7 +423,7 @@
 		// 可以根据需要更精细的格式化，例如显示分钟和秒
 		return `${hours}:${minutes}`; // 示例格式： "X小时Y分钟"
 	}
-	
+
 	// 格式化金额函数 
 	function formatAmount(amountInCents) {
 		if (amountInCents === undefined || amountInCents === null) {
@@ -432,7 +432,7 @@
 		const amountInYuan = (amountInCents / 100).toFixed(2); // 转换为元，保留两位小数
 		return `¥${amountInYuan}`;
 	}
-	
+
 	onMounted(async () => {
 		getPriceList()
 		//getReservationData() // 获取订单数据
@@ -440,34 +440,34 @@
 		console.log("单价" + price.value + "过夜" + priceOvernight.value)
 		console.log(res)
 		if (res.uid) { // 确保用户已登录
-				try {
-					const statsResult = await todo.getUserStatistics(res.uid); // 调用云函数, 替换 todo 为你的云函数对象 (userStatsFunctions 或 todo)
-		
-					if (statsResult.errCode === 0 && statsResult.data) {
-						// 成功获取到统计数据
-						totalUsageCount.value = statsResult.data.total_sessions; // 使用 total_sessions 更新 总使用次数
-						totalUsageDuration.value = formatDuration(statsResult.data.total_duration); // 格式化时长并更新 总使用时长
-						totalConsumptionAmount.value = formatAmount(statsResult.data.total_spending); // 格式化金额并更新 总消费金额
-					} else {
-						console.error('获取用户统计信息失败:', statsResult);
-						uni.showToast({
-							icon: 'none',
-							title: '获取统计信息失败: ' + statsResult.errMsg
-						});
-						// 可以选择保留初始值或设置其他默认值
-					}
-				} catch (error) {
-					console.error('调用云函数 getUserStatistics 失败:', error);
+			try {
+				const statsResult = await todo.getUserStatistics(res.uid); // 调用云函数, 替换 todo 为你的云函数对象 (userStatsFunctions 或 todo)
+
+				if (statsResult.errCode === 0 && statsResult.data) {
+					// 成功获取到统计数据
+					totalUsageCount.value = statsResult.data.total_sessions; // 使用 total_sessions 更新 总使用次数
+					totalUsageDuration.value = formatDuration(statsResult.data.total_duration); // 格式化时长并更新 总使用时长
+					totalConsumptionAmount.value = formatAmount(statsResult.data.total_spending); // 格式化金额并更新 总消费金额
+				} else {
+					console.error('获取用户统计信息失败:', statsResult);
 					uni.showToast({
 						icon: 'none',
-						title: '调用统计服务失败，请稍后重试'
+						title: '获取统计信息失败: ' + statsResult.errMsg
 					});
 					// 可以选择保留初始值或设置其他默认值
 				}
-			} else {
-				console.warn('用户未登录，无法获取统计信息');
-				// 用户未登录，可以选择不显示统计信息或显示默认值
+			} catch (error) {
+				console.error('调用云函数 getUserStatistics 失败:', error);
+				uni.showToast({
+					icon: 'none',
+					title: '调用统计服务失败，请稍后重试'
+				});
+				// 可以选择保留初始值或设置其他默认值
 			}
+		} else {
+			console.warn('用户未登录，无法获取统计信息');
+			// 用户未登录，可以选择不显示统计信息或显示默认值
+		}
 	})
 </script>
 
@@ -542,16 +542,18 @@
 
 	/* 会员徽章容器 */
 	.membership-badges-container {
-	    display: flex;
-	    flex-direction: row;  
-	    flex-wrap: wrap;      
-	    gap: 8px;            
-	    margin-bottom: 8px;
-	    margin-top: 8px;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 8px;
+		margin-top: 8px;
 	}
+
 	/* 会员徽章样式 */
 	.membership-badge {
-		display: inline-flex;  /* 改为 inline-flex */
+		display: inline-flex;
+		/* 改为 inline-flex */
 		align-items: center;
 		padding: 3px 10px;
 		border-radius: 12px;
@@ -559,9 +561,12 @@
 		font-weight: 500;
 		color: #ffffff;
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-		width: auto;  /* 自适应宽度 */
-		margin-right: 8px;  /* 如果多个徽章并排，添加右边距 */
-		margin-bottom: 6px; /* 如果徽章换行，添加下边距 */
+		width: auto;
+		/* 自适应宽度 */
+		margin-right: 8px;
+		/* 如果多个徽章并排，添加右边距 */
+		margin-bottom: 6px;
+		/* 如果徽章换行，添加下边距 */
 	}
 
 	.membership-badge text {
@@ -816,6 +821,10 @@
 		font-size: 16px;
 		font-weight: bold;
 		color: #333;
+	}
+	
+	.card-function {
+	    color:#6b7280;
 	}
 
 	.orders-container {
@@ -1100,6 +1109,190 @@
 		.feature-icon {
 			width: 70px;
 			height: 70px;
+		}
+
+
+	}
+
+	/* 黑夜模式 */
+	@media (prefers-color-scheme: dark) {
+		.container {
+			padding: 20px;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			position: relative;
+		}
+
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+		.user-info-card {
+		    background: rgb(191, 105, 18);
+		    margin-bottom: 24px;
+		}
+		
+		.username {
+		    font-weight: bold;
+		    color: white;
+		    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+		    /* 允许长单词/URL换行 */
+		    overflow-wrap: break-word;
+		    /* 中文/日文等任意字符处换行 */
+		    word-break: break-all;
+		    /* 保留空白符但允许换行 */
+		    white-space: pre-line;
+		    /* 触发换行的容器宽度 */
+		    max-width: 300rpx;
+		}
+		
+		.membership-info-card {
+		    background: rgb(22, 22, 24);
+		    border-radius: 16px;
+		    padding: 16px;
+		    margin: 14px 0;
+		    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		    border: 1px solid rgba(255, 255, 255, 0.4);
+		}
+		
+		.membership-name {
+			font-size: 16px;
+			font-weight: 600;
+			color: white;
+			margin-bottom: 6px;
+		}
+		
+		.membership-info-header {
+		    display: flex;
+		    align-items: center;
+		    margin-bottom: 12px;
+		    padding-bottom: 8px;
+		    border-bottom: 1px solid rgb(51, 49, 50);
+		}
+		
+		.membership-info-title {
+		    font-size: 16px;
+		    font-weight: 600;
+		    color: lightgray;
+		    margin-left: 8px;
+		}
+		
+		.membership-item {
+		    display: flex;
+		    align-items: center;
+		    background: rgb(59, 59, 61);
+		    border-radius: 12px;
+		    padding: 12px;
+		    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+		    transition: transform 0.2s ease;
+		}
+		
+		.validity-label {
+		    color: darkgray;
+		    margin-right: 4px;
+		}
+		
+		.validity-date {
+		    font-weight: 500;
+		    color: gray;
+		}
+		
+		.user-id {
+		    font-size: 12px;
+		    color: lightgray;
+		    background: rgb(59, 59, 61);
+		    padding: 4px 10px;
+		    border-radius: 12px;
+		    align-self: flex-start;
+		}
+		
+		/*会员充值按钮 */
+		.becamemember-button {
+			background: rgb(194, 106, 16);
+			color: white;
+			border: none;
+			border-radius: 24px;
+			padding: 12px 24px;
+			font-size: 16px;
+			font-weight: 600;
+			margin-top: 20px;
+			box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+			display: flex;
+			justify-content: center;
+		}
+		
+		
+		/* 统计信息区域 */
+		.stats-container {
+		    display: flex;
+		    justify-content: space-between;
+		    align-items: center;
+		    padding: 18px 12px;
+		    background: rgb(22, 22, 24);
+		    border-radius: 16px;
+		    margin-top: 12px;
+		    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+		    border: 1px solid rgba(255, 255, 255, 0.4);
+		}
+		
+		
+		.stat-label {
+		    font-size: 13px;
+		    color: darkgray;
+		    font-weight: 500;
+		}
+		
+		.stat-divider {
+		    width: 1px;
+		    height: 36px;
+		    background: rgb(51, 49, 50);
+		    margin: 0 8px;
+		}
+		
+		/* 功能按钮部分 */
+		
+		.feature-label {
+		    font-size: 14px;
+		    color: lightgray;
+		    font-weight: 500;
+		}
+		
+		/* 订单卡片样式 */
+
+		.card-title {
+		    font-size: 16px;
+		    font-weight: bold;
+		    color: white;
+		}
+		
+		.card-function {
+		    color:lightgray;
+		}
+		
+		/* 功能项样式 */
+		.utility-item:active {
+		    background-color: rgb(59, 59, 61);
+		}
+		
+		.utility-text {
+		    flex: 1;
+		    margin-left: 12px;
+		    font-size: 15px;
+		    color: white;
+		}
+		
+		.utility-divider {
+		    height: 1px;
+		    background-color: rgb(51, 49, 50);
+		    margin: 0 8px;
 		}
 	}
 </style>

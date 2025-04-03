@@ -10,7 +10,8 @@
 					<text>待使用</text>
 				</view>
 			</view>
-			<view class="divider"></view>
+			<view class="divider" 
+			style="background-color: rgba(255, 255, 255, 0.3)"></view>
 			<view class="order-info">
 				<view class="info-row">
 					<text class="info-label">预约时间:</text>
@@ -30,7 +31,7 @@
 						<text>确定还是不玩机台吗?</text>
 					</view>
 				</view>
-				<view class="divider" style="background-color: rgb(235, 238, 245);"></view>
+				<view class="divider"></view>
 				<view>
 					<uni-segmented-control :values="segmentedValues" :current="1" style-type="button"
 						active-color="#f9cb14" @clickItem="onclickItem"></uni-segmented-control>
@@ -74,7 +75,11 @@
 						</view>
 					</uni-col>
 					<uni-col :span="20">
-						<uni-title type="h3" title="微信支付授权"></uni-title>
+						<view style="margin-bottom: 20rpx;">
+							<text class="detail">
+								微信支付授权
+							</text>
+						</view>
 						<text class="tips">开始使用前需要获取微信支付授权，结束后将自动完成扣款。</text>
 					</uni-col>
 				</uni-row>
@@ -281,7 +286,7 @@
 <style>
 	/* 全局容器样式 */
 	.container {
-		padding: 30rpx;
+		padding: 20rpx;
 		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 		min-height: 100vh;
 		box-sizing: border-box;
@@ -507,5 +512,78 @@
 		font-weight: 600;
 		background: rgba(255, 193, 7, 0.1);
 		color: #f9cb14;
+	}
+	.detail{
+		color : black;
+		font-size: 20rpx;
+	}
+	
+	@media (prefers-color-scheme: dark) {
+		.container {
+		    padding: 20rpx;
+		    background: rgb(0,0,0);
+		    min-height: 100vh;
+		    box-sizing: border-box;
+		    padding-bottom: 200rpx;
+		    /* 为底部按钮留出空间 */
+		}
+		
+		/* 玻璃态卡片 */
+		.glass-card {
+		    background: rgb(22, 22, 24);
+		    backdrop-filter: blur(10px);
+		    border-radius: 30rpx;
+		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+		    border: 1px solid rgba(255, 255, 255, 0.18);
+		    overflow: hidden;
+		    margin-bottom: 30rpx;
+		    transition: transform 0.3s ease, box-shadow 0.3s ease;
+		    padding: 16rpx;
+		}
+		
+		.active-card {
+		    background: rgb(191, 105, 18);
+		    color: white;
+		    padding: 30rpx;
+		}
+		.card-title {
+		    font-size: 32rpx;
+		    font-weight: bold;
+		    color: white;
+		}
+		/* 机台使用状态样式 */
+		.play-status {
+		    display: flex;
+		    align-items: center;
+		    background: rgba(249, 249, 249, 0.5);
+		    padding: 20rpx;
+		    border-radius: 15rpx;
+		    margin-top: 10rpx;
+		}
+		.divider {
+			height: 2rpx;
+			background-color: rgb(51, 49, 50);
+			margin: 20rpx 0;
+		}
+
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+		.tips{
+			color : lightgray
+		}
+		.detail{
+			color : white;
+			font-size: 20rpx;
+		}
 	}
 </style>

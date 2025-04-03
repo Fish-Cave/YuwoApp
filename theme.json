@@ -9,14 +9,15 @@
 		"tabBarBorderStyle": "black",
 		"tabBarBackgroundColor": "#F7F7F7"
 	},
+	
 	"dark": {
-		"navigationBarTextStyle": "white",
-		"navigationBarBackgroundColor": "#1F1F1F",
-		"backgroundColor": "#1F1F1F",
-
 		"tabBarColor": "#cacaca",
 		"tabBarSelectedColor": "rgba(255, 141, 26, 1)",
 		"tabBarBorderStyle": "white",
-		"tabBarBackgroundColor": "#1F1F1F"
+		"tabBarBackgroundColor": "#1F1F1F",
+		
+		"navigationBarTextStyle": "white",
+		"navigationBarBackgroundColor": "#1F1F1F",
+		"backgroundColor": "#1F1F1F"
 	}
 }

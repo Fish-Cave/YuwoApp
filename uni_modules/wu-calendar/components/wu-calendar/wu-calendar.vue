@@ -870,6 +870,23 @@
 	$wu-color-subtitle: #555555;
 	$wu-text-color-grey: #999;
 
+	/* 黑夜模式 */
+	@media (prefers-color-scheme: dark) {
+		.wu-calendar__mask {
+			position: fixed;
+			bottom: 0;
+			top: 0;
+			left: 0;
+			right: 0;
+			background-color: #000000;
+			transition-property: opacity;
+			transition-duration: 0.3s;
+			opacity: 0;
+			/* #ifndef APP-NVUE */
+			z-index: 99;
+			/* #endif */
+		}
+	}
 	.wu-calendar {
 		/* #ifndef APP-NVUE */
 		display: flex;

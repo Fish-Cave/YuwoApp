@@ -213,7 +213,9 @@
 		]
 	},
 	"tabBar": {
-		
+		"color": "@tabBarColor", 
+		"borderStyle": "@tabBarBorderStyle",
+		"backgroundColor": "@tabBarBackgroundColor",
 		"selectedColor": "rgba(255, 141, 26, 1)",
 		"list": [{
 				"pagePath": "pages/index/index",

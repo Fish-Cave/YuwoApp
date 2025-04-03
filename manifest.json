@@ -67,6 +67,10 @@
 	"mp-toutiao": {
 		"usingComponents": true
 	},
+	"h5" : {
+			"darkmode" : true,
+			"themeLocation" : "theme.json" // 如果 theme.json 在根目录可省略
+	 },
 	"uniStatistics": {
 		"enable": false
 	},

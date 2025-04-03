@@ -6,7 +6,7 @@
 		</view>
 		<view v-else class="user-info-card glass-card">
 			<view class="user-info-header">
-				<view class="avatar-container">
+				<view class="avatar-container" style="width: 160rpx; height: 160rpx;">
 					<!-- 使用 uni-id-pages-avatar 组件显示头像 -->
 					<uni-id-pages-avatar width="160rpx" height="160rpx"></uni-id-pages-avatar>
 				</view>
@@ -148,7 +148,7 @@
 		overflow: hidden;
 		border: 2px solid #fff;
 		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-		margin-right: 16px;
+		margin-right: 16rpx;
 	}
 
 	.user-details {
@@ -367,6 +367,142 @@
 
 		.instruction-text {
 			font-size: 30rpx;
+		}
+	}
+	
+	/* 黑夜模式 */
+	@media (prefers-color-scheme: dark) {
+		/* 全局样式 */
+		.container {
+			padding: 20px;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			position: relative;
+		}
+		
+		/* 玻璃拟态卡片 */
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+		
+		.glass-card:active {
+			transform: translateY(2px);
+			box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
+		}
+		
+		.avatar-container {
+			width: 160rpx;
+			height: 160rpx;
+			border-radius: 50%;
+			overflow: hidden;
+			border: 2px solid #fff;
+			box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+			margin-right: 16px;
+		}
+		
+		.user-details {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+		}
+		
+		.nickname {
+			font-size: 36rpx;
+			font-weight: bold;
+			margin-bottom: 8px;
+			color: white;
+			/* 允许长单词/URL换行 */
+			overflow-wrap: break-word;
+			/* 中文/日文等任意字符处换行 */
+			word-break: break-all;
+			/* 保留空白符但允许换行 */
+			white-space: pre-line;
+			/* 触发换行的容器宽度 */
+			max-width: 400rpx;
+		}
+		
+		.user-id {
+			font-size: 24rpx;
+			color: #6b7280;
+			background: rgb(59, 59, 61);
+			padding: 4px 10px;
+			border-radius: 12px;
+			align-self: flex-start;
+		}		
+		.icon-container {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+			width: 60px;
+			height: 60px;
+			border-radius: 16px;
+			margin-bottom: 12px;
+			box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+		}
+		
+		.function-text {
+			font-size: 28rpx;
+			font-weight: 600;
+			color: white;
+		}
+		
+		.vertical-divider {
+			width: 1px;
+			height: 80px;
+			background: rgb(51, 49, 50);
+		}
+		
+		/* 使用说明卡片 */
+		.instructions-card {
+			margin-bottom: 24px;
+		}
+		
+		.card-title {
+			font-size: 18px;
+			font-weight: bold;
+			color: white;
+			padding: 8px 4px 16px 4px;
+			border-bottom: 1px solid rgb(51, 49, 50);
+			margin-bottom: 16px;
+		}
+		
+		.instructions-list {
+			padding: 0 4px;
+		}
+		
+		.instruction-item {
+			display: flex;
+			align-items: center;
+			margin-bottom: 16px;
+		}
+		
+		.instruction-number {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			background: rgba(255, 193, 7, 0.1);
+			color: #FF9800;
+			font-size: 14px;
+			font-weight: 600;
+			margin-right: 12px;
+		}
+		
+		.instruction-text {
+			font-size: 28rpx;
+			color: white;
+			line-height: 1.5;
 		}
 	}
 </style>

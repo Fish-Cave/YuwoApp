@@ -952,4 +952,114 @@
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 		/* 保持默认阴影或略微调整 */
 	}
+	
+	@media (prefers-color-scheme: dark) {
+		/* 基础容器样式 */
+		.container {
+			width: 100%;
+			padding: 20rpx;
+			box-sizing: border-box;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+		}
+		/* 玻璃拟态卡片 */
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20rpx;
+			box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 24rpx;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			position: relative;
+		}
+		
+		.icon-container {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+			width: 60px;
+			height: 60px;
+			border-radius: 16px;
+		}
+		
+		.machine-name {
+			font-weight: bold;
+			font-size: 34rpx;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			line-height: 1.4;
+			color: white;
+			margin-bottom: 8rpx;
+		}
+		
+		.machine-price {
+			font-size: 26rpx;
+			color: lightgray;
+			line-height: 1.4;
+			background: rgb(59, 59, 61);
+			padding: 4rpx 16rpx;
+			border-radius: 20rpx;
+			align-self: flex-start;
+			font-weight: 500;
+		}
+		
+		.heart-icon {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			background: gray;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+			transition: all 0.2s ease;
+		}
+		
+		/* 时间轴样式 */
+		.time-label {
+			color: white;
+			font-size: 22rpx;
+			font-weight: 500;
+		}
+		
+		.timeline-bar {
+			height: 36rpx;
+			width: 100%;
+			background-color: rgb(59, 59, 61);
+			border-radius: 18rpx;
+			position: relative;
+			box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+			overflow: hidden;
+		}
+		
+		.timeline-segment-pulse {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(255, 255, 255, 0.3);
+			animation: pulse 2s infinite;
+			border-radius: 18rpx;
+		}
+		
+		.filter-button {
+			display: flex;
+			align-items: center;
+			background-color: rgba(255, 255, 255, 0.3);
+			padding: 10rpx 20rpx;
+			border-radius: 30rpx;
+			box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+		}
+		
+		.filter-text {
+			margin-left: 10rpx;
+			font-size: 26rpx;
+			color: white;
+		}
+	}
 </style>

@@ -60,7 +60,7 @@
 						<view v-for="(reservation, index) in groupedUser.reservations" :key="index"
 							class="timeline-segment user-segment"
 							:style="calculateUserTimelineStyle(reservation, startTime, endTime)">
-							</view>
+						</view>
 					</view>
 				</view>
 			</view>
@@ -747,6 +747,145 @@
 			font-size: 18px;
 			padding: 14px 28px;
 			border-radius: 28px;
+		}
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.container {
+			width: 100%;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			box-sizing: border-box;
+			padding: 20px;
+			position: relative;
+		}
+
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+
+		.glass-card:active {
+			transform: translateY(2px);
+			box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
+		}
+
+		.machine-name {
+			font-size: 20px;
+			font-weight: bold;
+			margin-bottom: 4px;
+			color: white;
+		}
+
+		.machine-price {
+			font-size: 14px;
+			color: lightgray;
+			font-weight: 500;
+			padding: 4px 10px;
+			background: rgb(59, 59, 61);
+			/* 黄色主题 */
+			border-radius: 12px;
+			align-self: flex-start;
+		}
+		
+		.username {
+		    font-size: 16px;
+		    font-weight: bold;
+		    margin-bottom: 4px;
+		    color: white;
+		}
+		
+		.date-text {
+		    font-size: 15px;
+		    color: lightgray;
+		    margin-bottom: 12px;
+		    font-weight: 600;
+		}
+		
+		.time-label {
+		    font-size: 12px;
+		    color: lightgray;
+		    font-weight: 500;
+		}
+		
+		.timeline-bar {
+		    height: 12px;
+		    width: 100%;
+		    background-color: rgb(59, 59, 61);
+		    border-radius: 6px;
+		    position: relative;
+		    overflow: hidden;
+		    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+		}
+		
+		.reservation-count {
+		    font-size: 13px;
+		    color: #6b7280;
+		    background: rgba(243, 244, 246, 0.7);
+		    padding: 2px 8px;
+		    border-radius: 12px;
+		    align-self: flex-start;
+		}
+		
+		.duration-badge {
+		    position: absolute;
+		    top: 12px;
+		    right: 12px;
+		    background: rgb(59, 59, 61);
+		    /* 黄色主题 */
+		    padding: 4px 10px;
+		    border-radius: 12px;
+		    font-size: 12px;
+		    color: lightgray;
+		    /* 黄色主题 */
+		    font-weight: 600;
+		}
+		/* 底部区域 */
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+		
+		.submit-button {
+			background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+			border-radius: 8px;
+			width: 80%;
+			height: 50px !important;
+			min-height: 45px;
+			line-height: 45px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			margin: 0 auto;
+			font-weight: bold;
+			color: white;
+			font-size: 15px;
+			box-shadow: 0 4px 12px rgba(249, 203, 20, 0.3);
+			transition: all 0.3s;
+			position: relative;
+			overflow: hidden;
+			box-sizing: border-box;
+			padding: 0;
+		}
+		
+		.submit-button:active {
+			transform: scale(0.98);
+			box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
 		}
 	}
 </style>

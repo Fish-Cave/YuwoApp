@@ -1,11 +1,5 @@
 <template>
-	<view class="container">
-		<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour"
-			:maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
-		<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour"
-			:maxHour="maxEndTimeHour" :filter="timeFilter" :minMinute="minEndTimeMinute"
-			@confirm="confirmEndTime"></uv-datetime-picker>
-
+	<view class="container" style="padding: 20rpx 0;">
 		<scroll-view scroll-y class="scroll-view">
 			<view class="header-container glass-card">
 				<uni-row>
@@ -23,16 +17,19 @@
 				</uni-row>
 			</view>
 
-			<view class="divider" />
+
 			<view class="calendar-container glass-card">
 				<wu-calendar :insert="true" :date="selectedDate" type="week" :fold="false" startWeek="mon"
 					color="#f59e0b" mode="single" @change="calendarChange">
 				</wu-calendar>
 			</view>
 
-			<view class="divider" />
+
 			<view class="chart-container glass-card" v-if="!isNoPlayMachine">
-				<uni-title type="h1" title="已有预约时段"></uni-title>
+				<view style="margin-bottom: 20rpx;">
+					<text class="title">已有预约时段</text>
+				</view>
+
 				<view class="timeline-hours">
 					<span>0:00</span>
 					<span>6:00</span>
@@ -64,9 +61,11 @@
 
 			</view>
 
-			<view class="divider" />
 			<view class="booking-container glass-card">
-				<uni-title type="h1" title="确认预约信息"></uni-title>
+				<view style="margin-bottom: 20rpx;">
+					<text class="title">确认预约信息</text>
+				</view>
+
 
 				<view v-if="res.role.includes('admin')" style="margin-bottom: 10rpx;">
 					<text style="margin-right: 20rpx;">Debug 信息:</text>
@@ -125,15 +124,26 @@
 							<uni-col :span="4">
 								<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
 							</uni-col>
-							<uni-col :span="14">预计时长：{{totalTimeText}}</uni-col>
-							<uni-col :span="6">费用：¥{{price}}</uni-col>
+							<uni-col :span="14">
+								<text class="details">
+									预计时长：{{totalTimeText}}
+								</text></uni-col>
+							<uni-col :span="6">
+								<text class="details">
+									费用：¥{{price}}
+								</text>
+
+							</uni-col>
 						</uni-row>
 					</view>
 				</view>
 
 				<view class="membership-info"
 					v-if="(membershipInfo.membership.length > 0 || membershipInfo.subscriptionPackage.length > 0)&& Data.isPlay">
-					<uni-title type="h2" title="会员信息" class="membership-title"></uni-title>
+					<view style="margin-bottom: 20rpx;">
+						<text class="title">会员信息</text>
+					</view>
+
 					<view class="membership-card">
 						<view v-if="membershipInfo.membership.length > 0" class="membership-item">
 							<uni-icons type="star-filled" size="20" color="#f59e0b" class="membership-icon"></uni-icons>
@@ -160,7 +170,7 @@
 
 		<view class="footer">
 			<view class="price-summary">
-				<text>预计费用 </text>
+				<text class="details">预计费用 </text>
 				<text class="price-amount">¥{{price}}</text>
 			</view>
 			<view v-if="isUserFree" class="submit-button" @click="submitOrder()">
@@ -192,22 +202,22 @@
 		subscriptionPackage: []
 	})
 	const isUserFree = ref(true)
-	async function setIsUserFree(){
-		try{
+	async function setIsUserFree() {
+		try {
 			const result = await todo.Order_Get(res.uid)
 			console.log(result.data.length)
-			if(result.data.length) {
+			if (result.data.length) {
 				isUserFree.value = false
 			}
-		}catch(e){}
+		} catch (e) { }
 	}
-	function arrears(){
+	function arrears() {
 		uni.showToast({
-			title : "您有未支付的游玩费用,无法预约新的订单",
-			icon : "error"
+			title: "您有未支付的游玩费用,无法预约新的订单",
+			icon: "error"
 		})
 	}
-	
+
 	//价格相关
 	//pricelist是一个包含两个对象的价格表数组
 	interface priceList {
@@ -985,8 +995,14 @@
 		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 		min-height: 100vh;
 		box-sizing: border-box;
-		padding: 20px;
+		padding: 30px;
 		position: relative;
+	}
+
+	.title {
+		color: black;
+		font-weight: bold;
+		font-size: 30rpx;
 	}
 
 	/* 滚动视图样式 */
@@ -1313,7 +1329,7 @@
 	.submit-button:active::after {
 		left: 100%;
 	}
-	
+
 	.arrears-button {
 		background: linear-gradient(135deg, #D3D3D3 0%, #B0B0B0 100%);
 		border-radius: 8px;
@@ -1334,12 +1350,12 @@
 		box-sizing: border-box;
 		padding: 0;
 	}
-	
+
 	.arrears-button:active {
 		transform: scale(0.98);
 		box-shadow: 0 2px 6px rgba(249, 203, 20, 0.3);
 	}
-	
+
 	.arrears-button::after {
 		content: "";
 		position: absolute;
@@ -1350,7 +1366,7 @@
 		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 		transition: 0.5s;
 	}
-	
+
 	.arrears-button:active::after {
 		left: 100%;
 	}
@@ -1487,5 +1503,176 @@
 				transparent,
 				rgba(31, 38, 135, 0.1),
 				transparent);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.container {
+			width: 100%;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			box-sizing: border-box;
+			padding: 30px;
+			position: relative;
+		}
+
+		.glass-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: visible;
+			padding: 16px;
+			margin-bottom: 20px;
+			margin-left: 10px;
+			margin-right: 10px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+
+		.machine-name {
+			font-weight: bold;
+			font-size: 18px;
+			color: white;
+			margin-bottom: 4px;
+		}
+
+		.price-rate {
+			font-size: 13px;
+			color: lightgray;
+			background: rgb(59, 59, 61);
+			padding: 2px 8px;
+			border-radius: 12px;
+			align-self: flex-start;
+		}
+
+		.timeline-hours span {
+			color: lightgray;
+			font-size: 12px;
+			font-weight: 500;
+			position: relative;
+		}
+
+		.timeline-hours span::before {
+			content: '';
+			position: absolute;
+			left: 50%;
+			top: 15px;
+			transform: translateX(-50%);
+			width: 1px;
+			height: 5px;
+			background-color: darkgray;
+		}
+
+		.timeline-bar {
+			height: 12px;
+			width: 100%;
+			background-color: rgb(59, 59, 61);
+			border-radius: 6px;
+			position: relative;
+			box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+			overflow: hidden;
+		}
+
+		.legend-item {
+			display: flex;
+			align-items: center;
+			margin-left: 10px;
+			font-size: 12px;
+			color: lightgray;
+		}
+
+		.segment-label {
+			font-size: 14px;
+			color: lightgray;
+			font-weight: 500;
+			margin-bottom: 6px;
+			display: block;
+		}
+
+		.title {
+			color: white;
+			font-weight: bold;
+			font-size: 30rpx;
+		}
+		
+		.details {
+			color : lightgray;
+		}
+
+		.booking-time-warning {
+			background-color: rgb(59, 59, 61);
+			color: #f59e0b;
+			border: 1px solid rgba(249, 203, 20, 0.5);
+			border-radius: 6px;
+			padding: 8px 10px;
+			margin: 8px 0;
+			font-size: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			backdrop-filter: blur(5px);
+			box-shadow: 0 2px 8px rgba(249, 203, 20, 0.15);
+		}
+
+		.option-label {
+			font-size: 13px;
+			color: lightgray;
+			margin-bottom: 5px;
+			font-weight: 500;
+		}
+
+		.picker-view {
+			height: 40px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 10px;
+			background-color: rgb(59, 59, 61);
+			border-radius: 6px;
+			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			transition: all 0.2s ease;
+		}
+
+		.attention-box {
+			background: rgb(59, 59, 61);
+			border-radius: 8px;
+			height: 45px;
+			margin: 8px 0;
+			padding: 0 8px;
+			display: flex;
+			align-items: center;
+			backdrop-filter: blur(5px);
+			box-shadow: 0 4px 12px rgb(51, 49, 50);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+		}
+
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+
+		/* 会员信息样式 */
+		.membership-card {
+			background: rgb(59, 59, 61);
+			border-radius: 12px;
+			padding: 15px;
+			box-shadow: 0 4px 12px rgb(51, 49, 50);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+		}
+
+		.membership-text {
+			font-size: 14px;
+			color: lightgray;
+			line-height: 1.4;
+		}
 	}
 </style>
