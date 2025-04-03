@@ -180,18 +180,23 @@
 			}
 		},
 		{
-			"path" : "pages/pay/paysuccess/paysuccess",
-			"style" : 
-			{
-				"navigationBarTitleText" : "支付成功"
+			"path": "pages/pay/paysuccess/paysuccess",
+			"style": {
+				"navigationBarTitleText": "支付成功"
+			}
+		},
+		{
+			"path": "pages/orederlist/orederlist",
+			"style": {
+				"navigationBarTitleText": "历史订单"
 			}
 		}
 	],
 	"globalStyle": {
-		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "🐟窝预约小程序",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarTextStyle": "@navigationBarTextStyle",
+		"navigationBarBackgroundColor": "@navigationBarBackgroundColor",
+		"backgroundColor": "@backgroundColor"
 	},
 	"uniIdRouter": {
 		"loginPage": "/uni_modules/uni-id-pages/pages/login/login-withpwd",
@@ -208,7 +213,7 @@
 		]
 	},
 	"tabBar": {
-		"color": "#000000",
+		
 		"selectedColor": "rgba(255, 141, 26, 1)",
 		"list": [{
 				"pagePath": "pages/index/index",

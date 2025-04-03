@@ -131,11 +131,11 @@
 					<text class="feature-label">预约中</text>
 				</view>
 
-				<view class="feature-item" @click="handleFeatureClick('favorite')">
+				<view class="feature-item" @click="goTooderlist()">
 					<view class="feature-icon favorite-icon">
-						<uni-icons type="heart" size="28" color="#8B5CF6"></uni-icons>
+						<uni-icons type="wallet" size="28" color="#8B5CF6"></uni-icons>
 					</view>
-					<text class="feature-label">收藏</text>
+					<text class="feature-label">全部订单</text>
 				</view>
 
 				<view class="feature-item" @click="handleFeatureClick('service')">
@@ -149,7 +149,7 @@
 
 		<!-- 最近订单 -->
 		<view class="orders-card glass-card">
-			<view class="card-header" @click="goToRecentOrder">
+			<view class="card-header" @click="goTooderlist()">
 				<text class="card-title">最近订单</text>
 				<text style="color:#6b7280;">查看更多</text>
 			</view>
@@ -341,6 +341,13 @@
 	function goToUserInfoPage() {
 		uni.navigateTo({
 			url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
+		});
+	}
+	
+	// 跳转到全部订单页
+	function goTooderlist(){
+		uni.navigateTo({
+			url: '/pages/orederlist/orederlist'
 		});
 	}
 

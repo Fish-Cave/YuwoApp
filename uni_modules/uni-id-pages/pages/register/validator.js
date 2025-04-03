@@ -30,7 +30,7 @@ export default {
 	},
 	"nickname": {
 		"rules": [{
-				minLength: 3,
+				minLength: 1,
 				maxLength: 32,
 				errorMessage: '昵称长度在 {minLength} 到 {maxLength} 个字符',
 			},
