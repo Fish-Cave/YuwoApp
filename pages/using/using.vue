@@ -159,26 +159,29 @@
 	const singlePrice = ref(5)
 	const totalPrice = ref(0) // 总价，实时更新
 	const overnightPrice = ref(50)
+	const today = ref(0)
 	// 计算属性
 	const displayRate = computed(() => {
 		if (membershipType.value === "weekly_monthly") {
 			return "包周/月会员免费";
-		} else if (membershipType.value === "music_game") {
-			if (isOvernight.value) {
-				return "音游会员: 包夜40元";
-			}
-			if (isPlay.value) {
-				return "音游会员: 4元/半小时";
-			}
-			return "音游会员: 不游玩机台0元/半小时";
+		} else if (membershipType.value === "music_game" && isPlay.value == false) {
+			return "鱼窝歇脚卡休息免费";
 		} else {
 			if (isOvernight.value) {
-				return "普通用户: 包夜50元";
+				if(0<today.value&&today.value<4){
+					return "闲时通票30元";
+				}else{
+					return "忙时通票50元";
+				}
 			}
 			if (isPlay.value) {
-				return "普通用户: 5元/半小时";
+				if(0<today.value&&today.value<4){
+					return "闲时3元/半小时";
+				}else{
+					return "忙时5元/半小时";
+				}
 			}
-			return "普通用户: 不游玩机台1元/半小时";
+			return "不游玩机台1元/半小时";
 		}
 	});
 
@@ -294,7 +297,7 @@
 					membershipType.value = "none";
 					console.log('用户没有会员');
 				}
-				setPriceByMembership()
+				//setPriceByMembership()
 			} else {
 				membershipType.value = "none";
 				console.log('获取会员信息失败或用户没有会员');
@@ -316,18 +319,28 @@
 				// 当 expression 表达式值 等于 value2 时执行该代码块
 				singlePrice.value = 0
 				if(isPlay.value){
-					singlePrice.value = 4
+					if(0<today.value&&today.value<5){
+						singlePrice.value = 3
+						overnightPrice.value = 30
+					}else{
+						singlePrice.value = 5
+						overnightPrice.value = 50
+					}	
 				}
-				overnightPrice.value = 40
 				orderData.singlePrice = singlePrice.value * 100
 				break;
 			default:
 				// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
 				singlePrice.value = 1
 				if(isPlay.value){
-					singlePrice.value = 5
+					if(0<today.value&&today.value<5){
+						singlePrice.value = 3
+						overnightPrice.value = 30
+					}else{
+						singlePrice.value = 5
+						overnightPrice.value = 50
+					}	
 				}
-				overnightPrice.value = 50
 				orderData.singlePrice = singlePrice.value * 100
 				break;
 		}
@@ -338,12 +351,15 @@
 			const result = await todo.SignIn_Search(res.uid)
 			console.log("签到数据:", result.data)
 			if (result.data && result.data.length > 0) {
+				//console.log(result.data)
 				Data.value = result.data
 				isPlay.value = Data.value[0].isPlay
 				isOvernight.value = Data.value[0].isOvernight
 				getReservationData(Data.value[0].reservationid)
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
-
+				today.value = dayjs(startTime.value).day()
+				console.log("订单开始于星期" + today.value)
+				setPriceByMembership()
 				orderData.starttime = startTime.value
 				orderData.reservation_id = Data.value[0].reservationid
 				if (startTime.value && startTime.value !== 0) {
@@ -412,8 +428,6 @@
 			//普通预约按游玩时间计算，先确认是否游玩机台
 			if (isPlay.value) {
 				// 普通预约按时间计费
-				if (membershipType.value == "music_game") {
-					// 音游会员，每半小时4元，当日封顶40元
 					const baseRate = singlePrice.value; // 不玩机台每半小时0元
 					const calculatedPrice = halfHourUnits * baseRate;
 					// 如果玩机台且超过封顶价格，使用封顶价格
@@ -424,8 +438,8 @@
 						totalPrice.value = calculatedPrice;
 						orderData.total_fee = totalPrice.value * 100
 					}
-
-				} else if (membershipType.value == "none") {
+					/* //不再区分音游会员
+					else if (membershipType.value == "none") {
 					// 非会员，每半小时5元，当日封顶50元
 					const baseRate = singlePrice.value; // 不玩机台每半小时1元
 					const calculatedPrice = halfHourUnits * baseRate;
@@ -437,16 +451,13 @@
 						totalPrice.value = calculatedPrice;
 						orderData.total_fee = totalPrice.value * 100
 					}
-				}
-
+				}*/
 			} else {
 				if (membershipType.value == "music_game") {
-					// 音游会员，每半小时4元，当日封顶40元
 					const baseRate = 0; // 不玩机台每半小时0元
 					const calculatedPrice = halfHourUnits * baseRate;
 					totalPrice.value = calculatedPrice;
 				} else if (membershipType.value == "none") {
-					// 非会员，每半小时5元，当日封顶50元
 					const baseRate = 1; // 不玩机台每半小时1元
 					const calculatedPrice = halfHourUnits * baseRate;
 					totalPrice.value = calculatedPrice;

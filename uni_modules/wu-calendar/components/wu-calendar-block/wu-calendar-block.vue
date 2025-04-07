@@ -108,4 +108,45 @@
 			/* #endif */
 		}
 	}
+	@media (prefers-color-scheme: dark) {
+		.wu-calendar-block {
+			.wu-calendar__weeks {
+				position: relative;
+				/* #ifndef APP-NVUE */
+				display: flex;
+				/* #endif */
+				flex-direction: row;
+				padding: 0 8rpx;
+			}
+			
+			.wu-calendar__weeks-item {
+				flex: 1;
+			}
+			
+			.wu-calendar__box-bg {
+				/* #ifndef APP-NVUE */
+				display: flex;
+				/* #endif */
+				justify-content: center;
+				align-items: center;
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+			}
+			
+			.wu-calendar__box-bg-text {
+				font-size: 100rpx;
+				transform: scale(4);
+				font-weight: bold;
+				color: $wu-text-color-grey;
+				opacity: 0.1;
+				text-align: center;
+				/* #ifndef APP-NVUE */
+				line-height: 1;
+				/* #endif */
+			}
+		}
+	}
 </style>

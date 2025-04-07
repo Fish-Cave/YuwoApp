@@ -1298,6 +1298,7 @@
 		
 		.wu-calendar__weeks_container {
 			transition: height 0.2s linear;
+			
 		}
 		
 		.wu-calendar__fold {

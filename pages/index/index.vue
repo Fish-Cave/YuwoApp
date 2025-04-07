@@ -1,7 +1,7 @@
 <template>
 	<view>
 		<view>
-			<wu-calendar class="calendar" type="week" @change="calendarChange" slideSwitchMode="none" :fold="false" startWeek="mon"
+			<wu-calendar type="week" @change="calendarChange" slideSwitchMode="none" :fold="false" startWeek="mon"
 				color="#f59e0b" :startDate="todayDate" />
 		</view>
 

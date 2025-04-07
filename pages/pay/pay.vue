@@ -314,4 +314,56 @@ export default {
 		font-size : 40rpx;
 		font-weight: bold;
 	}
+	
+	@media (prefers-color-scheme: dark) {
+		.container {
+			padding: 20px;
+			background: #000;
+			min-height: 100vh;
+			position: relative;
+		}
+
+		/* 底部区域 */
+		.footer {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			padding: 10px 0;
+			border-top: 1px solid rgb(51, 49, 50);
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+			z-index: 100;
+		}
+		
+		.price-card {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}	
+		
+		.divider {
+			height: 2rpx;
+			background-color: rgba(255, 255, 255, 0.18);
+			margin: 20rpx 0;
+		}
+		
+		/*说明区域*/
+		.tips-container {
+			padding: 0 20rpx;
+			margin: 20rpx 0;
+		}
+		
+		.tips {
+			font-size: 20rpx;
+			color: lightgray;
+		}
+	}
 </style>

@@ -249,4 +249,67 @@ import { nextTick } from 'vue';
 	.wu-calendar-item--checked {
 		color: #fff;
 	}
+	
+	@media (prefers-color-scheme: dark) {
+		@import '@/uni_modules/wu-ui-tools/theme.scss';
+		$wu-font-size-base: 28rpx;
+		$wu-text-color: lightgray;
+		$wu-font-size-sm: 24rpx;
+		$wu-color-error: #e43d33;
+		$wu-opacity-disabled: 0.3;
+		$wu-text-color-disable: #c0c0c0;
+		
+		.wu-calendar-item__weeks-box {
+			flex: 1;
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			padding: 0 0px;
+		}
+		
+		.wu-calendar-item__weeks-box-text {
+			font-size: $wu-font-size-base;
+			color: $wu-text-color;
+		}
+		 
+		.wu-calendar-item__weeks-lunar-text {
+			font-size: $wu-font-size-sm;
+			color: $wu-text-color;
+		}
+		
+		.wu-calendar-item__weeks-box-item {
+			flex: 1;
+			position: relative;
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			background-color: rgb(22, 22, 24);
+		}
+		
+		.wu-calendar-item__weeks-box-circle {
+			position: absolute;
+			border-radius: 16rpx;
+			background-color: $wu-color-error;
+		}
+		
+		.wu-calendar-item--disable {
+			background-color: rgba(249, 249, 249, $wu-opacity-disabled);
+			color: $wu-text-color-disable;
+		}
+		
+		.wu-calendar-item--extra {
+			color: $wu-color-error;
+			opacity: 0.8;
+		}
+		
+		.wu-calendar-item--checked {
+			color: #fff;
+		}
+	}
 </style>

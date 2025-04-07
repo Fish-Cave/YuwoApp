@@ -189,7 +189,7 @@
 				<text>确认预约</text>
 			</view>
 			<view v-else class="arrears-button" @click="arrears()">
-				<text>欠费不能预约预约❌</text>
+				<text>欠费不能预约❌</text>
 			</view>
 		</view>
 	</view>
@@ -236,11 +236,13 @@
 	//pricelist是一个包含两个对象的价格表数组
 	interface priceList {
 		_id : string;
-		price : number
+		price : number;
+		noplayprice : number
 	}
 	const pricelist = ref<priceList[]>([])
 	const singlePrice = ref(5)
 	const overnightPrice = ref(50)
+	const noplayprice = ref(1)
 
 	// 用于展示的价格，会根据会员信息变化
 	const displaySinglePrice = computed(() => {
@@ -264,10 +266,16 @@
 	//改成byweekdays
 	async function getPriceList() {
 		try {
-			const result = await todo.GetPriceInfoByRole("user")
+			console.log("当前选择星期为" + dayjs(selectedDate.value).day())
+			const result = await todo.GetPriceInfoByWeekdays(dayjs(selectedDate.value).day())
+			//console.log(result.data)
 			pricelist.value = result.data
+			//console.log(toRaw(pricelist.value[0]))
 			singlePrice.value = toRaw(pricelist.value[0]).price
+			noplayprice.value = toRaw(pricelist.value[0]).noplayprice
 			overnightPrice.value = toRaw(pricelist.value[1]).price
+			//更新价格后对费用进行更新
+			calculateTotalTimeAndPrice()
 		} catch (error) {
 			console.error("获取价格信息失败", error);
 		}
@@ -302,7 +310,7 @@
 	const minStartTimeHour = ref(0);
 	const maxStartTimeHour = ref(22); // 普通预约最大时间 22:00
 	const minEndTimeHour = ref(0);
-	const maxEndTimeHour = ref(23);
+	const maxEndTimeHour = ref(22);
 	const minEndTimeMinute = ref(0); // 新增结束时间分钟限制
 
 	// 用于控制是否显示橙色提示信息
@@ -448,14 +456,14 @@
 				// 非会员，不游玩机台每半小时1元
 				const diffHours = (Data.endTime - Data.startTime) / (1000 * 60 * 60);
 				const halfHourUnits = Math.ceil(diffHours / 0.5);
-				price.value = halfHourUnits * 1; // 每半小时1元
+				price.value = halfHourUnits * noplayprice.value; // 每半小时noplayprice元
 				Data.price = price.value;
 			}
 			return;
 		}
 
 		if (membershipInfo.subscriptionPackage.length > 0) {
-			// 包周/月卡会员，100% off
+			// 包周/月卡会员，免费游玩机台 off
 			price.value = 0;
 			Data.price = 0;
 			return;
@@ -480,21 +488,22 @@
 			totalTime.value = parseFloat(diffHours.toFixed(1));
 			console.log("totalTime = " + totalTime.value)
 
-			if (membershipInfo.membership.length > 0) {
+			//现已删除音游会员
+			/*if (membershipInfo.membership.length > 0) {
 				// 音游会员价格计算
 				const halfHourUnits = Math.ceil(totalTime.value / 0.5);
 				let basePrice = halfHourUnits * 4;
 				price.value = Math.min(basePrice, 40); // 日常上限40元
 				Data.price = price.value;
-			}
-			else {
+			}*/
+			
 				// 非会员价格计算 (保持原有逻辑，五小时以上50元)
 				price.value = overnightPrice.value
 				if (totalTime.value < 5) {
 					price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
 				}
 				Data.price = price.value;
-			}
+			
 
 		} else {
 			totalTime.value = 0;
@@ -710,7 +719,7 @@
 	function calendarChange(e) {
 		// 更新选择的日期
 		selectedDate.value = e.fulldate;
-
+		getPriceList()
 		// 检查是否选择了过去的日期
 		if (dayjs(e.fulldate).isBefore(dayjs(), 'day')) {
 			uni.showToast({
