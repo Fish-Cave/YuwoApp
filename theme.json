@@ -7,7 +7,13 @@
 		"tabBarColor": "#7A7E83",
 		"tabBarSelectedColor": "rgba(255, 141, 26, 1)",
 		"tabBarBorderStyle": "black",
-		"tabBarBackgroundColor": "#F7F7F7"
+		"tabBarBackgroundColor": "#F7F7F7",
+		"icon-path-cal": "/static/icon/cal-black.png",
+		"icon-path-cal-selected": "/static/icon/cal-selected.png",
+		"icon-path-res": "/static/icon/res-black.png",
+		"icon-path-res-selected": "/static/icon/res-selected.png",
+		"icon-path-user": "/static/icon/user-black.png",
+		"icon-path-user-selected": "/static/icon/user-selected.png"
 	},
 	
 	"dark": {
@@ -18,6 +24,12 @@
 		
 		"navigationBarTextStyle": "white",
 		"navigationBarBackgroundColor": "#1F1F1F",
-		"backgroundColor": "#1F1F1F"
+		"backgroundColor": "#1F1F1F",
+		"icon-path-cal": "/static/icon/cal-white.png",
+		"icon-path-cal-selected": "/static/icon/cal-selected.png",
+		"icon-path-res": "/static/icon/res-white.png",
+		"icon-path-res-selected": "/static/icon/res-selected.png",
+		"icon-path-user": "/static/icon/user-white.png",
+		"icon-path-user-selected": "/static/icon/user-selected.png"
 	}
 }

@@ -220,20 +220,20 @@
 		"list": [{
 				"pagePath": "pages/index/index",
 				"text": "预约",
-				"iconPath": "/static/icon/user-add.png",
-				"selectedIconPath": "/static/icon/user-add-solid.png"
+				"iconPath": "@icon-path-cal",
+				"selectedIconPath": "@icon-path-cal-selected"
 			},
 			{
 				"pagePath": "pages/signIn/signIn",
 				"text": "签到",
-				"iconPath": "/static/icon/home.png",
-				"selectedIconPath": "/static/icon/home-solid.png"
+				"iconPath": "@icon-path-res",
+				"selectedIconPath": "@icon-path-res-selected"
 			},
 			{
 				"pagePath": "pages/user/user",
 				"text": "我的",
-				"iconPath": "/static/icon/shopping-cart.png",
-				"selectedIconPath": "/static/icon/shopping-cart-solid.png"
+				"iconPath": "@icon-path-user",
+				"selectedIconPath": "@icon-path-user-selected"
 			}
 		]
 	}
