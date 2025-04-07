@@ -1,8 +1,9 @@
 <template>
 	<view class="container" style="padding: 20rpx 0;">
 		<scroll-view scroll-y class="scroll-view">
-			<view class="header-container glass-card">
-				<uni-row>
+			<view class="glass-card">
+				<view>
+					<uni-row>
 					<uni-col :span="4">
 						<view class="icon">
 							<uni-icons type="headphones" size="30"></uni-icons>
@@ -15,6 +16,12 @@
 						</view>
 					</uni-col>
 				</uni-row>
+				</view>
+				<view class="tips-container">
+					<text class="tips">
+						目前预约时间和实际游玩时间并不强关联，因此并不会收取超时费用，请按实际游玩时间进行结算
+					</text>
+				</view>
 			</view>
 
 
@@ -93,8 +100,8 @@
 							<uni-col :span="4">
 								<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
 							</uni-col>
-							<uni-col :span="14">预计时长：包夜！</uni-col>
-							<uni-col :span="6">费用：¥{{price}}</uni-col>
+							<uni-col :span="13">预计时长：包夜！</uni-col>
+							<uni-col :span="7">费用：¥{{price}}</uni-col>
 						</uni-row>
 					</view>
 				</view>
@@ -124,11 +131,11 @@
 							<uni-col :span="4">
 								<uni-icons type="checkbox" size="30" style="padding-left: 20rpx;"></uni-icons>
 							</uni-col>
-							<uni-col :span="14">
+							<uni-col :span="13">
 								<text class="details">
 									预计时长：{{totalTimeText}}
 								</text></uni-col>
-							<uni-col :span="6">
+							<uni-col :span="7">
 								<text class="details">
 									费用：¥{{price}}
 								</text>
@@ -139,15 +146,15 @@
 				</view>
 
 				<view class="membership-info"
-					v-if="(membershipInfo.membership.length > 0 || membershipInfo.subscriptionPackage.length > 0)&& Data.isPlay">
+					v-if="( (membershipInfo.membership.length > 0) && Data.isPlay == false) || membershipInfo.subscriptionPackage.length > 0">
 					<view style="margin-bottom: 20rpx;">
 						<text class="title">会员信息</text>
 					</view>
 
 					<view class="membership-card">
-						<view v-if="membershipInfo.membership.length > 0" class="membership-item">
+						<view v-if="(membershipInfo.membership.length > 0) && Data.isPlay == false" class="membership-item">
 							<uni-icons type="star-filled" size="20" color="#f59e0b" class="membership-icon"></uni-icons>
-							<text class="membership-text">您是音游会员，享受半小时4元，当日40元封顶优惠</text>
+							<text class="membership-text">您是鱼窝歇脚卡会员，本次休息免费</text>
 						</view>
 						<view v-if="membershipInfo.subscriptionPackage.length > 0" class="membership-item">
 							<uni-icons type="medal-filled" size="20" color="#10b981"
@@ -201,6 +208,8 @@
 		membership: [],
 		subscriptionPackage: []
 	})
+	
+	//判断是否有未完成的订单
 	const isUserFree = ref(true)
 	async function setIsUserFree() {
 		try {
@@ -233,7 +242,7 @@
 		// 先检查是否是不游玩机台
 		if (isNoPlayMachine.value) {
 			if (membershipInfo.subscriptionPackage.length > 0 || membershipInfo.membership.length > 0) {
-				return "会员免费";
+				return "会员/鱼窝歇脚卡免费";
 			} else {
 				return "1元/半小时";
 			}
@@ -242,13 +251,12 @@
 		// 常规机台价格显示逻辑
 		if (membershipInfo.subscriptionPackage.length > 0) {
 			return "包周/月会员免费";
-		} else if (membershipInfo.membership.length > 0) {
-			return "4元/半小时 (音游会员优惠，当日封顶40元)";
 		} else {
 			return `${singlePrice.value}元/半小时`;
 		}
 	});
 
+	//改成byweekdays
 	async function getPriceList() {
 		try {
 			const result = await todo.GetPriceInfoByRole("user")
@@ -1036,6 +1044,7 @@
 	/* 头部容器样式 */
 	.header-container {
 		display: flex;
+
 		align-items: center;
 		padding: 16px;
 	}
@@ -1408,6 +1417,15 @@
 		color: #4b5563;
 		line-height: 1.4;
 	}
+	.tips-container {
+		padding: 0 20rpx;
+		margin: 20rpx 0;
+	}
+	
+	.tips {
+		font-size: 20rpx;
+		color: gray;
+	}
 
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
 	/* 小屏幕设备 */
@@ -1673,6 +1691,10 @@
 			font-size: 14px;
 			color: lightgray;
 			line-height: 1.4;
+		}
+		.tips {
+			font-size: 20rpx;
+			color: lightgray;
 		}
 	}
 </style>

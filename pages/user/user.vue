@@ -36,7 +36,7 @@
 						<view v-if="membershipInfo.membership && membershipInfo.membership.length > 0"
 							class="membership-badge standard-badge">
 							<uni-icons type="medal-filled" size="14" color="#ffffff"></uni-icons>
-							<text>音游会员</text>
+							<text>鱼窝歇脚卡</text>
 						</view>
 					</view>
 
@@ -74,7 +74,7 @@
 							<uni-icons type="medal-filled" size="16" color="#ffffff"></uni-icons>
 						</view>
 						<view class="membership-content">
-							<view class="membership-name">音游会员</view>
+							<view class="membership-name">鱼窝歇脚卡</view>
 							<view class="membership-validity">
 								<text class="validity-label">有效期至:</text>
 								<text

@@ -1,7 +1,7 @@
 <template>
 	<view class="container" style="display: flex; flex-direction: column; padding: 20rpx;">
 		<view>
-			<view class="user-info-card glass-card">
+			<view class="user-info-card glass-card" >
 				<view class="user-info-header">
 					<view class="avatar-container">
 						<!-- 使用 uni-id-pages-avatar 组件显示头像 -->
@@ -30,11 +30,11 @@
 					音游会员可以享受🐟窝内消费八折折扣!
 				</text>
 			</view>
-			<view class="content">
+			<view>
 				<view class="goods-card" @click="makeOrder('member')">
 					<view class="goods-content">
 						<view class="goods-info">
-							<text class="goods-detail">月费会员</text>
+							<text class="goods-detail">鱼窝歇脚卡</text>
 							<uni-icons v-if="types.member" type="cart-filled" size="35"></uni-icons>
 							<uni-icons v-else type="cart" size="35"></uni-icons>
 						</view>
@@ -60,7 +60,7 @@
 						大月卡与大周卡用户,可以在30天/7天内免费游玩🐟窝内所有机台!(仍需预约!)
 					</text>
 				</view>
-				<view class="content">
+				<view>
 					<view class="goods-card" @click="makeOrder('weekly')">
 						<view class="goods-content">
 							<view class="goods-info">
@@ -115,7 +115,7 @@
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	// 使用计算属性获取用户信息
 	const userInfo = computed(() => store.userInfo)
-	const segmentedValues = ['音游会员', '周卡/月卡'];
+	const segmentedValues = ['鱼窝歇脚卡', '周卡/月卡'];
 	const segmentedCurrent = ref(0);
 	const rechargeItems = ref(0);
 	const types = reactive({
@@ -129,9 +129,9 @@
 		types.monthly = false
 	}
 	const priceList = ref({
-		member : 3000,
-		weekly : 12800,
-		monthly : 32800
+		member : 1500,
+		weekly : 15800,
+		monthly : 35800
 	})
 
 	function onSegmentChange(e) {
