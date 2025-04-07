@@ -1,5 +1,10 @@
 <template>
-	<view class="container" style="padding: 20rpx 0;">
+	<view class="container" style="padding:20rpx 10rpx">
+	 		<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour"
+	 			:maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
+	 		<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour"
+	 			:maxHour="maxEndTimeHour" :filter="timeFilter" :minMinute="minEndTimeMinute"
+	 			@confirm="confirmEndTime"></uv-datetime-picker>
 		<scroll-view scroll-y class="scroll-view">
 			<view class="glass-card">
 				<view>

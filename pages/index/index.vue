@@ -17,7 +17,7 @@
 					<text class="link-text">请点击这里</text>
 				</view>
 			</view>
-			<view>
+			<view >
 				<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
 				<usage :startTime="selectedStartTime" :endTime="selectedEndTime"></usage>
 				<button v-if="isAdmin" @click="goToConfig()">配置</button>

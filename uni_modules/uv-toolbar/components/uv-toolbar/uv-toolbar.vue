@@ -106,4 +106,35 @@
 			}
 		}
 	}
+	
+	@media (prefers-color-scheme: dark) {
+		.uv-toolbar {
+			height: 42px;
+			@include flex;
+			justify-content: space-between;
+			align-items: center;
+			background-color: rgb(22, 22, 24);
+			&__wrapper {
+				&__cancel {
+					color: $uv-tips-color;
+					font-size: 15px;
+					padding: 0 15px;
+				}
+			}
+			&__title {
+				color: $uv-main-color;
+				padding: 0 60rpx;
+				font-size: 16px;
+				flex: 1;
+				text-align: center;
+			}
+			&__wrapper {
+				&__confirm {
+					color: $uv-primary;
+					font-size: 15px;
+					padding: 0 15px;
+				}
+			}
+		}
+	}
 </style>

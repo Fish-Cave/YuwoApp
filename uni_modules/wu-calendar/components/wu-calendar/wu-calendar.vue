@@ -1083,4 +1083,229 @@
 		flex-direction: row;
 		justify-content: center;
 	}
+	
+	@media (prefers-color-scheme: dark) {
+		$wu-bg-color-mask: rgba($color: #000000, $alpha: 0.4);
+		$wu-border-color: rgb(51, 49, 50);
+		$wu-text-color: lightgray;
+		$wu-bg-color-hover: rgb(59, 59, 61);
+		$wu-font-size-base: 32rpx;
+		$wu-text-color-placeholder: lightgray;
+		$wu-color-subtitle: darkgray;
+		$wu-text-color-grey: #999;
+		
+		/* 黑夜模式 */
+		@media (prefers-color-scheme: dark) {
+			.wu-calendar__mask {
+				position: fixed;
+				bottom: 0;
+				top: 0;
+				left: 0;
+				right: 0;
+				background-color: #000000;
+				transition-property: opacity;
+				transition-duration: 0.3s;
+				opacity: 0;
+				/* #ifndef APP-NVUE */
+				z-index: 99;
+				/* #endif */
+			}
+		}
+		.wu-calendar {
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: column;
+		}
+		
+		.wu-calendar__mask {
+			position: fixed;
+			bottom: 0;
+			top: 0;
+			left: 0;
+			right: 0;
+			background-color: $wu-bg-color-mask;
+			transition-property: opacity;
+			transition-duration: 0.3s;
+			opacity: 0;
+			/* #ifndef APP-NVUE */
+			z-index: 99;
+			/* #endif */
+		}
+		
+		.wu-calendar--mask-show {
+			opacity: 1;
+		}
+		
+		.wu-calendar--fixed {
+			position: fixed;
+			/* #ifdef APP-NVUE */
+			bottom: 0;
+			/* #endif */
+			left: 0;
+			right: 0;
+			transition-property: transform;
+			transition-duration: 0.3s;
+			transform: translateY(1080rpx);
+			/* #ifndef APP-NVUE */
+			bottom: calc(var(--window-bottom));
+			z-index: 99;
+			/* #endif */
+		}
+		
+		.wu-calendar--ani-show {
+			transform: translateY(0);
+		}
+		
+		.wu-calendar__content {
+			background-color: rgb(22, 22, 24);
+		}
+		
+		.wu-calendar__header {
+			position: relative;
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: row;
+			justify-content: center;
+			align-items: center;
+			border-bottom-color: $wu-border-color;
+			border-bottom-style: solid;
+			border-bottom-width: 2rpx;
+		}
+		
+		.wu-calendar--fixed-top {
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			height: 90rpx;
+			flex-direction: row;
+			justify-content: space-between;
+			border-top-color: $wu-border-color;
+			border-top-style: solid;
+			border-top-width: 2rpx;
+		}
+		
+		.wu-calendar--fixed-width {
+			width: 100rpx;
+		}
+		
+		.wu-calendar__backtoday {
+			position: absolute;
+			right: 0;
+			top: 25rpx;
+			padding: 0 10rpx;
+			padding-left: 20rpx;
+			height: 50rpx;
+			line-height: 50rpx;
+			font-size: 24rpx;
+			border-top-left-radius: 50rpx;
+			border-bottom-left-radius: 50rpx;
+			color: $wu-text-color;
+			background-color: $wu-bg-color-hover;
+		
+			&.vertical {
+				top: 38rpx;
+			}
+		}
+		
+		.wu-calendar__header-text {
+			text-align: center;
+			width: 200rpx;
+			font-size: $wu-font-size-base;
+			color: $wu-text-color;
+		}
+		
+		.wu-calendar__header-btn-box {
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: row;
+			align-items: center;
+			justify-content: center;
+		
+			.wu-calendar__header-btn {
+				width: 20rpx;
+				height: 20rpx;
+			}
+		
+			&.horizontal {
+				width: 100rpx;
+				height: 100rpx;
+			}
+		
+			&.vertical {
+				flex-direction: column;
+				padding: 20rpx 0;
+			}
+		}
+		
+		.wu-calendar__header-btn {
+			border-left-color: $wu-text-color-placeholder;
+			border-left-style: solid;
+			border-left-width: 4rpx;
+			border-top-color: $wu-color-subtitle;
+			border-top-style: solid;
+			border-top-width: 4rpx;
+		}
+		
+		.wu-calendar--left {
+			transform: rotate(-45deg);
+		}
+		
+		.wu-calendar--right {
+			transform: rotate(135deg);
+		}
+		
+		.wu-calendar--top {
+			transform: rotate(45deg);
+		}
+		
+		.wu-calendar--bottom {
+			transform: rotate(225deg);
+		}
+		
+		.wu-calendar__weeks {
+			position: relative;
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: row;
+			padding: 0 8rpx;
+		}
+		
+		.wu-calendar__weeks-day {
+			flex: 1;
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			height: 90rpx;
+			border-bottom-color: rgb(51, 49, 50);
+			border-bottom-style: solid;
+			border-bottom-width: 2rpx;
+		}
+		
+		.wu-calendar__weeks-day-text {
+			font-size: 28rpx;
+		}
+		
+		.wu-calendar__box {
+			position: relative;
+		}
+		
+		.wu-calendar__weeks_container {
+			transition: height 0.2s linear;
+		}
+		
+		.wu-calendar__fold {
+			/* #ifndef APP-NVUE */
+			display: flex;
+			/* #endif */
+			flex-direction: row;
+			justify-content: center;
+		}
+	}
 </style>
