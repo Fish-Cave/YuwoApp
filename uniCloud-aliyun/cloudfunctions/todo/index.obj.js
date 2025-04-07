@@ -1,7 +1,13 @@
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
-
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 module.exports = {
 	_before: function() { // 通用预处理器
 
@@ -1352,5 +1358,241 @@ module.exports = {
 			errMsg: '提升用户权限失败: ' + e.message
 		  };
 		}
+	},
+	
+	/**
+	 * 生成或重置用户的 connectCode
+	 * @param {string} userId 用户ID，如果未提供则尝试从认证信息获取
+	 * @returns {object} 包含生成的 connectCode
+	 */
+	async generateConnectCode(userId) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  // 获取当前用户ID - 多种方式尝试
+	  let currentUserId = userId;
+	  
+	  if (!currentUserId) {
+	    try {
+	      const clientInfo = this.getClientInfo();
+	      currentUserId = clientInfo && clientInfo.userInfo && clientInfo.userInfo.uid;
+	    } catch (e) {
+	      console.error("Failed to get uid from clientInfo:", e);
+	    }
+	  }
+	  
+	  // 如果仍然没有用户ID，尝试从token获取
+	  if (!currentUserId) {
+	    try {
+	      const tokenInfo = this.getClientInfo().tokenInfo;
+	      currentUserId = tokenInfo && tokenInfo.uid;
+	    } catch (e) {
+	      console.error("Failed to get uid from tokenInfo:", e);
+	    }
+	  }
+	  
+	  if (!currentUserId) {
+	    return {
+	      errCode: 401,
+	      errMsg: '用户未登录或无法获取用户ID'
+	    };
+	  }
+	  
+	  try {
+	    // 生成随机的 connectCode (UUID v4 格式)
+	    const connectCode = generateUUID(); // 使用独立函数而不是方法
+	    
+	    // 查询用户是否已有 connectCode 记录
+	    const connectCodeCollection = dbJQL.collection('connectCode');
+	    const existingRecord = await connectCodeCollection
+	      .where({
+	        userid: currentUserId
+	      })
+	      .get();
+	    
+	    if (existingRecord.data.length > 0) {
+	      // 用户已有记录，更新现有记录
+	      await connectCodeCollection
+	        .where({
+	          userid: currentUserId
+	        })
+	        .update({
+	          connectcode: [connectCode]
+	        });
+	    } else {
+	      // 用户没有记录，创建新记录
+	      await connectCodeCollection.add({
+	        userid: currentUserId,
+	        connectcode: [connectCode]
+	      });
+	    }
+	    
+	    return {
+	      errCode: 0,
+	      data: {
+	        connectCode: connectCode
+	      },
+	      errMsg: 'connectCode 生成成功'
+	    };
+	  } catch (e) {
+	    console.error('生成 connectCode 失败:', e);
+	    return {
+	      errCode: 500,
+	      errMsg: '生成 connectCode 失败: ' + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 获取当前用户的 connectCode
+	 * @param {string} userId 用户ID，如果未提供则尝试从认证信息获取
+	 * @returns {object} 包含用户的 connectCode
+	 */
+	async getConnectCode(userId) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  // 获取当前用户ID - 多种方式尝试
+	  let currentUserId = userId;
+	  
+	  if (!currentUserId) {
+	    try {
+	      const clientInfo = this.getClientInfo();
+	      currentUserId = clientInfo && clientInfo.userInfo && clientInfo.userInfo.uid;
+	    } catch (e) {
+	      console.error("Failed to get uid from clientInfo:", e);
+	    }
+	  }
+	  
+	  // 如果仍然没有用户ID，尝试从token获取
+	  if (!currentUserId) {
+	    try {
+	      const tokenInfo = this.getClientInfo().tokenInfo;
+	      currentUserId = tokenInfo && tokenInfo.uid;
+	    } catch (e) {
+	      console.error("Failed to get uid from tokenInfo:", e);
+	    }
+	  }
+	  
+	  if (!currentUserId) {
+	    return {
+	      errCode: 401,
+	      errMsg: '用户未登录或无法获取用户ID'
+	    };
+	  }
+	  
+	  try {
+	    // 查询用户的 connectCode 记录
+	    const connectCodeCollection = dbJQL.collection('connectCode');
+	    const record = await connectCodeCollection
+	      .where({
+	        userid: currentUserId
+	      })
+	      .get();
+	    
+	    if (record.data.length === 0) {
+	      return {
+	        errCode: 404,
+	        errMsg: '未找到 connectCode，请先生成'
+	      };
+	    }
+	    
+	    return {
+	      errCode: 0,
+	      data: {
+	        connectCode: record.data[0].connectcode[0]
+	      },
+	      errMsg: '获取 connectCode 成功'
+	    };
+	  } catch (e) {
+	    console.error('获取 connectCode 失败:', e);
+	    return {
+	      errCode: 500,
+	      errMsg: '获取 connectCode 失败: ' + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 验证 connectCode 并绑定到QQ账号 (供 nonebot 调用的API)
+	 * @param {object} params
+	 * @param {string} params.connectCode 要验证的 connectCode
+	 * @param {string} params.qqId QQ用户ID
+	 * @returns {object} 验证结果和关联的用户信息
+	 */
+	async verifyConnectCode(params) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  const { connectCode, qqId } = params;
+	  
+	  if (!connectCode || !qqId) {
+	    return {
+	      errCode: 400,
+	      errMsg: '缺少必要参数'
+	    };
+	  }
+	  
+	  try {
+	    // 查询匹配的 connectCode 记录
+	    const connectCodeCollection = dbJQL.collection('connectCode');
+	    const record = await connectCodeCollection
+	      .where({
+	        connectcode: connectCode
+	      })
+	      .get();
+	    
+	    if (record.data.length === 0) {
+	      return {
+	        errCode: 404,
+	        errMsg: '无效的 connectCode'
+	      };
+	    }
+	    
+	    const userId = record.data[0].userid;
+	    
+	    // 获取用户信息
+	    const userInfo = await dbJQL.collection('uni-id-users')
+	      .where({
+	        _id: userId
+	      })
+	      .field({
+	        "_id": true,
+	        "nickname": true,
+	        "username": true
+	      })
+	      .get();
+	    
+	    if (userInfo.data.length === 0) {
+	      return {
+	        errCode: 404,
+	        errMsg: '未找到关联用户'
+	      };
+	    }
+	    
+	    // 可以在这里添加将QQ ID与用户关联的逻辑
+	    // 例如，更新用户记录或创建一个新的QQ绑定表
+	    
+	    // 验证成功后，可以选择是否立即重置 connectCode
+	    
+	    return {
+	      errCode: 0,
+	      data: {
+	        userId: userId,
+	        nickname: userInfo.data[0].nickname || userInfo.data[0].username,
+	        qqId: qqId
+	      },
+	      errMsg: 'connectCode 验证成功'
+	    };
+	  } catch (e) {
+	    console.error('验证 connectCode 失败:', e);
+	    return {
+	      errCode: 500,
+	      errMsg: '验证 connectCode 失败: ' + e.message
+	    };
+	  }
 	},
 }
