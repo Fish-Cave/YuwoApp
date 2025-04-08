@@ -208,12 +208,40 @@
 	//通过在本地缓存的token来获取用户信息
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
+	//建立预约信息Data
+	interface reservationData {
+		"userId" : string;
+		"machineId" : string;
+		"startTime" : number;
+		"endTime" : number;
+		"isOvernight" : boolean;
+		"status" : number;
+		"notes" : string;
+		"price" : number; // 添加 price 字段
+		"isPlay" : boolean; // 新增：是否游玩机台
+	}
+
+	const Data = reactive<reservationData>({
+		"userId": "",
+		"machineId": "",
+		"startTime": 0,
+		"endTime": 0,
+		"isOvernight": false,
+		"status": 0,
+		"notes": "",
+		"price": 0, // 初始化 price 为 0
+		"isPlay": true // 默认为true，表示游玩机台
+	});
+
 
 	//会员信息
 	const membershipInfo = reactive({
 		membership: [],
 		subscriptionPackage: []
 	})
+
+
+
 
 	//判断是否有未完成的订单
 	const isUserFree = ref(true)
@@ -281,7 +309,7 @@
 				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
 				overnightPrice.value = toRaw(pricelist.value[1]).price
 				calculateTotalTimeAndPrice()
-			}else if(result?.isOffDay == false){
+			} else if (result?.isOffDay == false) {
 				//如果隔一天是调整后的工作日按照闲时定价
 				const result = await todo.GetPriceInfoByWeekdays(1)
 				pricelist.value = result.data
@@ -293,10 +321,10 @@
 				console.log("当前选择星期为" + dayjs(selectedDate.value).day())
 				const now = dayjs(selectedDate.value).format('YYYY-MM-DD')
 				//如果当天放假,按照忙时计费
-				if(holiday2025.days.find(data => data.date == now)?.isOffDay){
+				if (holiday2025.days.find(data => data.date == now)?.isOffDay) {
 					const result = await todo.GetPriceInfoByWeekdays(0)
 					pricelist.value = result.data
-				}else{
+				} else {
 					const result = await todo.GetPriceInfoByWeekdays(dayjs(selectedDate.value).day())
 					pricelist.value = result.data
 				}
@@ -355,29 +383,6 @@
 	// 计算最小日期（今天）
 	const minDate = computed(() => dayjs().format('YYYY-MM-DD'));
 
-	interface reservationData {
-		"userId" : string;
-		"machineId" : string;
-		"startTime" : number;
-		"endTime" : number;
-		"isOvernight" : boolean;
-		"status" : number;
-		"notes" : string;
-		"price" : number; // 添加 price 字段
-		"isPlay" : boolean; // 新增：是否游玩机台
-	}
-
-	const Data = reactive<reservationData>({
-		"userId": "",
-		"machineId": "",
-		"startTime": 0,
-		"endTime": 0,
-		"isOvernight": false,
-		"status": 0,
-		"notes": "",
-		"price": 0, // 初始化 price 为 0
-		"isPlay": true // 默认为true，表示游玩机台
-	});
 
 	const price = ref(0);
 	const totalTime = ref(0);
