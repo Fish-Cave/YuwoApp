@@ -93,6 +93,7 @@
 					<text>endtime {{reservationData.endtime}}</text>
 					<text>订单信息</text>
 					<text>{{orderData}}</text>
+					<text>是否为闲时: {{isFree}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -110,7 +111,7 @@
 			<view class="button-container">
 				<view class="submit-button" @click="submit">结束使用并支付</view>
 				<uni-pay ref="pay"></uni-pay>
-				<view v-if="false"class="help-button" @click="askForHelp">遇到问题</view>
+				<view v-if="false" class="help-button" @click="askForHelp">遇到问题</view>
 			</view>
 		</view>
 	</view>
@@ -120,6 +121,7 @@
 <script setup lang="ts">
 	import dayjs from 'dayjs';
 	import { onMounted, ref, onUnmounted, computed, toRaw, reactive } from 'vue' // 引入 onUnmounted 和 computed
+	import holiday2025 from '@/static/holiday/2025.json'
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
@@ -142,6 +144,12 @@
 		"starttime" : number
 		"endtime" : number
 	}
+	interface priceList {
+		"_id" : string;
+		"price" : number;
+		"noplayprice" : number
+	}
+	
 
 	const Data = ref<signInData[]>([])
 	const machineName = ref("")
@@ -156,9 +164,12 @@
 	})
 
 	//价格相关
+	const isFree = ref(true)
+	const pricelist = ref<priceList[]>([])
 	const singlePrice = ref(5)
-	const totalPrice = ref(0) // 总价，实时更新
 	const overnightPrice = ref(50)
+	const noplayprice = ref(1)
+	const totalPrice = ref(0) // 总价，实时更新
 	const today = ref(0)
 	// 计算属性
 	const displayRate = computed(() => {
@@ -168,22 +179,78 @@
 			return "鱼窝歇脚卡休息免费";
 		} else {
 			if (isOvernight.value) {
-				if(0<today.value&&today.value<4){
+				if (isFree) {
 					return "闲时通票30元";
-				}else{
+				} else {
 					return "忙时通票50元";
 				}
 			}
 			if (isPlay.value) {
-				if(0<today.value&&today.value<4){
+				if (isFree) {
 					return "闲时3元/半小时";
-				}else{
+				} else {
 					return "忙时5元/半小时";
 				}
 			}
 			return "不游玩机台1元/半小时";
 		}
 	});
+	//根据时间来设置价格
+	async function getPriceList() {
+		try {
+			const timestamp = dayjs().unix() * 1000
+			const now = dayjs(timestamp + (86400 * 1000)).format('YYYY-MM-DD')
+			console.log(now)
+			const result = holiday2025.days.find(data => data.date == now)
+			console.log(result)
+			//判断签到当天的隔一天是否是法定节假日
+			if (result?.isOffDay) {
+				//如果隔一天是法定节假日按照忙时定价
+				isFree.value = false
+				const result = await todo.GetPriceInfoByWeekdays(0)
+				pricelist.value = result.data
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+			}else if(result?.isOffDay == false){
+				//如果隔一天是调整后的工作日按照闲时定价
+				isFree.value = true
+				const result = await todo.GetPriceInfoByWeekdays(1)
+				pricelist.value = result.data
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+			} else {
+				console.log("当前选择星期为" + dayjs().day())
+				const now = dayjs().format('YYYY-MM-DD')
+				//如果当天放假,按照忙时计费
+				if(holiday2025.days.find(data => data.date == now)?.isOffDay){
+					const result = await todo.GetPriceInfoByWeekdays(0)
+					pricelist.value = result.data
+				}else{
+					const weekday = dayjs().day()
+					isFree.value = false
+					if(0<weekday&&weekday<5){
+						isFree.value = true
+					}
+					const result = await todo.GetPriceInfoByWeekdays(weekday)
+					pricelist.value = result.data
+				}
+				//console.log(result.data)
+				//console.log(toRaw(pricelist.value[0]))
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+			}
+		} catch (error) {
+			console.error("获取价格信息失败", error);
+		}
+	}
+
+
+
+
+
 
 	//时间相关
 	const startTime = ref<number | null>(null) // 开始时间戳，从 Data 中获取
@@ -227,7 +294,7 @@
 		} else {
 			await todo.Order_Add(orderData)
 			if (orderData.total_fee == 0) {
-				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid,res.uid)
+				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid, res.uid)
 				uni.showToast({
 					title: "感谢使用"
 				})
@@ -236,7 +303,7 @@
 				})
 				console.log("success")
 				stopTimer();
-				
+
 			} else {
 				orderHandle()
 			}
@@ -276,11 +343,9 @@
 				membershipType.value = "none";
 				return;
 			}
-
 			// 调用云对象方法获取会员信息
 			const result = await todo.getUserMembershipInfo(userInfo.uid);
 			console.log("会员信息查询结果:", result);
-
 			if (result) {
 				// 检查包周/月会员
 				if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
@@ -308,43 +373,47 @@
 		}
 	}
 
+
+	//按照会员类型来设定价格，现已启用
+	/*
 	function setPriceByMembership() {
-		switch (membershipType.value) {
-			case "weekly_monthly":
-				singlePrice.value = 0
-				overnightPrice.value = 0
-				orderData.singlePrice = singlePrice.value * 100
-				break;
-			case "music_game":
-				// 当 expression 表达式值 等于 value2 时执行该代码块
-				singlePrice.value = 0
-				if(isPlay.value){
-					if(0<today.value&&today.value<5){
-						singlePrice.value = 3
-						overnightPrice.value = 30
-					}else{
-						singlePrice.value = 5
-						overnightPrice.value = 50
-					}	
-				}
-				orderData.singlePrice = singlePrice.value * 100
-				break;
-			default:
-				// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
-				singlePrice.value = 1
-				if(isPlay.value){
-					if(0<today.value&&today.value<5){
-						singlePrice.value = 3
-						overnightPrice.value = 30
-					}else{
-						singlePrice.value = 5
-						overnightPrice.value = 50
-					}	
-				}
-				orderData.singlePrice = singlePrice.value * 100
-				break;
+			switch (membershipType.value) {
+				case "weekly_monthly":
+					singlePrice.value = 0
+					overnightPrice.value = 0
+					orderData.singlePrice = singlePrice.value * 100
+					break;
+				case "music_game":
+					// 当 expression 表达式值 等于 value2 时执行该代码块
+					singlePrice.value = 0
+					if(isPlay.value){
+						if(0<today.value&&today.value<5){
+							singlePrice.value = 3
+							overnightPrice.value = 30
+						}else{
+							singlePrice.value = 5
+							overnightPrice.value = 50
+						}	
+					}
+					orderData.singlePrice = singlePrice.value * 100
+					break;
+				default:
+					// 如果上面的 case 后的 表达式值 都不匹配 , 则执行该代码块
+					singlePrice.value = 1
+					if(isPlay.value){
+						if(0<today.value&&today.value<5){
+							singlePrice.value = 3
+							overnightPrice.value = 30
+						}else{
+							singlePrice.value = 5
+							overnightPrice.value = 50
+						}	
+					}
+					orderData.singlePrice = singlePrice.value * 100
+					break;
+			}
 		}
-	}
+	*/
 
 	async function searchSignin() {
 		try {
@@ -359,7 +428,7 @@
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
 				today.value = dayjs(startTime.value).day()
 				console.log("订单开始于星期" + today.value)
-				setPriceByMembership()
+				//setPriceByMembership()
 				orderData.starttime = startTime.value
 				orderData.reservation_id = Data.value[0].reservationid
 				if (startTime.value && startTime.value !== 0) {
@@ -428,30 +497,30 @@
 			//普通预约按游玩时间计算，先确认是否游玩机台
 			if (isPlay.value) {
 				// 普通预约按时间计费
-					const baseRate = singlePrice.value; // 不玩机台每半小时0元
-					const calculatedPrice = halfHourUnits * baseRate;
-					// 如果玩机台且超过封顶价格，使用封顶价格
-					if (calculatedPrice > overnightPrice.value) {
-						totalPrice.value = overnightPrice.value;
-						orderData.total_fee = totalPrice.value * 100
-					} else {
-						totalPrice.value = calculatedPrice;
-						orderData.total_fee = totalPrice.value * 100
-					}
-					/* //不再区分音游会员
-					else if (membershipType.value == "none") {
-					// 非会员，每半小时5元，当日封顶50元
-					const baseRate = singlePrice.value; // 不玩机台每半小时1元
-					const calculatedPrice = halfHourUnits * baseRate;
-					// 如果玩机台且超过封顶价格，使用封顶价格
-					if (calculatedPrice > overnightPrice.value) {
-						totalPrice.value = overnightPrice.value;
-						orderData.total_fee = totalPrice.value * 100
-					} else {
-						totalPrice.value = calculatedPrice;
-						orderData.total_fee = totalPrice.value * 100
-					}
-				}*/
+				const baseRate = singlePrice.value; // 不玩机台每半小时0元
+				const calculatedPrice = halfHourUnits * baseRate;
+				// 如果玩机台且超过封顶价格，使用封顶价格
+				if (calculatedPrice > overnightPrice.value) {
+					totalPrice.value = overnightPrice.value;
+					orderData.total_fee = totalPrice.value * 100
+				} else {
+					totalPrice.value = calculatedPrice;
+					orderData.total_fee = totalPrice.value * 100
+				}
+				/* //不再区分音游会员
+				else if (membershipType.value == "none") {
+				// 非会员，每半小时5元，当日封顶50元
+				const baseRate = singlePrice.value; // 不玩机台每半小时1元
+				const calculatedPrice = halfHourUnits * baseRate;
+				// 如果玩机台且超过封顶价格，使用封顶价格
+				if (calculatedPrice > overnightPrice.value) {
+					totalPrice.value = overnightPrice.value;
+					orderData.total_fee = totalPrice.value * 100
+				} else {
+					totalPrice.value = calculatedPrice;
+					orderData.total_fee = totalPrice.value * 100
+				}
+			}*/
 			} else {
 				if (membershipType.value == "music_game") {
 					const baseRate = 0; // 不玩机台每半小时0元
@@ -491,6 +560,7 @@
 	onMounted(() => {
 		searchSignin()
 		getMembershipStatus()
+		getPriceList()
 		console.log(Data)
 	})
 
@@ -775,104 +845,108 @@
 	.help-button:active {
 		background: #e0e0e0;
 	}
-	
+
 	@media (prefers-color-scheme: dark) {
+
 		/* 全局容器样式 */
 		.container {
-		    padding: 30rpx;
-		    background: rgb(0,0,0);
-		    min-height: 100vh;
-		    box-sizing: border-box;
-		    padding-bottom: 200rpx;
-		    /* 为底部按钮留出空间 */
+			padding: 30rpx;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			box-sizing: border-box;
+			padding-bottom: 200rpx;
+			/* 为底部按钮留出空间 */
 		}
-		
+
 		.glass-card {
-		    background: rgb(22, 22, 24);
-		    backdrop-filter: blur(10px);
-		    border-radius: 30rpx;
-		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
-		    border: 1px solid rgba(255, 255, 255, 0.18);
-		    overflow: hidden;
-		    margin-bottom: 30rpx;
-		    transition: transform 0.3s ease, box-shadow 0.3s ease;
-		    padding: 16rpx;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 30rpx;
+			box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			margin-bottom: 30rpx;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			padding: 16rpx;
 		}
+
 		.card-title {
-		    font-size: 32rpx;
-		    font-weight: bold;
-		    color: white;
+			font-size: 32rpx;
+			font-weight: bold;
+			color: white;
 		}
+
 		.rate-info {
-		    font-size: 24rpx;
-		    color: lightgray;
-		    background: rgb(59, 59, 61);
-		    padding: 4rpx 16rpx;
-		    border-radius: 20rpx;
+			font-size: 24rpx;
+			color: lightgray;
+			background: rgb(59, 59, 61);
+			padding: 4rpx 16rpx;
+			border-radius: 20rpx;
 		}
-		
+
 		.record-label {
-		    font-size: 28rpx;
-		    color: lightgray;
-		    margin-bottom: 5rpx;
+			font-size: 28rpx;
+			color: lightgray;
+			margin-bottom: 5rpx;
 		}
-		
+
 		.record-time {
-		    font-size: 24rpx;
-		    color: darkgray;
+			font-size: 24rpx;
+			color: darkgray;
 		}
-		
+
 		.record-divider {
-		    height: 1rpx;
-		    background-color: rgb(51, 49, 50);
-		    margin: 15rpx 0;
+			height: 1rpx;
+			background-color: rgb(51, 49, 50);
+			margin: 15rpx 0;
 		}
+
 		/* 空状态样式 */
 		.empty-text {
 			font-size: 32rpx;
 			color: lightgray;
 			margin-top: 30rpx;
 		}
-		
+
 		.empty-subtext {
 			font-size: 24rpx;
 			color: white;
 			margin-top: 10rpx;
 		}
-		
+
 		.active-card {
-		    background: rgb(191, 105, 18);
-		    color: white;
-		    padding: 30rpx;
+			background: rgb(191, 105, 18);
+			color: white;
+			padding: 30rpx;
 		}
-		
+
 		/* 计时器样式 */
 		.timer-container {
-		    display: flex;
-		    flex-direction: column;
-		    align-items: center;
-		    margin-bottom: 20rpx;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			margin-bottom: 20rpx;
 		}
-		
+
 		.timer-text {
-		    font-size: 80rpx;
-		    font-weight: bold;
-		    letter-spacing: 2rpx;
-		    text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+			font-size: 80rpx;
+			font-weight: bold;
+			letter-spacing: 2rpx;
+			text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
 		}
-		
+
 		.timer-label {
-		    font-size: 28rpx;
-		    margin-top: 10rpx;
-		    opacity: 0.9;
+			font-size: 28rpx;
+			margin-top: 10rpx;
+			opacity: 0.9;
 		}
-		
+
 		.divider {
-		    height: 2rpx;
-		    background-color: rgba(255, 255, 255, 0.3);
-		    margin: 20rpx 0;
+			height: 2rpx;
+			background-color: rgba(255, 255, 255, 0.3);
+			margin: 20rpx 0;
 		}
-		
+
 		.footer {
 			position: fixed;
 			bottom: 0;
@@ -885,17 +959,17 @@
 			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 			z-index: 100;
 		}
-		
+
 		.glass-card {
-		    background: rgb(22, 22, 24);
-		    backdrop-filter: blur(10px);
-		    border-radius: 30rpx;
-		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
-		    border: 1px solid rgba(255, 255, 255, 0.18);
-		    overflow: hidden;
-		    margin-bottom: 30rpx;
-		    transition: transform 0.3s ease, box-shadow 0.3s ease;
-		    padding: 16rpx;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 30rpx;
+			box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			margin-bottom: 30rpx;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			padding: 16rpx;
 		}
 	}
 </style>

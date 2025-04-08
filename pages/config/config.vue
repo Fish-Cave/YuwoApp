@@ -22,6 +22,8 @@
 </template>
 
 <script setup>
+	import dayjs from 'dayjs';
+	import holiday2025 from '@/static/holiday/2025.json'
 	import {
 		reactive, ref, onMounted
 	} from 'vue'
@@ -163,8 +165,14 @@
             }
         });
     }
-
-
+	
+	
+	//console.log(JSON.stringify(holiday2025.days))
+	//console.log(holiday2025.days)
+	const now = dayjs(1746083625000).format('YYYY-MM-DD')
+	const result = holiday2025.days.find(data =>data.date == now)
+	console.log(result)
+	
 	onMounted(()=>{
 		const res = uniCloud.callFunction({
 			name : "updateMembershipStatus"

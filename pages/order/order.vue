@@ -1,26 +1,26 @@
 <template>
 	<view class="container" style="padding:20rpx 10rpx">
-	 		<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour"
-	 			:maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
-	 		<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour"
-	 			:maxHour="maxEndTimeHour" :filter="timeFilter" :minMinute="minEndTimeMinute"
-	 			@confirm="confirmEndTime"></uv-datetime-picker>
+		<uv-datetime-picker ref="startTimePicker" v-model="selectedStartTime" mode="time" :minHour="minStartTimeHour"
+			:maxHour="maxStartTimeHour" :filter="timeFilter" @confirm="confirmStartTime"></uv-datetime-picker>
+		<uv-datetime-picker ref="endTimePicker" v-model="selectedEndTime" mode="time" :minHour="minEndTimeHour"
+			:maxHour="maxEndTimeHour" :filter="timeFilter" :minMinute="minEndTimeMinute"
+			@confirm="confirmEndTime"></uv-datetime-picker>
 		<scroll-view scroll-y class="scroll-view">
 			<view class="glass-card">
 				<view>
 					<uni-row>
-					<uni-col :span="4">
-						<view class="icon">
-							<uni-icons type="headphones" size="30"></uni-icons>
-						</view>
-					</uni-col>
-					<uni-col :span="16">
-						<view class="machine-info">
-							<text class="machine-name">{{machineName}}</text>
-							<text class="price-rate">{{ displaySinglePrice }}</text>
-						</view>
-					</uni-col>
-				</uni-row>
+						<uni-col :span="4">
+							<view class="icon">
+								<uni-icons type="headphones" size="30"></uni-icons>
+							</view>
+						</uni-col>
+						<uni-col :span="16">
+							<view class="machine-info">
+								<text class="machine-name">{{machineName}}</text>
+								<text class="price-rate">{{ displaySinglePrice }}</text>
+							</view>
+						</uni-col>
+					</uni-row>
 				</view>
 				<view class="tips-container">
 					<text class="tips">
@@ -157,7 +157,8 @@
 					</view>
 
 					<view class="membership-card">
-						<view v-if="(membershipInfo.membership.length > 0) && Data.isPlay == false" class="membership-item">
+						<view v-if="(membershipInfo.membership.length > 0) && Data.isPlay == false"
+							class="membership-item">
 							<uni-icons type="star-filled" size="20" color="#f59e0b" class="membership-icon"></uni-icons>
 							<text class="membership-text">您是鱼窝歇脚卡会员，本次休息免费</text>
 						</view>
@@ -198,7 +199,7 @@
 <script setup lang="ts">
 	import dayjs from 'dayjs';
 	import { ref, getCurrentInstance, onMounted, reactive, computed, watch, toRaw } from 'vue';
-
+	import holiday2025 from '@/static/holiday/2025.json'
 	const todo = uniCloud.importObject('todo')
 	const machineName = ref("")
 	const debug = ref(false);
@@ -213,7 +214,7 @@
 		membership: [],
 		subscriptionPackage: []
 	})
-	
+
 	//判断是否有未完成的订单
 	const isUserFree = ref(true)
 	async function setIsUserFree() {
@@ -266,16 +267,47 @@
 	//改成byweekdays
 	async function getPriceList() {
 		try {
-			console.log("当前选择星期为" + dayjs(selectedDate.value).day())
-			const result = await todo.GetPriceInfoByWeekdays(dayjs(selectedDate.value).day())
-			//console.log(result.data)
-			pricelist.value = result.data
-			//console.log(toRaw(pricelist.value[0]))
-			singlePrice.value = toRaw(pricelist.value[0]).price
-			noplayprice.value = toRaw(pricelist.value[0]).noplayprice
-			overnightPrice.value = toRaw(pricelist.value[1]).price
-			//更新价格后对费用进行更新
-			calculateTotalTimeAndPrice()
+			console.log(selectedDate.value)
+			const now = dayjs(selectedDate.value + 24).format('YYYY-MM-DD')
+			console.log(now)
+			const result = holiday2025.days.find(data => data.date == now)
+			console.log(result)
+			//判断预约当天的隔一天是否是法定节假日
+			if (result?.isOffDay) {
+				//如果隔一天是法定节假日按照忙时定价
+				const result = await todo.GetPriceInfoByWeekdays(0)
+				pricelist.value = result.data
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+				calculateTotalTimeAndPrice()
+			}else if(result?.isOffDay == false){
+				//如果隔一天是调整后的工作日按照闲时定价
+				const result = await todo.GetPriceInfoByWeekdays(1)
+				pricelist.value = result.data
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+				calculateTotalTimeAndPrice()
+			} else {
+				console.log("当前选择星期为" + dayjs(selectedDate.value).day())
+				const now = dayjs(selectedDate.value).format('YYYY-MM-DD')
+				//如果当天放假,按照忙时计费
+				if(holiday2025.days.find(data => data.date == now)?.isOffDay){
+					const result = await todo.GetPriceInfoByWeekdays(0)
+					pricelist.value = result.data
+				}else{
+					const result = await todo.GetPriceInfoByWeekdays(dayjs(selectedDate.value).day())
+					pricelist.value = result.data
+				}
+				//console.log(result.data)
+				//console.log(toRaw(pricelist.value[0]))
+				singlePrice.value = toRaw(pricelist.value[0]).price
+				noplayprice.value = toRaw(pricelist.value[0]).noplayprice
+				overnightPrice.value = toRaw(pricelist.value[1]).price
+				//更新价格后对费用进行更新
+				calculateTotalTimeAndPrice()
+			}
 		} catch (error) {
 			console.error("获取价格信息失败", error);
 		}
@@ -496,14 +528,14 @@
 				price.value = Math.min(basePrice, 40); // 日常上限40元
 				Data.price = price.value;
 			}*/
-			
-				// 非会员价格计算 (保持原有逻辑，五小时以上50元)
-				price.value = overnightPrice.value
-				if (totalTime.value < 5) {
-					price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
-				}
-				Data.price = price.value;
-			
+
+			// 非会员价格计算 (保持原有逻辑，五小时以上50元)
+			price.value = overnightPrice.value
+			if (totalTime.value < 5) {
+				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
+			}
+			Data.price = price.value;
+
 
 		} else {
 			totalTime.value = 0;
@@ -1431,11 +1463,12 @@
 		color: #4b5563;
 		line-height: 1.4;
 	}
+
 	.tips-container {
 		padding: 0 20rpx;
 		margin: 20rpx 0;
 	}
-	
+
 	.tips {
 		font-size: 20rpx;
 		color: gray;
@@ -1626,9 +1659,9 @@
 			font-weight: bold;
 			font-size: 30rpx;
 		}
-		
+
 		.details {
-			color : lightgray;
+			color: lightgray;
 		}
 
 		.booking-time-warning {
@@ -1706,6 +1739,7 @@
 			color: lightgray;
 			line-height: 1.4;
 		}
+
 		.tips {
 			font-size: 20rpx;
 			color: lightgray;

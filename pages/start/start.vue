@@ -10,8 +10,7 @@
 					<text>待使用</text>
 				</view>
 			</view>
-			<view class="divider" 
-			style="background-color: rgba(255, 255, 255, 0.3)"></view>
+			<view class="divider" style="background-color: rgba(255, 255, 255, 0.3)"></view>
 			<view class="order-info">
 				<view class="info-row">
 					<text class="info-label">预约时间:</text>
@@ -56,7 +55,7 @@
 					</view>
 				</view>
 				<view style="display: flex; flex-direction: column;">
-					<text class="tips">1、按分钟计费{{singlePrice}}元/半小时,最高{{overnightPrice}}元</text>
+					<text class="tips">1、按分钟计费闲时3元/半小时,忙时5元/半小时</text>
 					<text class="tips">2、最低计费时长为30分钟/半小时</text>
 					<text class="tips">3、使用结束后通过微信结账</text>
 					<text class="tips">4、使用过程中可随时结束</text>
@@ -147,13 +146,6 @@
 		startTime: "",
 		isPlay: false,
 	})
-	//这个数组是计费说明显示的内容
-	const listData = reactive([
-		"按分钟计费，5元/小时",
-		"最低计费时长为30分钟",
-		"使用结束后将通过微信自动扣款",
-		"使用过程中可随时结束",
-	])
 
 	function onclickItem(e) {
 		if (e.currentIndex == 0) {
@@ -217,11 +209,11 @@
 				membershipType.value = "none";
 				return;
 			}
-	
+
 			// 调用云对象方法获取会员信息
 			const result = await todo.getUserMembershipInfo(userInfo.uid);
 			console.log("会员信息查询结果:", result);
-	
+
 			if (result) {
 				// 检查包周/月会员
 				if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
@@ -238,7 +230,6 @@
 					membershipType.value = "none";
 					console.log('用户没有会员');
 				}
-				setPriceByMembership()
 			} else {
 				membershipType.value = "none";
 				console.log('获取会员信息失败或用户没有会员');
@@ -248,7 +239,7 @@
 			membershipType.value = "none"; // 错误时默认为非会员
 		}
 	}
-	
+	/*
 	function setPriceByMembership() {
 		switch (membershipType.value) {
 			case "weekly_monthly":
@@ -267,6 +258,8 @@
 				break;
 		}
 	}
+	*/
+
 	onMounted(() => {
 		const instance = getCurrentInstance().proxy
 		const eventChannel = instance.getOpenerEventChannel();
@@ -504,7 +497,7 @@
 		color: gray;
 		margin-top: 20rpx;
 	}
-	
+
 	.status-badge {
 		padding: 4px 10px;
 		border-radius: 12px;
@@ -513,53 +506,57 @@
 		background: rgba(255, 193, 7, 0.1);
 		color: #f9cb14;
 	}
-	.detail{
-		color : black;
+
+	.detail {
+		color: black;
 		font-size: 20rpx;
 	}
-	
+
 	@media (prefers-color-scheme: dark) {
 		.container {
-		    padding: 20rpx;
-		    background: rgb(0,0,0);
-		    min-height: 100vh;
-		    box-sizing: border-box;
-		    padding-bottom: 200rpx;
-		    /* 为底部按钮留出空间 */
+			padding: 20rpx;
+			background: rgb(0, 0, 0);
+			min-height: 100vh;
+			box-sizing: border-box;
+			padding-bottom: 200rpx;
+			/* 为底部按钮留出空间 */
 		}
-		
+
 		/* 玻璃态卡片 */
 		.glass-card {
-		    background: rgb(22, 22, 24);
-		    backdrop-filter: blur(10px);
-		    border-radius: 30rpx;
-		    box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
-		    border: 1px solid rgba(255, 255, 255, 0.18);
-		    overflow: hidden;
-		    margin-bottom: 30rpx;
-		    transition: transform 0.3s ease, box-shadow 0.3s ease;
-		    padding: 16rpx;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 30rpx;
+			box-shadow: 0 8rpx 32rpx rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			margin-bottom: 30rpx;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			padding: 16rpx;
 		}
-		
+
 		.active-card {
-		    background: rgb(191, 105, 18);
-		    color: white;
-		    padding: 30rpx;
+			background: rgb(191, 105, 18);
+			color: white;
+			padding: 30rpx;
 		}
+
 		.card-title {
-		    font-size: 32rpx;
-		    font-weight: bold;
-		    color: white;
+			font-size: 32rpx;
+			font-weight: bold;
+			color: white;
 		}
+
 		/* 机台使用状态样式 */
 		.play-status {
-		    display: flex;
-		    align-items: center;
-		    background: rgba(249, 249, 249, 0.5);
-		    padding: 20rpx;
-		    border-radius: 15rpx;
-		    margin-top: 10rpx;
+			display: flex;
+			align-items: center;
+			background: rgba(249, 249, 249, 0.5);
+			padding: 20rpx;
+			border-radius: 15rpx;
+			margin-top: 10rpx;
 		}
+
 		.divider {
 			height: 2rpx;
 			background-color: rgb(51, 49, 50);
@@ -578,11 +575,13 @@
 			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 			z-index: 100;
 		}
-		.tips{
-			color : lightgray
+
+		.tips {
+			color: lightgray
 		}
-		.detail{
-			color : white;
+
+		.detail {
+			color: white;
 			font-size: 20rpx;
 		}
 	}
