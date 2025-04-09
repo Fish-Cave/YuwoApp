@@ -9,6 +9,56 @@ function generateUUID() {
   });
 };
 module.exports = {
+	// 内部辅助函数：检查管理员权限
+	_checkAdminPermission() {
+		try {
+			const clientInfo = this.getClientInfo();
+			console.log("权限检查 - 用户信息:", JSON.stringify(clientInfo));
+
+			if (!clientInfo || !clientInfo.uniIdToken) {
+				console.log("权限检查失败: 未找到身份令牌");
+				return { errCode: 'PERMISSION_DENIED', errMsg: '用户未登录或无权访问' };
+			}
+
+			const tokenParts = clientInfo.uniIdToken.split('.');
+			if (tokenParts.length !== 3) {
+				console.log("权限检查失败: 令牌格式无效");
+				return { errCode: 'INVALID_TOKEN', errMsg: '令牌格式无效' };
+			}
+
+			let payload;
+			try {
+				const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+				const jsonStr = Buffer.from(base64, 'base64').toString();
+				payload = JSON.parse(jsonStr);
+				console.log("解析后的令牌信息:", JSON.stringify(payload));
+			} catch (e) {
+				console.error("解析令牌失败:", e);
+				return { errCode: 'TOKEN_PARSE_ERROR', errMsg: '无法解析身份令牌: ' + e.message };
+			}
+
+			const role = payload.role;
+			let hasAdminRole = false;
+
+			if (Array.isArray(role)) {
+				hasAdminRole = role.includes('admin');
+			} else if (typeof role === 'string') {
+				hasAdminRole = role === 'admin';
+			}
+
+			console.log("用户是否有管理员权限:", hasAdminRole);
+
+			if (!hasAdminRole) {
+				return { errCode: 'PERMISSION_DENIED', errMsg: '只有管理员才能执行此操作' };
+			}
+
+			// 权限验证通过，返回 null 表示没有错误
+			return null;
+		} catch (e) {
+			console.error("权限验证过程中发生异常:", e);
+			return { errCode: 'AUTH_ERROR', errMsg: '权限验证失败: ' + e.message };
+		}
+	},
 	_before: function() { // 通用预处理器
 
 	},
@@ -996,6 +1046,10 @@ module.exports = {
 	 * @returns {object} 重建结果
 	 */
 	async rebuildAllUserStatistics() {
+		const authError = this._checkAdminPermission();
+			if (authError) {
+				return authError; // 如果不是管理员，直接返回错误
+			}
 		const dbJQL = uniCloud.databaseForJQL({
 			clientInfo: this.getClientInfo()
 		});
@@ -1325,11 +1379,15 @@ module.exports = {
 	* @returns {object} 操作结果
 	*/
 	async promoteUserRole(params) {
+		const authError = this._checkAdminPermission();
+			if (authError) {
+				return authError; // 如果不是管理员，直接返回错误
+			}
 		const dbJQL = uniCloud.databaseForJQL({
 		  clientInfo: this.getClientInfo()
 		});
 		const userId = params.userId;
-		const userRoleId = "user"; // **Corrected role_id: "user" for "普通会员"
+		const userRoleId = "user"; 
 
 		if (!userId) {
 		  return {
@@ -1594,5 +1652,245 @@ module.exports = {
 	      errMsg: '验证 connectCode 失败: ' + e.message
 	    };
 	  }
+	},
+	/**
+	 * 更新客服电话
+	 * @param {object} params - 包含新电话号码的对象
+	 * @param {string} params.newPhoneNo - 新的客服电话号码
+	 * @returns {object} 操作结果
+	 */
+	async updateCustomerServicePhone(params) {
+	    const { newPhoneNo } = params;
+	
+	    // 1. 输入验证
+	    if (!newPhoneNo || typeof newPhoneNo !== 'string') {
+	        return {
+	            errCode: 'INVALID_PARAMS',
+	            errMsg: '缺少有效的 newPhoneNo 参数 (必须是字符串)'
+	        };
+	    }
+	
+	    // 2. 权限验证 - 直接从uniIdToken解析
+	    try {
+	        const clientInfo = this.getClientInfo();
+	        console.log("客服电话更新 - 用户信息:", JSON.stringify(clientInfo));
+	        
+	        // 检查是否有uniIdToken
+	        if (!clientInfo.uniIdToken) {
+	            return {
+	                errCode: 'PERMISSION_DENIED',
+	                errMsg: '未找到身份令牌'
+	            };
+	        }
+	        
+	        // 解析JWT令牌，获取角色信息
+	        // JWT格式: header.payload.signature
+	        const tokenParts = clientInfo.uniIdToken.split('.');
+	        if (tokenParts.length !== 3) {
+	            return {
+	                errCode: 'INVALID_TOKEN',
+	                errMsg: '令牌格式无效'
+	            };
+	        }
+	        
+	        // 解码payload部分（Base64解码）
+	        let payload;
+	        try {
+	            // 注意：这里需要处理Base64 URL编码
+	            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	            const jsonStr = Buffer.from(base64, 'base64').toString();
+	            payload = JSON.parse(jsonStr);
+	        } catch (e) {
+	            console.error("解析令牌失败:", e);
+	            return {
+	                errCode: 'TOKEN_PARSE_ERROR',
+	                errMsg: '无法解析身份令牌'
+	            };
+	        }
+	        
+	        console.log("解析后的令牌信息:", JSON.stringify(payload));
+	        
+	        // 检查是否有admin角色
+	        const role = payload.role;
+	        let hasAdminRole = false;
+	        
+	        if (Array.isArray(role)) {
+	            hasAdminRole = role.includes('admin');
+	        } else if (typeof role === 'string') {
+	            hasAdminRole = role === 'admin';
+	        }
+	        
+	        console.log("用户是否有管理员权限:", hasAdminRole);
+	        
+	        if (!hasAdminRole) {
+	            return {
+	                errCode: 'PERMISSION_DENIED',
+	                errMsg: '只有管理员才能更新客服电话'
+	            };
+	        }
+	    } catch (e) {
+	        console.error("权限验证失败:", e);
+	        return {
+	            errCode: 'AUTH_ERROR',
+	            errMsg: '权限验证失败: ' + e.message
+	        };
+	    }
+	
+	    const collection = db.collection('customer-service-phone');
+	
+	    try {
+	        // 3. 查询集合中是否已有记录
+	        console.log("查询现有客服电话记录");
+	        const existingRecord = await collection.limit(1).get();
+	
+	        if (existingRecord.data && existingRecord.data.length > 0) {
+	            // 记录存在，更新它
+	            const recordId = existingRecord.data[0]._id;
+	            console.log("找到现有记录，ID:", recordId, "正在更新...");
+	            const updateResult = await collection.doc(recordId).update({
+	                phoneNo: newPhoneNo,
+	                updateTime: Date.now() // 添加更新时间戳
+	            });
+	
+	            console.log("更新结果:", JSON.stringify(updateResult));
+	            if (updateResult.updated === 1) {
+	                return {
+	                    errCode: 0,
+	                    errMsg: '客服电话更新成功'
+	                };
+	            } else {
+	                return {
+	                    errCode: 'UPDATE_FAILED',
+	                    errMsg: '更新客服电话失败，未找到匹配记录或数据未更改'
+	                };
+	            }
+	        } else {
+	            // 记录不存在，创建一条新记录
+	            console.log("未找到现有记录，创建新记录");
+	            const addResult = await collection.add({
+	                phoneNo: newPhoneNo,
+	                createTime: Date.now()
+	            });
+	            
+	            console.log("创建结果:", JSON.stringify(addResult));
+	            if (addResult.id) {
+	                return {
+	                    errCode: 0,
+	                    errMsg: '客服电话记录创建成功'
+	                };
+	            } else {
+	                return {
+	                    errCode: 'CREATE_FAILED',
+	                    errMsg: '创建客服电话记录失败'
+	                };
+	            }
+	        }
+	    } catch (e) {
+	        console.error("数据库操作失败:", e);
+	        return {
+	            errCode: 'DB_ERROR',
+	            errMsg: '数据库操作失败: ' + e.message
+	        };
+	    }
+	},
+	/**
+	 * 获取客服电话 (仅限 user 和 admin 角色)
+	 * @returns {object} 包含客服电话的数据或错误信息
+	 */
+	async getCustomerServicePhone() {
+	    // 1. 权限验证 - 检查是否为 user 或 admin
+	    try {
+	        const clientInfo = this.getClientInfo();
+	        console.log("获取客服电话 - 用户信息:", JSON.stringify(clientInfo));
+	
+	        // 检查是否有uniIdToken
+	        if (!clientInfo.uniIdToken) {
+	            return {
+	                errCode: 'PERMISSION_DENIED',
+	                errMsg: '用户未登录或无权访问' // 明确未登录或无令牌
+	            };
+	        }
+	
+	        // 解析JWT令牌，获取角色信息
+	        const tokenParts = clientInfo.uniIdToken.split('.');
+	        if (tokenParts.length !== 3) {
+	            return {
+	                errCode: 'INVALID_TOKEN',
+	                errMsg: '令牌格式无效'
+	            };
+	        }
+	
+	        let payload;
+	        try {
+	            // 处理Base64 URL编码
+	            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	            const jsonStr = Buffer.from(base64, 'base64').toString();
+	            payload = JSON.parse(jsonStr);
+	        } catch (e) {
+	            console.error("解析令牌失败:", e);
+	            return {
+	                errCode: 'TOKEN_PARSE_ERROR',
+	                errMsg: '无法解析身份令牌'
+	            };
+	        }
+	
+	        console.log("解析后的令牌信息:", JSON.stringify(payload));
+	
+	        // 检查角色是否为 'user' 或 'admin'
+	        const role = payload.role;
+	        let hasRequiredRole = false;
+	
+	        if (Array.isArray(role)) {
+	            // 检查数组中是否包含 'user' 或 'admin'
+	            hasRequiredRole = role.includes('user') || role.includes('admin');
+	        } else if (typeof role === 'string') {
+	            // 检查字符串是否等于 'user' 或 'admin'
+	            hasRequiredRole = role === 'user' || role === 'admin';
+	        }
+	
+	        console.log("用户是否有访问权限 (user or admin):", hasRequiredRole);
+	
+	        if (!hasRequiredRole) {
+	            // 如果角色不是 'user' 或 'admin'，则拒绝访问
+	            return {
+	                errCode: 'PERMISSION_DENIED',
+	                errMsg: '无权访问此功能' // 通用权限不足提示
+	            };
+	        }
+	    } catch (e) {
+	        console.error("权限验证失败:", e);
+	        return {
+	            errCode: 'AUTH_ERROR',
+	            errMsg: '权限验证失败: ' + e.message
+	        };
+	    }
+	
+	    // 2. 如果权限验证通过，执行数据库查询
+	    const collection = db.collection('customer-service-phone');
+	    try {
+	        console.log("权限验证通过，查询客服电话...");
+	        const res = await collection.limit(1).get(); // 获取第一条（也是唯一一条）记录
+	        if (res.data && res.data.length > 0) {
+	            return {
+	                errCode: 0,
+	                data: {
+	                    phoneNo: res.data[0].phoneNo // 返回电话号码
+	                }
+	            };
+	        } else {
+	            // 记录不存在，仍然返回成功，但数据为空
+	            return {
+	                errCode: 0,
+	                data: { phoneNo: '' }, // 返回空字符串表示未设置
+	                errMsg: '未找到客服电话记录'
+	            };
+	        }
+	    } catch (e) {
+	        console.error("获取客服电话数据库操作失败:", e);
+	        return {
+	            errCode: 'DB_ERROR',
+	            errMsg: '数据库操作失败: ' + e.message
+	        };
+	    }
 	},
 }

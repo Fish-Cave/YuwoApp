@@ -138,7 +138,7 @@
 					<text class="feature-label">全部订单</text>
 				</view>
 
-				<view class="feature-item" @click="handleFeatureClick('service')">
+				<view class="feature-item" @click="callCustomerService()">
 					<view class="feature-icon service-icon">
 						<uni-icons type="chatbubble" size="28" color="#10B981"></uni-icons>
 					</view>
@@ -200,7 +200,8 @@
 
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 	const todo = uniCloud.importObject('todo')
-	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	const res = uniCloud.getCurrentUserInfo()
+	// 上面这行原来是 const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
 	const profile = ref({})
 
@@ -230,7 +231,11 @@
 		return (membershipInfo.value.membership && membershipInfo.value.membership.length > 0) ||
 			(membershipInfo.value.subscriptionPackage && membershipInfo.value.subscriptionPackage.length > 0);
 	});
-
+	
+	// 获取客服电话
+	const customerServicePhone = ref('');
+	const isLoadingPhone = ref(false); // 防止重复点击
+	
 	// 获取会员信息
 	async function getMembershipInfo() {
 		try {
@@ -432,7 +437,74 @@
 		const amountInYuan = (amountInCents / 100).toFixed(2); // 转换为元，保留两位小数
 		return `¥${amountInYuan}`;
 	}
+	
+	//获取客服电话号码
+	async function callCustomerService() {
+		if (isLoadingPhone.value) {
+			return; // 如果正在加载，则不执行任何操作
+		}
 
+		// 1. 检查是否已获取电话号码
+		if (customerServicePhone.value) {
+			makeTheCall(customerServicePhone.value);
+			return;
+		}
+
+		// 2. 如果未获取，则从云函数获取
+		isLoadingPhone.value = true;
+		uni.showLoading({ title: '获取号码中...', mask: true });
+
+		try {
+			const result = await todo.getCustomerServicePhone();
+			console.log('客服电话获取结果:', result);
+
+			if (result.errCode === 0 && result.data && result.data.phoneNo) {
+				customerServicePhone.value = result.data.phoneNo; // 存储号码
+				makeTheCall(customerServicePhone.value);
+			} else {
+				uni.showToast({
+					title: result.errMsg || '客服电话未设置',
+					icon: 'none'
+				});
+			}
+		} catch (error) {
+			console.error('获取客服电话失败:', error);
+			uni.showToast({
+				title: '获取客服电话失败，请稍后重试',
+				icon: 'none'
+			});
+		} finally {
+			isLoadingPhone.value = false;
+			uni.hideLoading();
+		}
+	}
+	
+	function makeTheCall(phoneNumber : string) {
+		if (!phoneNumber) {
+			uni.showToast({ title: '无效的电话号码', icon: 'none' });
+			return;
+		}
+		uni.makePhoneCall({
+			phoneNumber: phoneNumber,
+			success: () => {
+				console.log('拨打电话成功');
+			},
+			fail: (err) => {
+				console.error('拨打电话失败:', err);
+				// 根据错误类型可以给出更具体的提示
+				if (err.errMsg && err.errMsg.includes('cancel')) {
+					// 用户取消拨打
+					uni.showToast({ title: '已取消拨打', icon: 'none' });
+				} else {
+					uni.showToast({ title: '无法拨打电话', icon: 'none' });
+				}
+			},
+			complete: () => {
+				console.log('拨打电话接口调用完成');
+			}
+		});
+	}
+	
 	onMounted(async () => {
 		getPriceList()
 		//getReservationData() // 获取订单数据
