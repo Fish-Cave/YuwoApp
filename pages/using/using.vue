@@ -41,6 +41,12 @@
 						<text class="price-note" v-if="membershipType !== 'none'"></text>
 					</view>
 				</view>
+				<view v-if="(startDay != nowDay) && !isOvernight">
+					<view class="divider"></view>
+					<view style="display: flex;justify-content: center;">
+						<text class="tips">当前签到已经跨日,结算时需要补上包夜费用</text>
+					</view>
+				</view>
 			</view>
 
 			<!-- 使用记录 -->
@@ -94,6 +100,8 @@
 					<text>订单信息</text>
 					<text>{{orderData}}</text>
 					<text>是否为闲时: {{isFree}}</text>
+					<text>签到开始日期: {{startDay}}</text>
+					<text>当前日期: {{nowDay}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -120,13 +128,19 @@
 
 <script setup lang="ts">
 	import dayjs from 'dayjs';
-	import { onMounted, ref, onUnmounted, computed, toRaw, reactive } from 'vue' // 引入 onUnmounted 和 computed
+	// 引入 onUnmounted 和 computed
+	import { onMounted, ref, onUnmounted, computed, toRaw, reactive } from 'vue' 
+	import isFreeDay from '@/modules/isFreeDay.ts'
 	import holiday2025 from '@/static/holiday/2025.json'
 	const todo = uniCloud.importObject('todo')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
 	const isOvernight = ref(false)
 	const isPlay = ref(true)
+	// 跨日签到相关
+	const startDay = ref("")
+	const nowDay = ref("")
+	//定义要用到的接口
 	interface signInData {
 		"_id" : string
 		"reservationid" : string
@@ -171,7 +185,8 @@
 	const noplayprice = ref(1)
 	const totalPrice = ref(0) // 总价，实时更新
 	const today = ref(0)
-	// 计算属性
+	
+	// 显示费用信息
 	const displayRate = computed(() => {
 		if (membershipType.value === "weekly_monthly") {
 			return "包周/月会员免费";
@@ -195,11 +210,12 @@
 			return "不游玩机台1元/半小时";
 		}
 	});
-	//根据时间来设置价格
-	async function getPriceList() {
+	
+	//价格应当依据 签 到 开 始 的时间来确定
+	async function getPriceList(startTime:number) {
 		try {
-			const timestamp = dayjs().unix() * 1000
-			const now = dayjs(timestamp + (86400 * 1000)).format('YYYY-MM-DD')
+			//const timestamp = dayjs().unix() * 1000
+			const now = dayjs(startTime + (86400 * 1000)).format('YYYY-MM-DD')
 			console.log(now)
 			const result = holiday2025.days.find(data => data.date == now)
 			console.log(result)
@@ -255,6 +271,7 @@
 	//时间相关
 	const startTime = ref<number | null>(null) // 开始时间戳，从 Data 中获取
 	const elapsedTime = ref("00:00:00") // 格式化后的已用时间
+	//预计结束日期
 	const estimatedEndTime = computed(() => {
 		// 如果是过夜预约，预计结束时间是开始时间+10小时（22:00-08:00）
 		if (isOvernight.value) {
@@ -276,6 +293,8 @@
 		console.log('switch1 发生 change 事件，携带值为', e.detail.value)
 		debug.value = e.detail.value
 	}
+	
+	//付款订单相关
 	let options = {
 		total_fee: 1, // 支付金额，单位分 100 = 1元
 		type: "goods", // 支付回调类型
@@ -322,6 +341,8 @@
 			});
 		} catch (e) { }
 	}
+	
+	// 帮助
 	function askForHelp() {
 		uni.showToast({
 			title: "遇到问题 (功能待完善)",
@@ -329,12 +350,14 @@
 		})
 		// TODO: 打开客服/帮助页面或弹窗
 	}
+	
 	//日期格式化
 	function formatDate(timestamp : number) {
 		if (!timestamp) return "未知时间";
 		return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
 	}
-	//通过会员种类获取价格
+	
+	//获取会员种类
 	async function getMembershipStatus() {
 		try {
 			const userInfo = uniCloud.getCurrentUserInfo();
@@ -415,6 +438,7 @@
 		}
 	*/
 
+	//查询签到信息,并根据签到信息来初始化数据
 	async function searchSignin() {
 		try {
 			const result = await todo.SignIn_Search(res.uid)
@@ -422,10 +446,11 @@
 			if (result.data && result.data.length > 0) {
 				//console.log(result.data)
 				Data.value = result.data
-				isPlay.value = Data.value[0].isPlay
-				isOvernight.value = Data.value[0].isOvernight
-				getReservationData(Data.value[0].reservationid)
+				isPlay.value = Data.value[0].isPlay//是否游玩机台
+				isOvernight.value = Data.value[0].isOvernight//是否过夜
+				getReservationData(Data.value[0].reservationid)//获取本次签到对应的预约信息
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
+				startDay.value = dayjs(startTime.value).format('YYYY-MM-DD')
 				today.value = dayjs(startTime.value).day()
 				console.log("订单开始于星期" + today.value)
 				//setPriceByMembership()
@@ -434,6 +459,7 @@
 				if (startTime.value && startTime.value !== 0) {
 					startTimer(); // 开始计时
 				}
+				getPriceList(startTime.value)
 			} else {
 				Data.value = []; // 清空数据，显示暂无信息
 				stopTimer(); // 停止计时器，防止意外运行
@@ -444,11 +470,12 @@
 				title: "获取使用信息失败",
 				icon: 'none'
 			})
-			Data.value = []; // 出错时也清空数据
+			Data.value = null; // 出错时也清空数据
 			stopTimer(); // 停止计时器，防止意外运行
 		}
 	}
-
+	
+	//从预约订单获得机台名称和预计结束时间
 	const reservationData = reactive({
 		"endtime": 0,
 		"machineName": "",
@@ -468,12 +495,15 @@
 			const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
 			// 更新显示的时间
 			elapsedTime.value = formatTime(elapsedSeconds);
-
+			// 更新当前日期
+			nowDay.value = dayjs().format('YYYY-MM-DD')
 			// 计算费用
 			calculateFee(elapsedMilliseconds);
 		}, 1000); // 每秒更新一次
 	}
-
+	
+	
+	// 总价计算
 	function calculateFee(elapsedMilliseconds : number) {
 		// 如果是周/月卡会员，费用为0
 		if (membershipType.value == "weekly_monthly") {
@@ -533,8 +563,14 @@
 				}
 			}
 		}
+		//跨日补一份包夜费用
+		if((startDay != nowDay)&& !isOvernight.value){
+			totalPrice.value += overnightPrice.value
+		}
 		// 保留两位小数
+		orderData.total_fee = totalPrice.value * 100
 		totalPrice.value = Math.round(totalPrice.value * 100) / 100;
+		
 	}
 
 
@@ -544,7 +580,8 @@
 			timerInterval = null;
 		}
 	}
-
+	
+	// ?
 	function formatTime(totalSeconds : number) : string {
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -560,7 +597,7 @@
 	onMounted(() => {
 		searchSignin()
 		getMembershipStatus()
-		getPriceList()
+		//getPriceList()
 		console.log(Data)
 	})
 
@@ -845,6 +882,11 @@
 	.help-button:active {
 		background: #e0e0e0;
 	}
+	.tips {
+		font-size: 30rpx;
+		color: gray;
+		margin-top: 0rpx;
+	}
 
 	@media (prefers-color-scheme: dark) {
 
@@ -970,6 +1012,9 @@
 			margin-bottom: 30rpx;
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 			padding: 16rpx;
+		}
+		.tips {
+			color: lightgray;
 		}
 	}
 </style>

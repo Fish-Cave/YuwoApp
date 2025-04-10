@@ -21,6 +21,7 @@ module.exports = async (obj) => {
 		_id: order_no
 	}).get();
 	let orderInfo = orderRes.data[0];
+	//比对此次支付金额是否与系统中订单金额一致
 	if (orderInfo.total_fee == total_fee) {
 		await db.collection("fishcave-orders").where({
 			_id: order_no

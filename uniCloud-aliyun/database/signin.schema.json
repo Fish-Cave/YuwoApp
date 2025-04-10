@@ -1,1 +1,63 @@
-{"bsonType":"object","required":["reservationid","userid","isPlay","isOvernight","starttime","createTime"],"permission":{"read":true,"create":true,"update":true,"delete":true},"properties":{"_id":{"description":"ID，系统自动生成"},"reservationid":{"bsonType":"string","description":"此次签到对应的预约订单号,关联表reservation-log","foreignKey":"reservation-log._id"},"userid":{"bsonType":"string","description":"这次签到对应的用户ID,关联表uni-id-user","foreignKey":"uni-id-user._id"},"isPlay":{"bsonType":"boolean","description":"本次签到玩不玩机器 0 不玩 1 玩","defaultValue":true},"isOvernight":{"bsonType":"boolean","description":"本次签到过不过夜 0 不玩 1 玩","defaultValue":false},"starttime":{"bsonType":"timestamp","description":"这次签到的开始时间，由签到页面生成"},"endtime":{"bsonType":"timestamp","description":"这次签到的结束时间，由签到页面生成"},"status":{"bsonType":"int","description":"当前签到的状态 0 使用中 1 已完成","defaultValue":0,"enum":[0,1]},"createTime":{"bsonType":"timestamp","description":"创建时间","forceDefaultValue":{"$env":"now"}},"updateTime":{"bsonType":"timestamp","description":"更新时间","forceDefaultValue":{"$env":"now"}}}}
+{
+	"bsonType": "object",
+	"required": ["reservationid", "userid", "isPlay", "isOvernight", "starttime", "createTime"],
+	"permission": {
+		"read": true,
+		"create": true,
+		"update": true,
+		"delete": true
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"reservationid": {
+			"bsonType": "string",
+			"description": "此次签到对应的预约订单号,关联表reservation-log",
+			"foreignKey": "reservation-log._id"
+		},
+		"userid": {
+			"bsonType": "string",
+			"description": "这次签到对应的用户ID,关联表uni-id-user",
+			"foreignKey": "uni-id-users._id"
+		},
+		"isPlay": {
+			"bsonType": "boolean",
+			"description": "本次签到玩不玩机器 0 不玩 1 玩",
+			"defaultValue": true
+		},
+		"isOvernight": {
+			"bsonType": "boolean",
+			"description": "本次签到过不过夜 0 不玩 1 玩",
+			"defaultValue": false
+		},
+		"starttime": {
+			"bsonType": "timestamp",
+			"description": "这次签到的开始时间，由签到页面生成"
+		},
+		"endtime": {
+			"bsonType": "timestamp",
+			"description": "这次签到的结束时间，由签到页面生成"
+		},
+		"status": {
+			"bsonType": "int",
+			"description": "当前签到的状态 0 使用中 1 已完成",
+			"defaultValue": 0,
+			"enum": [0, 1]
+		},
+		"createTime": {
+			"bsonType": "timestamp",
+			"description": "创建时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		},
+		"updateTime": {
+			"bsonType": "timestamp",
+			"description": "更新时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		}
+	}
+}

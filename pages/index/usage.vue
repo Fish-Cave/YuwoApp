@@ -24,11 +24,15 @@
 					</view>
 					<view class="machine-info">
 						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
+						<!-- 会员价格显示逻辑 -->
 						<view class="price-status-container">
-							<!-- 会员价格显示逻辑 -->
-							<text v-if="membershipType === 'weekly_monthly'" class="machine-price">包周/月价 0元/半时</text>
-							<text v-else-if="membershipType === 'music_game'" class="machine-price">会员价 4元/半时</text>
-							<text v-else class="machine-price">5元/半时</text>
+							<view v-if="membershipType === 'weekly_monthly'">
+								<text class="machine-price">周卡月卡会员免费</text>
+							</view>
+							<view v-else>
+								<text v-if="props.isFree" class="machine-price">闲时价 3元/半时</text>
+								<text v-else class="machine-price">忙时价 5元/半时</text>
+							</view>
 
 							<view class="status-label"
 								:class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
@@ -119,18 +123,21 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch, onShow, computed } from 'vue'; // 添加 computed
+	import { onMounted, reactive, ref, watch, computed } from 'vue'; // 添加 computed
 	import dayjs from 'dayjs';
 	import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+	import isFreeDay from '@/modules/isFreeDay.ts'
 	const uniIdCo = uniCloud.importObject("uni-id-co")
-	const isSuperUser = ref(false)
+	const isSuperUser = ref(false)// 管理员也是superuser
 	const isUser = ref(false)
 	const isPreUser = ref(false)
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
-
+	const isFree = ref(false) //判断闲时忙时
+	
+	
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
-		if (res.role.includes("admin") || res.role.includes("superUser")) {
+		if (res.role.includes("admin")) {
 			isSuperUser.value = true
 			isUser.value = false
 			isPreUser.value = false
@@ -164,7 +171,6 @@
 			// 调用云对象方法获取会员信息
 			const result = await todo.getUserMembershipInfo(userInfo.uid);
 			console.log("会员信息查询结果:", result);
-
 			if (result) {
 				// 检查包周/月会员
 				if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
@@ -194,6 +200,7 @@
 	uni.$on('uni-id-pages-login-success', () => {
 		roleJudge();
 	});
+	
 	const todo = uniCloud.importObject('todo')
 	interface machine {
 		"_id" : string;
@@ -257,6 +264,10 @@
 		},
 		endTime: {
 			type: Number,
+			required: true
+		},
+		isFree: {
+			type: Boolean,
 			required: true
 		}
 	})
@@ -469,15 +480,15 @@
 			console.error("加载收藏数据失败:", error);
 		}
 	}
-	
+
 	const howManyPlayer = ref(0)
-	
-	async function HowManyPlayer(){
-		try{
+
+	async function HowManyPlayer() {
+		try {
 			const result = await todo.HowManyPlayer()
-			console.log(result.data)
+			console.log("窝几" + result.data)
 			howManyPlayer.value = result.data.length
-		}catch(e){}
+		} catch (e) { }
 	}
 
 	onMounted(() => {
@@ -502,6 +513,8 @@
 		loadUserFavorites();
 		// 多少人在签到呀
 		HowManyPlayer()
+		// 是忙时还是闲时呀
+		isFree.value = isFreeDay()
 	})
 
 	// 页面显示时刷新数据和会员状态
@@ -952,8 +965,9 @@
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 		/* 保持默认阴影或略微调整 */
 	}
-	
+
 	@media (prefers-color-scheme: dark) {
+
 		/* 基础容器样式 */
 		.container {
 			width: 100%;
@@ -962,6 +976,7 @@
 			background: rgb(0, 0, 0);
 			min-height: 100vh;
 		}
+
 		/* 玻璃拟态卡片 */
 		.glass-card {
 			background: rgb(22, 22, 24);
@@ -974,7 +989,7 @@
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 			position: relative;
 		}
-		
+
 		.icon-container {
 			display: flex;
 			justify-content: center;
@@ -984,7 +999,7 @@
 			height: 60px;
 			border-radius: 16px;
 		}
-		
+
 		.machine-name {
 			font-weight: bold;
 			font-size: 34rpx;
@@ -995,7 +1010,7 @@
 			color: white;
 			margin-bottom: 8rpx;
 		}
-		
+
 		.machine-price {
 			font-size: 26rpx;
 			color: lightgray;
@@ -1006,7 +1021,7 @@
 			align-self: flex-start;
 			font-weight: 500;
 		}
-		
+
 		.heart-icon {
 			display: flex;
 			justify-content: center;
@@ -1018,14 +1033,14 @@
 			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 			transition: all 0.2s ease;
 		}
-		
+
 		/* 时间轴样式 */
 		.time-label {
 			color: white;
 			font-size: 22rpx;
 			font-weight: 500;
 		}
-		
+
 		.timeline-bar {
 			height: 36rpx;
 			width: 100%;
@@ -1035,7 +1050,7 @@
 			box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 			overflow: hidden;
 		}
-		
+
 		.timeline-segment-pulse {
 			position: absolute;
 			top: 0;
@@ -1046,7 +1061,7 @@
 			animation: pulse 2s infinite;
 			border-radius: 18rpx;
 		}
-		
+
 		.filter-button {
 			display: flex;
 			align-items: center;
@@ -1055,7 +1070,7 @@
 			border-radius: 30rpx;
 			box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
 		}
-		
+
 		.filter-text {
 			margin-left: 10rpx;
 			font-size: 26rpx;

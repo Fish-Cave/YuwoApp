@@ -1573,6 +1573,8 @@ module.exports = {
 	  }
 	},
 	
+	
+	
 	/**
 	 * 验证 connectCode 并绑定到QQ账号 (供 nonebot 调用的API)
 	 * @param {object} params
@@ -1653,6 +1655,8 @@ module.exports = {
 	    };
 	  }
 	},
+	
+	
 	/**
 	 * 更新客服电话
 	 * @param {object} params - 包含新电话号码的对象
@@ -1793,6 +1797,8 @@ module.exports = {
 	        };
 	    }
 	},
+	
+	
 	/**
 	 * 获取客服电话 (仅限 user 和 admin 角色)
 	 * @returns {object} 包含客服电话的数据或错误信息

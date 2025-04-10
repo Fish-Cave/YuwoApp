@@ -208,6 +208,8 @@
 	//通过在本地缓存的token来获取用户信息
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
+	const premission = (res.role.includes("user") ||res.role.includes("admin"))
+	//console.log(premission)
 	//建立预约信息Data
 	interface reservationData {
 		"userId" : string;
@@ -973,7 +975,15 @@
 
 		// 确保isPlay字段正确设置
 		Data.isPlay = !isNoPlayMachine.value;
-
+		
+		//判断是否有权限预约
+		if(premission!=true){
+			uni.showToast({
+				title: "您还没有预约权限,请联系管理员申请权限",
+				icon: 'error'
+			})
+			return
+		}
 
 		try {
 			uni.showLoading({

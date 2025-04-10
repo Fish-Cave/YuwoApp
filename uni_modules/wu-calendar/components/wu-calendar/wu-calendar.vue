@@ -8,10 +8,12 @@
 			<slot name="operation" v-if="operationPosition == 'top'">
 				<view v-if="!insert" class="wu-calendar__header wu-calendar--fixed-top">
 					<view class="wu-calendar__header-btn-box" @click="cancel">
-						<text class="wu-calendar__header-text wu-calendar--fixed-width" :style="[{color: cancelColor}]">{{cancelText}}</text>
+						<text class="wu-calendar__header-text wu-calendar--fixed-width"
+							:style="[{color: cancelColor}]">{{cancelText}}</text>
 					</view>
 					<view class="wu-calendar__header-btn-box" @click="confirm">
-						<text class="wu-calendar__header-text wu-calendar--fixed-width" :style="[{color: confirmColor}]">{{okText}}</text>
+						<text class="wu-calendar__header-text wu-calendar--fixed-width"
+							:style="[{color: confirmColor}]">{{okText}}</text>
 					</view>
 				</view>
 			</slot>
@@ -81,24 +83,27 @@
 					<template v-if="type === 'month' || type === 'week'">
 						<swiper-item>
 							<wu-calendar-block :weeks="preWeeks" :calendar="calendar" :selected="selected"
-								:lunar="lunar" @change="choiceDate" :color="color" :actBadgeColor="actBadgeColor" :startText="startText"
-								:endText="endText" :month="preWeeksMonth" :FoldStatus="FoldStatus"
-								:monthShowCurrentMonth="monthShowCurrentMonth" :showMonth="showMonth"
-								:itemHeight="itemHeight" :defaultMargin="defaultMargin" :todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
+								:lunar="lunar" @change="choiceDate" :color="color" :actBadgeColor="actBadgeColor"
+								:startText="startText" :endText="endText" :month="preWeeksMonth"
+								:FoldStatus="FoldStatus" :monthShowCurrentMonth="monthShowCurrentMonth"
+								:showMonth="showMonth" :itemHeight="itemHeight" :defaultMargin="defaultMargin"
+								:todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
 						</swiper-item>
 						<swiper-item>
 							<wu-calendar-block :weeks="weeks" :calendar="calendar" :selected="selected" :lunar="lunar"
-								@change="choiceDate" :color="color" :actBadgeColor="actBadgeColor" :startText="startText" :endText="endText"
-								:monthShowCurrentMonth="monthShowCurrentMonth" :month="weeksMonth"
-								:FoldStatus="FoldStatus" :showMonth="showMonth"
-								:itemHeight="itemHeight" :defaultMargin="defaultMargin" :todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
+								@change="choiceDate" :color="color" :actBadgeColor="actBadgeColor"
+								:startText="startText" :endText="endText" :monthShowCurrentMonth="monthShowCurrentMonth"
+								:month="weeksMonth" :FoldStatus="FoldStatus" :showMonth="showMonth"
+								:itemHeight="itemHeight" :defaultMargin="defaultMargin"
+								:todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
 						</swiper-item>
 						<swiper-item>
 							<wu-calendar-block :weeks="nextWeeks" :calendar="calendar" :selected="selected"
-								:lunar="lunar" @change="choiceDate" :color="color" :actBadgeColor="actBadgeColor" :startText="startText"
-								:endText="endText" :month="nextWeeksMonth" :FoldStatus="FoldStatus"
-								:monthShowCurrentMonth="monthShowCurrentMonth" :showMonth="showMonth"
-								:itemHeight="itemHeight" :defaultMargin="defaultMargin" :todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
+								:lunar="lunar" @change="choiceDate" :color="color" :actBadgeColor="actBadgeColor"
+								:startText="startText" :endText="endText" :month="nextWeeksMonth"
+								:FoldStatus="FoldStatus" :monthShowCurrentMonth="monthShowCurrentMonth"
+								:showMonth="showMonth" :itemHeight="itemHeight" :defaultMargin="defaultMargin"
+								:todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
 						</swiper-item>
 					</template>
 				</swiper>
@@ -107,9 +112,10 @@
 					<!-- 月或周日历 -->
 					<wu-calendar-block class="wu-calendar__weeks_container" :style="[calendarContentStyle]"
 						:weeks="weeks" :calendar="calendar" :selected="selected" :lunar="lunar" @change="choiceDate"
-						:color="color" :actBadgeColor="actBadgeColor" :startText="startText" :endText="endText" :month="nowDate.month"
-						:FoldStatus="FoldStatus" :monthShowCurrentMonth="monthShowCurrentMonth" :showMonth="showMonth"
-						:itemHeight="itemHeight" :defaultMargin="defaultMargin" :todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
+						:color="color" :actBadgeColor="actBadgeColor" :startText="startText" :endText="endText"
+						:month="nowDate.month" :FoldStatus="FoldStatus" :monthShowCurrentMonth="monthShowCurrentMonth"
+						:showMonth="showMonth" :itemHeight="itemHeight" :defaultMargin="defaultMargin"
+						:todayDefaultStyle="todayDefaultStyle"></wu-calendar-block>
 				</template>
 			</view>
 			<view class="wu-calendar__fold" v-if="type !== 'year' && Fold" @click="FoldClick">
@@ -120,10 +126,12 @@
 			<slot name="operation" v-if="operationPosition == 'bottom'">
 				<view v-if="!insert" class="wu-calendar__header wu-calendar--fixed-top">
 					<view class="wu-calendar__header-btn-box" @click="cancel">
-						<text class="wu-calendar__header-text wu-calendar--fixed-width" :style="[{color: cancelColor}]">{{cancelText}}</text>
+						<text class="wu-calendar__header-text wu-calendar--fixed-width"
+							:style="[{color: cancelColor}]">{{cancelText}}</text>
 					</view>
 					<view class="wu-calendar__header-btn-box" @click="confirm">
-						<text class="wu-calendar__header-text wu-calendar--fixed-width" :style="[{color: confirmColor}]">{{okText}}</text>
+						<text class="wu-calendar__header-text wu-calendar--fixed-width"
+							:style="[{color: confirmColor}]">{{okText}}</text>
 					</view>
 				</view>
 			</slot>
@@ -365,7 +373,7 @@
 				const value = e.detail.value + '-1'
 				this.setDate(value)
 				this.swiperCurrentChangeWeeks();
-				
+
 				const {
 					year,
 					month
@@ -381,7 +389,7 @@
 			 * @param {Object} date
 			 */
 			init(date) {
-				this.$nextTick(()=>{
+				this.$nextTick(() => {
 					// 初始化
 					this.initStatus = false;
 					let firstDate = this.mode == 'single' ? date : date[0];
@@ -397,7 +405,7 @@
 						}
 						// 根据类型默认选中不同的值
 						if (this.mode == 'multiple') {
-							this.cale.multiple = date.map(item=>item);
+							this.cale.multiple = date.map(item => item);
 							this.cale._getWeek(this.cale.multiple[this.cale.multiple.length - 1]);
 						} else if (this.mode == 'range') {
 							date[0] ? this.cale.setRange(date[0]) : ''
@@ -405,7 +413,8 @@
 						}
 					}
 					// 如果不填写默认值 且 使用今日作为默认值 并且 还没有在打点中禁用今天的日期
-					else if (this.useToday && !this.selected.filter(item => item.disable && this.cale.dateEqual(item.date, this
+					else if (this.useToday && !this.selected.filter(item => item.disable && this.cale.dateEqual(
+							item.date, this
 							.cale.date.fullDate)).length) {
 						if (this.mode == 'multiple') {
 							this.cale.multiple = [this.cale.date.fullDate];
@@ -414,7 +423,7 @@
 							this.cale.setRange(this.cale.date.fullDate)
 						}
 					}
-					
+
 					// 设置日期
 					this.cale.setDate(firstDate);
 					// 现在的日期
@@ -425,7 +434,7 @@
 					if ((this.useToday && !this.date) || this.date) {
 						this.calendar = this.nowDate;
 					}
-					
+
 					// 渲染
 					this.updateWeeks(false, true);
 					// 初始化成功
@@ -494,32 +503,32 @@
 			 * 确认按钮
 			 */
 			confirm() {
-				if(this.confirmFullDate) {
-					if(this.mode == 'single' && !this.calendar.fullDate) {
+				if (this.confirmFullDate) {
+					if (this.mode == 'single' && !this.calendar.fullDate) {
 						return uni.showToast({
 							icon: 'none',
 							title: '请选择日期',
 							duration: 600
 						});
-					} else if(this.mode == 'multiple' && !this.cale.multiple.length) {
+					} else if (this.mode == 'multiple' && !this.cale.multiple.length) {
 						return uni.showToast({
 							icon: 'none',
 							title: '请至少选择一个日期',
 							duration: 600
 						});
-					} else if(this.mode == 'range') {
-						if(!this.cale.rangeStatus.before) {
+					} else if (this.mode == 'range') {
+						if (!this.cale.rangeStatus.before) {
 							return uni.showToast({
 								icon: 'none',
 								title: '请选择开始日期',
 								duration: 600
-							}); 
-						} else if(!this.cale.rangeStatus.after) {
+							});
+						} else if (!this.cale.rangeStatus.after) {
 							return uni.showToast({
 								icon: 'none',
 								title: '请选择结束日期',
 								duration: 600
-							}); 
+							});
 						}
 					}
 				}
@@ -604,7 +613,7 @@
 				this.cale.setRange(this.calendar.fullDate);
 				// 设置多选
 				this.cale.setMultiple(this.calendar.fullDate);
-				
+
 				// 如果启用滑动切换 且当前模式为范围选择时则重新计算上月与下月
 				if (this.slideSwitchMode !== 'none') {
 					let weekName = '';
@@ -745,14 +754,16 @@
 				// 是否变动日期信息
 				if (isChange) {
 					// 如果目前处于打开状态也就是月日历时，将记录月份改为一号(这样可以在用户切换到任意月份时并折叠自动选中1号)
-					let fullDate = this.FoldStatus === 'close' ? this.nowDate.fullDate : `${this.nowDate.year}-${this.nowDate.month}-${1}`
-					newFullDate = this.cale.getDate(fullDate, this.swiperChangeDirection === 'next' ? +1 : -1, this.getDateType).fullDate;
+					let fullDate = this.FoldStatus === 'close' ? this.nowDate.fullDate :
+						`${this.nowDate.year}-${this.nowDate.month}-${1}`
+					newFullDate = this.cale.getDate(fullDate, this.swiperChangeDirection === 'next' ? +1 : -1, this
+						.getDateType).fullDate;
 				} else {
 					newFullDate = this.cale.getDate(this.nowDate.fullDate, 0, this.getDateType).fullDate;
 				}
 				this.setDate(newFullDate)
 				this.swiperCurrentChangeWeeks();
-				if(!isInt) {
+				if (!isInt) {
 					this.monthSwitch();
 				}
 			},
@@ -887,6 +898,7 @@
 			/* #endif */
 		}
 	}
+
 	.wu-calendar {
 		/* #ifndef APP-NVUE */
 		display: flex;
@@ -1083,7 +1095,9 @@
 		flex-direction: row;
 		justify-content: center;
 	}
-	
+
+
+	/* 黑夜模式 */
 	@media (prefers-color-scheme: dark) {
 		$wu-bg-color-mask: rgba($color: #000000, $alpha: 0.4);
 		$wu-border-color: rgb(51, 49, 50);
@@ -1093,31 +1107,30 @@
 		$wu-text-color-placeholder: lightgray;
 		$wu-color-subtitle: darkgray;
 		$wu-text-color-grey: #999;
-		
-		/* 黑夜模式 */
-		@media (prefers-color-scheme: dark) {
-			.wu-calendar__mask {
-				position: fixed;
-				bottom: 0;
-				top: 0;
-				left: 0;
-				right: 0;
-				background-color: #000000;
-				transition-property: opacity;
-				transition-duration: 0.3s;
-				opacity: 0;
-				/* #ifndef APP-NVUE */
-				z-index: 99;
-				/* #endif */
-			}
+
+
+		.wu-calendar__mask {
+			position: fixed;
+			bottom: 0;
+			top: 0;
+			left: 0;
+			right: 0;
+			background-color: #000000;
+			transition-property: opacity;
+			transition-duration: 0.3s;
+			opacity: 0;
+			/* #ifndef APP-NVUE */
+			z-index: 99;
+			/* #endif */
 		}
+
 		.wu-calendar {
 			/* #ifndef APP-NVUE */
 			display: flex;
 			/* #endif */
 			flex-direction: column;
 		}
-		
+
 		.wu-calendar__mask {
 			position: fixed;
 			bottom: 0;
@@ -1132,11 +1145,11 @@
 			z-index: 99;
 			/* #endif */
 		}
-		
+
 		.wu-calendar--mask-show {
 			opacity: 1;
 		}
-		
+
 		.wu-calendar--fixed {
 			position: fixed;
 			/* #ifdef APP-NVUE */
@@ -1152,15 +1165,15 @@
 			z-index: 99;
 			/* #endif */
 		}
-		
+
 		.wu-calendar--ani-show {
 			transform: translateY(0);
 		}
-		
+
 		.wu-calendar__content {
 			background-color: rgb(22, 22, 24);
 		}
-		
+
 		.wu-calendar__header {
 			position: relative;
 			/* #ifndef APP-NVUE */
@@ -1173,7 +1186,7 @@
 			border-bottom-style: solid;
 			border-bottom-width: 2rpx;
 		}
-		
+
 		.wu-calendar--fixed-top {
 			/* #ifndef APP-NVUE */
 			display: flex;
@@ -1185,11 +1198,11 @@
 			border-top-style: solid;
 			border-top-width: 2rpx;
 		}
-		
+
 		.wu-calendar--fixed-width {
 			width: 100rpx;
 		}
-		
+
 		.wu-calendar__backtoday {
 			position: absolute;
 			right: 0;
@@ -1203,19 +1216,19 @@
 			border-bottom-left-radius: 50rpx;
 			color: $wu-text-color;
 			background-color: $wu-bg-color-hover;
-		
+
 			&.vertical {
 				top: 38rpx;
 			}
 		}
-		
+
 		.wu-calendar__header-text {
 			text-align: center;
 			width: 200rpx;
 			font-size: $wu-font-size-base;
 			color: $wu-text-color;
 		}
-		
+
 		.wu-calendar__header-btn-box {
 			/* #ifndef APP-NVUE */
 			display: flex;
@@ -1223,23 +1236,23 @@
 			flex-direction: row;
 			align-items: center;
 			justify-content: center;
-		
+
 			.wu-calendar__header-btn {
 				width: 20rpx;
 				height: 20rpx;
 			}
-		
+
 			&.horizontal {
 				width: 100rpx;
 				height: 100rpx;
 			}
-		
+
 			&.vertical {
 				flex-direction: column;
 				padding: 20rpx 0;
 			}
 		}
-		
+
 		.wu-calendar__header-btn {
 			border-left-color: $wu-text-color-placeholder;
 			border-left-style: solid;
@@ -1248,23 +1261,23 @@
 			border-top-style: solid;
 			border-top-width: 4rpx;
 		}
-		
+
 		.wu-calendar--left {
 			transform: rotate(-45deg);
 		}
-		
+
 		.wu-calendar--right {
 			transform: rotate(135deg);
 		}
-		
+
 		.wu-calendar--top {
 			transform: rotate(45deg);
 		}
-		
+
 		.wu-calendar--bottom {
 			transform: rotate(225deg);
 		}
-		
+
 		.wu-calendar__weeks {
 			position: relative;
 			/* #ifndef APP-NVUE */
@@ -1273,7 +1286,7 @@
 			flex-direction: row;
 			padding: 0 8rpx;
 		}
-		
+
 		.wu-calendar__weeks-day {
 			flex: 1;
 			/* #ifndef APP-NVUE */
@@ -1287,20 +1300,20 @@
 			border-bottom-style: solid;
 			border-bottom-width: 2rpx;
 		}
-		
+
 		.wu-calendar__weeks-day-text {
 			font-size: 28rpx;
 		}
-		
+
 		.wu-calendar__box {
 			position: relative;
 		}
-		
+
 		.wu-calendar__weeks_container {
 			transition: height 0.2s linear;
-			
+
 		}
-		
+
 		.wu-calendar__fold {
 			/* #ifndef APP-NVUE */
 			display: flex;
@@ -1309,4 +1322,5 @@
 			justify-content: center;
 		}
 	}
+
 </style>

@@ -17,9 +17,11 @@
 					<text class="link-text">请点击这里</text>
 				</view>
 			</view>
-			<view >
+			<view>
 				<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
-				<usage :startTime="selectedStartTime" :endTime="selectedEndTime"></usage>
+				<usage :startTime="selectedStartTime" 
+				:endTime="selectedEndTime" 
+				:isFree="isFree"></usage>
 				<button v-if="isAdmin" @click="goToConfig()">配置</button>
 			</view>
 		</view>
@@ -32,9 +34,12 @@
 	import dayjs from 'dayjs';
 	import usage from './usage';
 	import { useProfileStore } from '../../stores/userProfileStore';
+	import isFreeDay from '@/modules/isFreeDay.ts'
 	const userProfile = useProfileStore()
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+	console.log(res)
 	const isAdmin = ref(res.role.includes("admin"))
+	const isFree = ref(isFreeDay())
 	const todayDate = computed(() => {
 		if (isAdmin.value) {
 			return ''; //  管理员可以查看所有日期，startDate 设置为空字符串
@@ -59,6 +64,7 @@
 
 			selectedStartTime.value = startTime;
 			selectedEndTime.value = endTime;
+			isFree.value = isFreeDay(startTime)
 
 			console.log('startTime:', startTime, 'endTime:', endTime); // 打印计算出的时间戳
 		} else {
@@ -84,7 +90,6 @@
 			});
 			return;
 		}
-
 		const orderData = {
 			name: "不游玩机台",
 			id: "67e2f4803f1a47470a1a552a",
@@ -92,15 +97,22 @@
 			startTime: selectedStartTime.value,
 			endTime: selectedEndTime.value
 		};
+		if (res.role.includes("user") ||res.role.includes("admin")) {
+			uni.setStorageSync('orderData', JSON.stringify(orderData));
 
-		uni.setStorageSync('orderData', JSON.stringify(orderData));
+			uni.navigateTo({
+				url: '/pages/order/order',
+				success: function (res) {
+					res.eventChannel.emit('acceptDataFromOpenerPage', orderData);
+				}
+			});
+		}else{
+			uni.showToast({
+				title: "您还没有预约权限,请联系管理员申请权限",
+				icon: 'error'
+			})
+		}
 
-		uni.navigateTo({
-			url: '/pages/order/order',
-			success: function (res) {
-				res.eventChannel.emit('acceptDataFromOpenerPage', orderData);
-			}
-		});
 	}
 
 
@@ -292,9 +304,9 @@
 		.bottom-divider {
 			border-bottom: 1px solid rgb(51, 49, 50);
 		}
-		
+
 		.calendar {
-			font-color : white;
+			font-color: white;
 		}
 	}
 </style>

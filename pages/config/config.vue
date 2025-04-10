@@ -37,6 +37,7 @@
 <script setup>
 	import dayjs from 'dayjs';
 	import holiday2025 from '@/static/holiday/2025.json'
+	import isFreeDay from '@/modules/isFreeDay.ts'
 	import {
 		reactive, ref, onMounted
 	} from 'vue'
@@ -284,6 +285,7 @@
         loadData(); // 加载价格列表
         loadPreUsers(); // 加载 preUser 列表
         loadCustomerServicePhone(); // 加载客服电话
+		console.log(isFreeDay())
 	})
 </script>
 
