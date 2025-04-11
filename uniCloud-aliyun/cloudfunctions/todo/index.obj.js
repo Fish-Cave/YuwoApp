@@ -1899,4 +1899,16 @@ module.exports = {
 	        };
 	    }
 	},
+	Delete: function(content, statusnumber) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		const reservation = dbJQL.collection('reservation-log')
+		const singin = dbJQL.collection('signin')
+		order.remove()
+		reservation.remove()
+		singin.remove()
+		console.log("数据已全部删除")
+	},
 }

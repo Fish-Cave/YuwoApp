@@ -1,6 +1,13 @@
 {
 	"bsonType": "object",
-	"required": ["userId", "machineId", "startTime", "endTime", "isOvernight", "isPlay", "status", "createTime","updateTime"
+	"required": ["userId", 
+	"machineId", 
+	"startTime", 
+	"endTime", 
+	"price",
+	"isOvernight", 
+	"isPlay", 
+	"status", "createTime","updateTime"
 	],
 	"permission": {
 		"read": true,
@@ -26,6 +33,10 @@
 			"foreignKey": "machines._id",
 			"index": true
 		},
+		"machineName": {
+			"bsonType": "string",
+			"description": "机台名称,方便后续其他功能调用"
+		},
 		"startTime": {
 			"bsonType": "timestamp",
 			"description": "预约开始时间"
@@ -38,6 +49,10 @@
 			"bsonType": "boolean",
 			"description": "是否过夜",
 			"defaultValue": false
+		},
+		"price": {
+			"bsonType": "int",
+			"description": "价格,以分为单位"
 		},
 		"isPlay": {
 			"bsonType": "boolean",
@@ -56,23 +71,29 @@
 		},
 		"status": {
 			"bsonType": "number",
-			"description": "预约状态 (0表示'待确认',1表示 '已确认', 2表示 '已完成', 3表示'已过期', 4表示'使用中')",
+			"description": "预约状态",
 			"enum": [{
 				"text": "待确认",
 				"value": 0
 			}, {
-				"text": "已确认",
+				"text": "已确认/待签到",
 				"value": 1
 			},{
-				"text": "已完成",
+				"text": "已结算(整个流程结束,费用结清)",
 				"value": 2
 			},{
-				"text": "已过期",
+				"text": "未到场/爽约",
 				"value": 3
 			},{
 				"text": "使用中",
 				"value": 4
-			}],
+			},{
+				"text": "使用完成",
+				"value": 5
+			},{
+				"text": "用户取消",
+				"value": 6
+			}]
 		},
 		"notes": {
 			"bsonType": "string",

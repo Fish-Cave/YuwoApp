@@ -201,6 +201,8 @@
 	import { ref, getCurrentInstance, onMounted, reactive, computed, watch, toRaw } from 'vue';
 	import holiday2025 from '@/static/holiday/2025.json'
 	const todo = uniCloud.importObject('todo')
+	const reservationHandler = uniCloud.importObject('reservationHandler')
+	//你不早说
 	const machineName = ref("")
 	const debug = ref(false);
 	const isNoPlayMachine = ref(false); // 新增：是否是不游玩机台的标志
@@ -208,7 +210,7 @@
 	//通过在本地缓存的token来获取用户信息
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
-	const premission = (res.role.includes("user") ||res.role.includes("admin"))
+	const premission = (res.role.includes("user") || res.role.includes("admin"))
 	//console.log(premission)
 	//建立预约信息Data
 	interface reservationData {
@@ -219,8 +221,9 @@
 		"isOvernight" : boolean;
 		"status" : number;
 		"notes" : string;
-		"price" : number; // 添加 price 字段
-		"isPlay" : boolean; // 新增：是否游玩机台
+		"price" : number; // 添加 price 字段,应当以分为单位
+		"isPlay" : boolean; // 新增:是否游玩机台
+		"machineName" : string;//新增:机台名称,减少后期查表次数
 	}
 
 	const Data = reactive<reservationData>({
@@ -231,8 +234,9 @@
 		"isOvernight": false,
 		"status": 0,
 		"notes": "",
-		"price": 0, // 初始化 price 为 0
-		"isPlay": true // 默认为true，表示游玩机台
+		"price": 0, // 初始化 price 为 0,以分为单位
+		"isPlay": true,// 默认为true，表示游玩机台
+		"machineName": "",
 	});
 
 
@@ -496,7 +500,7 @@
 				const diffHours = (Data.endTime - Data.startTime) / (1000 * 60 * 60);
 				const halfHourUnits = Math.ceil(diffHours / 0.5);
 				price.value = halfHourUnits * noplayprice.value; // 每半小时noplayprice元
-				Data.price = price.value;
+				Data.price = price.value * 100;
 			}
 			return;
 		}
@@ -510,7 +514,7 @@
 
 		if (Data.isOvernight && !isNoPlayMachine.value) { // 只有非不游玩机台才允许过夜预约
 			price.value = overnightPrice.value;
-			Data.price = overnightPrice.value;
+			Data.price = overnightPrice.value * 100;
 			return;
 		}
 
@@ -535,13 +539,12 @@
 				price.value = Math.min(basePrice, 40); // 日常上限40元
 				Data.price = price.value;
 			}*/
-
 			// 非会员价格计算 (保持原有逻辑，五小时以上50元)
 			price.value = overnightPrice.value
 			if (totalTime.value < 5) {
 				price.value = Math.ceil(totalTime.value / 0.5) * singlePrice.value;
 			}
-			Data.price = price.value;
+			Data.price = price.value * 100;
 
 
 		} else {
@@ -836,6 +839,7 @@
 		if (storedData) {
 			const orderData = JSON.parse(storedData);
 			machineName.value = orderData.name;
+			Data.machineName = machineName.value;
 			Data.machineId = orderData.id;
 
 			// 新增: 检查是否是不游玩机台
@@ -871,6 +875,7 @@
 			eventChannel.on('acceptDataFromOpenerPage', function (data) {
 				console.log('acceptDataFromOpenerPage', data);
 				machineName.value = data.name;
+				Data.machineName = machineName.value;
 				Data.machineId = data.id;
 
 				// 新增: 检查是否是不游玩机台
@@ -952,7 +957,7 @@
 		}
 
 
-		// 1. 参数验证 - 与后端保持一致
+		// 1. 参数验证
 		if (!Data.startTime || !Data.endTime || !Data.machineId || !Data.userId) {
 			uni.showToast({
 				title: '缺少必要参数',
@@ -960,8 +965,7 @@
 			});
 			return;
 		}
-
-		// 2. 时间范围验证 - 与后端保持一致
+		// 2. 时间范围验证
 		if (Data.startTime >= Data.endTime) {
 			uni.showToast({
 				title: '开始时间必须早于结束时间',
@@ -975,9 +979,9 @@
 
 		// 确保isPlay字段正确设置
 		Data.isPlay = !isNoPlayMachine.value;
-		
+
 		//判断是否有权限预约
-		if(premission!=true){
+		if (premission != true) {
 			uni.showToast({
 				title: "您还没有预约权限,请联系管理员申请权限",
 				icon: 'error'
@@ -991,11 +995,30 @@
 			});
 
 			// 直接调用后端，让后端进行剩余的验证
-			const res = await todo.Reservation_Add(Data);
-
+			const res = await reservationHandler.Reservation_Add(Data);
 			uni.hideLoading();
-
 			// 处理后端返回的各种错误码
+			if (res && res.errCode === 'TIME_CONFLICT') {
+				uni.showToast({
+					title: res.errMsg,
+					icon: 'none',
+					duration: 3000
+				});
+			} else if (res && res.errCode === 'DB_ERROR') {
+				uni.showToast({
+					title: res.errMsg,
+					icon: 'none',
+					duration: 3000
+				});
+			} else {
+				uni.showToast({
+					title: '预约成功',
+					icon: 'success'
+				});
+				uni.$emit('reservationSuccess');
+				uni.navigateBack();
+			}
+			/* 没有错误码了 //还是有的
 			if (res && res.errCode === 'CAPACITY_EXCEEDED') {
 				uni.showToast({
 					title: res.errMsg,
@@ -1046,14 +1069,14 @@
 				uni.$emit('reservationSuccess');
 				uni.navigateBack();
 			}
-
-		} catch (error) {
+			*/
+		} catch (e) {
 			uni.hideLoading();
 			uni.showToast({
 				title: '预约失败: 网络错误或未知错误',
 				icon: 'none'
 			});
-			console.error("Error calling Reservation_Add:", error);
+			console.error("Error calling Reservation_Add:", e);
 		}
 	}
 </script>

@@ -31,6 +31,9 @@
                 </view>
             </view>
         </view>
+		<view>
+			<button @click="deleteDB()">删库</button>
+		</view>
 	</view>
 </template>
 
@@ -270,6 +273,11 @@
 			}
 		});
 	}
+	async function deleteDB(){
+		try{
+			const res = await todo.Delete()
+		}catch(e){}
+	} 
 
 	// Removed console logs for holiday 
 	// const now = dayjs(1746083625000).format('YYYY-MM-DD')
