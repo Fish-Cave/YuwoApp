@@ -6,7 +6,7 @@
 					<uni-icons type="contact" size="30" color="#ffffff"></uni-icons>
 				</view>
 				<view class="reservation-info">
-					<text class="machine-name">{{ data.machineId[0].name }}</text>
+					<text class="machine-name">{{ data.machineName }}</text>
 					<text class="reservation-time">
 						预约时间：
 						<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.startTime' />
@@ -22,10 +22,15 @@
 					<text class="id-label">预约ID：</text>
 					<text class="id-value">{{ data._id }}</text>
 				</view>
-				<view v-if="data.status == 1" class="sign-in-button"
-					@click="goToStart(data.machineId[0].name, data.startTime, data._id, data.isOvernight, data.isPlay)">
-					<text>签到</text>
-
+				<view v-if="data.status == 1" class="button-group">
+					<view class="cancel-button"
+					@click="cancelReservation(data._id)">
+						<text>取消</text>
+					</view>
+					<view class="sign-in-button"
+						@click="goToStart(data.machineName, data.startTime, data._id, data.isOvernight, data.isPlay)">
+						<text>签到</text>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -36,15 +41,17 @@
 	import { onMounted, ref } from 'vue';
 
 	const todo = uniCloud.importObject('todo')
+	const reservationHandler = uniCloud.importObject('reservationHandler')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 
 	interface reservationData {
-		_id : string;
-		machineId : string;
-		isOvernight : boolean;
-		isPlay : boolean;
-		status : number;
-		startTime : number;
+		"_id" : string;
+		"machineId" : string;
+		"machineName" : string;
+		"status" : number;
+		"startTime" : number;
+		"isOvernight" : boolean;
+		"isPlay" : boolean;
 	}
 
 	const Data = ref<reservationData[]>([])
@@ -52,9 +59,10 @@
 	function getStatusText(status : number) : string {
 		switch (status) {
 			case 1: return '未完成';
-			case 2: return '已完成';
+			case 2: return '已结算';
 			case 3: return '已过期';
 			case 4: return '正使用';
+			case 6: return '已取消'
 			default: return '未知';
 		}
 	}
@@ -65,17 +73,33 @@
 			case 2: return 'status-completed';
 			case 3: return 'status-expired';
 			case 4: return 'status-active';
+			case 6: return 'status-expired';
 			default: return '';
 		}
 	}
 
 	async function getReservationData() {
 		try {
-			let result = await todo.GetReservationInfo(res.uid)
+			const result = await reservationHandler.GetReservationInfo(res.uid)
 			Data.value = result.data
 			console.log(result.data)
 		} catch (error) {
 			console.error('Failed to fetch reservation data:', error)
+		}
+	}
+	async function cancelReservation(resid:string) {
+		try {
+			const result = await reservationHandler.CancelReservation(resid)
+			console.log(result.data)
+			if(result){
+				uni.showToast({
+					title:"预约已取消"
+				})
+			}
+			//刷新预约情况
+			getReservationData()
+		}catch(e){
+			
 		}
 	}
 
@@ -99,12 +123,18 @@
 	})
 </script>
 
-<style>
+<style lang="scss" scoped>
 	/* 全局样式 */
 	.container {
 		padding: 20px;
 		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 		min-height: 100vh;
+	}
+
+	.button-group {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
 	}
 
 	/* 玻璃拟态卡片 */
@@ -235,6 +265,18 @@
 		border-radius: 20px;
 		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 		transition: all 0.2s ease;
+		margin-top: 20rpx;
+	}
+
+	.cancel-button {
+		background: linear-gradient(135deg, #D3D3D3 0%, #B0B0B0 100%);
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		padding: 6px 14px;
+		border-radius: 20px;
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+		transition: all 0.2s ease;
 	}
 
 	.sign-in-button:active {
@@ -304,15 +346,17 @@
 			padding: 8px 16px;
 		}
 	}
+
 	/* 黑夜模式 */
 	@media (prefers-color-scheme: dark) {
+
 		/* 全局样式 */
 		.container {
 			padding: 20px;
 			background: rgb(0, 0, 0);
 			min-height: 100vh;
 		}
-		
+
 		/* 玻璃拟态卡片 */
 		.glass-card {
 			background: rgb(22, 22, 24);
@@ -325,25 +369,25 @@
 			margin-bottom: 20px;
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 		}
-		
+
 		.glass-card:active {
 			transform: translateY(2px);
 			box-shadow: 0 4px 16px rgba(31, 38, 135, 0.08);
 		}
-		
+
 		/* 预约项目 */
 		.reservation-item {
 			position: relative;
 			padding: 0;
 		}
-		
+
 		.reservation-header {
 			display: flex;
 			align-items: center;
 			padding: 16px;
 			border-bottom: 1px solid rgb(51, 49, 50);
 		}
-		
+
 		.icon-container {
 			display: flex;
 			justify-content: center;
@@ -354,20 +398,20 @@
 			border-radius: 16px;
 			margin-right: 16px;
 		}
-		
+
 		.reservation-info {
 			display: flex;
 			flex-direction: column;
 			flex: 1;
 		}
-		
+
 		.machine-name {
 			font-size: 18px;
 			font-weight: bold;
 			margin-bottom: 6px;
 			color: white;
 		}
-		
+
 		.reservation-time {
 			font-size: 13px;
 			color: lightgray;
@@ -376,13 +420,13 @@
 			border-radius: 12px;
 			align-self: flex-start;
 		}
-		
+
 		.id-label {
 			font-size: 12px;
 			color: lightgray;
 			margin-right: 4px;
 		}
-		
+
 		.id-value {
 			font-size: 12px;
 			color: gray;

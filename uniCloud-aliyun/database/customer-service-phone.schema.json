@@ -1,0 +1,1 @@
+{"bsonType":"object","required":["phoneNo"],"permission":{"read":true,"create":true,"update":true,"delete":false},"properties":{"_id":{"bsonType":"objectId","description":"ID，系统自动生成"},"phoneNo":{"bsonType":"string","description":"客服的联系电话"}}}

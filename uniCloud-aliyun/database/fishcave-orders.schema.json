@@ -1,6 +1,6 @@
 {
 	"bsonType": "object",
-	"required": ["user_id", "reservation_id", "total_fee", "singlePrice", "status", "starttime", "endtime"],
+	"required": ["user_id", "reservation_id", "singlePrice", "status", "starttime"],
 	"permission": {
 		"read": true,
 		"create": true,
@@ -30,31 +30,40 @@
 		},
 		"singlePrice": {
 			"title": "订单单价",
-			"bsonType": "int",
-			"description": "订单单价，单位为分，100等于1元"
+			"bsonType": "bool",
+			"description": "订单开始时当天的单价"
+		},
+		"overNightPrice": {
+			"title": "订单过夜价",
+			"bsonType": "bool",
+			"description": "订单开始时当天的通票价格"
 		},
 		"starttime": {
 			"bsonType": "timestamp",
-			"description": "这次签到的开始时间，由签到页面生成"
+			"description": "这次订单的开始时间,由签到页面生成"
 		},
 		"endtime": {
 			"bsonType": "timestamp",
-			"description": "这次签到的结束时间，由签到页面生成"
+			"description": "这次订单的开始时间,由结算时生成"
 		},
 		"status": {
 			"bsonType": "number",
 			"description": "订单状态 (0表示'待确认',1表示 '已完成', 2表示 '未完成')",
+			"defaultValue": -1,
 			"enum": [{
 				"text": "待确认",
+				"value": -1
+			}, {
+				"text": "待支付",
 				"value": 0
 			}, {
-				"text": "已完成",
+				"text": "已支付",
 				"value": 1
 			}, {
-				"text": "未完成",
+				"text": "支付失败",
 				"value": 2
 			}, {
-				"text": "已退款",
+				"text": "已取消",
 				"value": 3
 			}]
 		},

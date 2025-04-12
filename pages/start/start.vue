@@ -85,6 +85,7 @@
 			</view>
 		</view>
 
+		<!--DEBUG-->
 		<uni-group v-if="res.role.includes('admin')" title="debug" class="glass-card">
 			<template v-slot:title>
 				<view style="display: flex; justify-content: space-between; align-items: center;">
@@ -119,6 +120,12 @@
 	import { onMounted, reactive, getCurrentInstance, ref } from 'vue';
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	const todo = uniCloud.importObject('todo')
+	const siginHandler = uniCloud.importObject('signinHandler')
+	const reservationHandler = uniCloud.importObject('reservationHandler')
+	const orderHandler = uniCloud.importObject('orderHandler')
+
+	import isFreeDay from '@/modules/isFreeDay.ts'
+	const FreeDay = isFreeDay()
 	//Debug
 	const debug = ref(false)
 	function switchChange(e) {
@@ -155,8 +162,37 @@
 		)
 	}
 
+	//提交签到信息,同时修改签到订单状态,并生成一个计费订单
 	async function submit() {
-		console.log(res.uid)
+		Data.starttime = dayjs().unix() * 1000
+		const orderData = {
+			"user_id": res.uid,
+			"reservation_id": Data.reservationid,
+			"starttime": Data.starttime
+		}
+		if (Data.reservationid != "") {
+			try {
+				const result = await siginHandler.SignIn_Add(Data, res.uid)
+				console.log(JSON.stringify(result))
+				const Get = JSON.stringify(result)
+				if (Get != '') {
+					if (await Promise.all([updateReservation(Data.reservationid, 4), GennerateOrder(orderData, FreeDay)])) {
+						console.log('IN')
+						uni.redirectTo({
+							url: "/pages/using/using"
+						})
+					}
+					console.log('OUT')
+				}
+			} catch (e) { }
+		} else {
+			uni.showToast({
+				icon: "error",
+				title: "未找到订单"
+			})
+		}
+		//console.log(res.uid)
+		/*
 		try {
 			const result = await todo.SignIn_Search(res.uid)
 			if (result.data.length == 0) {
@@ -169,9 +205,10 @@
 				})
 			}
 		} catch { }
+		*/
 	}
-	
 	//提交签到订单信息
+	/*
 	async function pushData() {
 		try {
 			Data.starttime = dayjs().unix() * 1000
@@ -191,11 +228,22 @@
 			}
 		} catch { }
 	}
+	*/
 
-	async function updateReservation(content : string, status : number) {
+	//更新预约订单信息
+	async function updateReservation(uid : string, status : number) {
 		try {
-			const res = await todo.Reservation_Update(content, status)
+			const res = await reservationHandler.Reservation_Update(uid, status)
 			console.log(res)
+			return 'OK'
+		} catch { }
+	}
+	//生成对应的支付订单
+	async function GennerateOrder(content : object, price : boolean) {
+		try {
+			const res = await orderHandler.GennerateOrder(content, price)
+			console.log(res)
+			return 'OK'
 		} catch { }
 	}
 

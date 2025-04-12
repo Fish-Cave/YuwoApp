@@ -43,7 +43,22 @@
 			"bsonType": "int",
 			"description": "当前签到的状态 0 使用中 1 已完成",
 			"defaultValue": 0,
-			"enum": [0, 1]
+			"enum": [{
+				"text": "使用中",
+				"value": 0
+			}, {
+				"text": "已完成已支付",
+				"value": 1
+			}, {
+				"text": "已经结束待支付",
+				"value": 2
+			}, {
+				"text": "已完成免支付(如会员订单)",
+				"value": 3
+			}, {
+				"text": "异常关闭",
+				"value": 4
+			}]
 		},
 		"createTime": {
 			"bsonType": "timestamp",

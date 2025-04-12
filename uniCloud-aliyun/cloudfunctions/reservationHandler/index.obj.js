@@ -5,11 +5,12 @@ module.exports = {
 	_before: function() { // 通用预处理器
 
 	},
-	
-	/*
-	 * Reservation_Add方法描述
+
+	/**
+	 * Reservation_Add 将前端传来的预约订单数据存储至后端
 	 * @content {object} 此为需要向订单表添加的预约数据
 	 */
+	
 	// 提交预约订单
 	Reservation_Add: async function(content) {
 		//创建JQL对象时,实际上会自动进行权限判断
@@ -25,7 +26,7 @@ module.exports = {
 		const machineId = content.machineId;
 		const isOvernight = content.isOvernight;
 		const userId = content.userId;
-		
+
 		//我觉得这个查询重叠预约是不是放到前端好一点？
 		const [userReservations, allOverlappingReservations] = await Promise.all([
 			// 查询用户已有的重叠预约
@@ -64,58 +65,47 @@ module.exports = {
 				errMsg: '数据库操作失败: ' + e.message
 			};
 		}
-
-		// 你这块前端不是判断过了吗？
-		/*
-		if (!startTime || !endTime || !machineId || !userId) {
-			console.log("Error: Missing parameters");
-			return {
-				errCode: 'INVALID_PARAMS',
-				errMsg: '缺少必要参数'
-			};
-		}
-		// 这块为什么不交给前端判断？
-		if (startTime >= endTime) {
-			console.log("Error: Invalid time range");
-			return {
-				errCode: 'INVALID_TIME_RANGE',
-				errMsg: '开始时间必须早于结束时间'
-			};
-		}
-		*/
-
 	},
-
-	Reservation_Update: function(content, statusnumber) {
+	
+	/**
+	 * Reservation_Update 将数据库对应订单的状态进行更新
+	 * @id string 此为需要修改的预约订单的订单id
+	 * @statusnumber number 此为修改后的订单状态码
+	 */
+	Reservation_Update: async function(id, statusnumber) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		dbJQL.collection('reservation-log').where({
-			_id: content
-		}).update({
-			status: statusnumber
-		})
-		console.log("订单状态已变更")
+		try {
+			await dbJQL.collection('reservation-log').where({
+				_id: id
+			}).update({
+				status: statusnumber
+			})
+			console.log("订单状态已变更")
+		} catch (e) {
+
+		}
 	},
 
-	GetReservationInfo: function(content) {
+	GetReservationInfo: async function(uid) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
-		const collectionJQL = dbJQL.collection('reservation-log', machines)
-
-		return collectionJQL.where({
-			userId: content,
-		}).field({
-			"_id": true,
-			"machineId": true,
-			"isOvernight": true,
-			"status": true,
-			"startTime": true,
-			"isPlay": true,
-			"isOvernight": true,
-		}).orderBy("createTime", "desc").get()
+		const reservation = dbJQL.collection('reservation-log')
+		try {
+			return await reservation.where({
+				userId: uid,
+			}).field({
+				"_id": true,
+				"machineId": true,
+				"machineName": true,
+				"status": true,
+				"startTime": true,
+				"isOvernight": true,
+				"isPlay": true,
+			}).limit(10).orderBy("createTime", "desc").get()
+		} catch (e) {}
 	},
 
 	SearchReservationInfo: function(content) {
@@ -133,26 +123,15 @@ module.exports = {
 		}).get()
 	},
 
-	/**
-	 * method1方法描述
-	 * @param {string} param1 参数1描述
-	 * @returns {object} 返回值描述
-	 */
-	/* 
-	method1(param1) {
-		// 参数校验，如无参数则不需要
-		if (!param1) {
-			return {
-				errCode: 'PARAM_IS_NULL',
-				errMsg: '参数不能为空'
-			}
-		}
-		// 业务逻辑
-		
-		// 返回结果
-		return {
-			param1 //请根据实际需要返回值
-		}
+	CancelReservation: function(id) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const reservation = dbJQL.collection('reservation-log')
+		return reservation.where({
+			_id: id,
+		}).update({
+			status: 6,
+		})
 	}
-	*/
 }
