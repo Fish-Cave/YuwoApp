@@ -2,7 +2,7 @@
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
 module.exports = {
-	_before: function () { // 通用预处理器
+	_before: function() { // 通用预处理器
 
 	},
 	/**
@@ -10,18 +10,187 @@ module.exports = {
 	 * @param {string} param1 参数1描述
 	 * @returns {object} 返回值描述
 	 */
-	GennerateOrder:async function(content,prices){
+	GennerateOrder: async function(content, prices) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
 		const order = dbJQL.collection('fishcave-orders')
-		try{
+		try {
 			const result = order.add({
 				...content,
-				singlePrice : prices
+				singlePrice: prices
 			})
-		}catch(e){
-			
+		} catch (e) {
+
 		}
+	},
+
+	UpdateOrder: async function(uid, isPlay, isOvernight) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const dayjs = require('dayjs')
+		const order = dbJQL.collection('fishcave-orders')
+		const priceslist = dbJQL.collection('prices')
+		const endtime = Math.floor(Date.now() / 1000) * 1000
+
+		//获取订单的基础信息
+		let orderID = ""
+		let starttime = 0
+		let singlePrice = true
+		try {
+			console.log("NOW GET ORDER")
+			const result = await order.where({
+				user_id: uid,
+				status: -1
+			}).field({
+				_id: true,
+				starttime: true,
+				singlePrice: true,
+			}).limit(1).get()
+			console.log(result.data)
+			orderID = result.data[0]._id
+			starttime = result.data[0].starttime
+			singlePrice = result.data[0].singlePrice
+		} catch (e) {}
+		//获取储存在云端的价格表
+		let price = {
+			singlePrice: 3,
+			overNightPrice: 30,
+			noplayPrice: 1,
+		}
+		totalPrice = 0
+		//console.log(endtime)
+		try {
+			console.log("NOW GET PRICE")
+			const result = await priceslist.where({
+				type: singlePrice
+			}).get()
+			console.log(result.data)
+			price.singlePrice = result.data[0].price
+			price.noplayPrice = result.data[0].noplayprice
+			price.overNightPrice = result.data[1].price
+		} catch (e) {}
+		//计算价格
+		//只处理非会员的情况,会员的情况单独处理
+		if (orderID != "") {
+			//判断签到是否跨日
+			const formatStarttime = dayjs(starttime).format('YYYY-MM-DD')
+			const formatendtime = dayjs(endtime).format('YYYY-MM-DD')
+			let isSameDay = true
+			if (formatStarttime != formatendtime) {
+				isSameDay = false
+			}
+			console.log(isSameDay)
+			const elapsedMilliseconds = endtime - starttime;
+			const elapsedMinutes = elapsedMilliseconds / (1000 * 60);
+			// 向上取整，不满半小时也算半小时
+			const halfHourUnits = Math.ceil(elapsedMinutes / 30);
+			if (isOvernight) {
+				// 过夜预约使用固定价格
+				totalPrice = isPlay ? price.overNightPrice : (price.overNightPrice * 0.2);
+				// 不玩机台按20%收费
+			} else {
+				//普通预约按游玩时间计算，先确认是否游玩机台
+				if (isPlay) {
+					// 普通预约按时间计费
+					const baseRate = price.singlePrice;
+					const calculatedPrice = halfHourUnits * baseRate;
+					// 如果玩机台且超过封顶价格，使用封顶价格
+					if (calculatedPrice > price.overNightPrice) {
+						totalPrice = price.overNightPrice;
+					} else {
+						totalPrice = calculatedPrice;
+					}
+					//跨日逻辑
+					if (!isSameDay && !isOvernight) {
+						if (totalPrice != price.overNightPrice) {
+							totalPrice += (price.overNightPrice - (4 * baseRate))
+						} else {
+							totalPrice += price.overNightPrice
+						}
+					}
+				} else {
+					const baseRate = 1; // 不玩机台每半小时1元
+					const calculatedPrice = halfHourUnits * baseRate;
+					totalPrice = calculatedPrice;
+				}
+			}
+			//以分为单位
+			totalPrice = totalPrice * 100
+			console.log(totalPrice)
+
+			//将最后得到的价格存入订单表,并且修改订单状态作为最终订单
+			try {
+				const result = await order.where({
+					_id: orderID
+				}).update({
+					status: 0,
+					endtime: endtime,
+					total_fee: totalPrice,
+				})
+			} catch (e) {}
+		}
+	},
+
+	SetFreePlayStatus: async function(uid, isPlay) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		const membershipCollection = dbJQL.collection('membership');
+		const subscriptionPackageCollection = dbJQL.collection('subscription-package');
+		const [membership, subscriptionPackage] = await Promise.all([
+			//是否为歇脚卡会员
+			membershipCollection
+			.where({
+				userID: uid,
+				status: true, // 只查询有效的会员
+				validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+			})
+			.get(),
+			//是否为月卡周卡会员
+			subscriptionPackageCollection
+			.where({
+				userID: uid,
+				status: true, // 只查询有效的会员
+				validthru: dbJQL.command.gt(Date.now()) //并且会员到期时间大于当前时间，注意这里也要用 dbJQL.command
+			})
+			.get(),
+		])
+		console.log(membership.data)
+		console.log(subscriptionPackage.data)
+		if (isPlay) {
+			if (subscriptionPackage.data) {
+				console.log('执行月卡会员免费游玩逻辑')
+				return order.where({
+					user_id: uid,
+					status: -1,
+				}).update({
+					status: 1,
+					total_fee: 0,
+					endtime : Date.now()
+				})
+			} else {
+				console.log('返回没有会员的提示信息')
+				return {
+					errCode: "PERMISSION_ERROR", // 错误码
+					errMsg: "您不是月卡周卡会员", // 错误信息
+				}
+			}
+		} else {
+			if (membership.data || subscriptionPackage.data) {
+				console.log('执行会员免费游玩逻辑')
+				return order.where({
+					user_id: uid,
+					status: -1,
+				}).update({
+					status: 1,
+					total_fee: 0,
+					endtime : Date.now()
+				})
+			}
+		}
+
 	}
 }

@@ -59,6 +59,7 @@
 					<text class="tips">2、最低计费时长为30分钟/半小时</text>
 					<text class="tips">3、使用结束后通过微信结账</text>
 					<text class="tips">4、使用过程中可随时结束</text>
+					<text class="tips">5、周/月卡会员游玩免费</text>
 				</view>
 			</view>
 		</view>

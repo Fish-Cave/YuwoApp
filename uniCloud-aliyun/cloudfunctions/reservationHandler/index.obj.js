@@ -112,13 +112,11 @@ module.exports = {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
-		const machines = dbJQL.collection('machines').field("_id,name").getTemp()
-		const collectionJQL = dbJQL.collection('reservation-log', machines)
-
-		return collectionJQL.where({
+		const reservation = dbJQL.collection('reservation-log')
+		return reservation.where({
 			_id: content,
 		}).field({
-			"machineId": true,
+			"machineName": true,
 			"endTime": true
 		}).get()
 	},

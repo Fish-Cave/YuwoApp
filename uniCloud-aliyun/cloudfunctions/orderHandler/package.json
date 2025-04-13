@@ -1,6 +1,8 @@
 {
   "name": "orderHandler",
-  "dependencies": {},
+  "dependencies": {
+    "dayjs": "^1.11.13"
+  },
   "extensions": {
     "uni-cloud-jql": {}
   }

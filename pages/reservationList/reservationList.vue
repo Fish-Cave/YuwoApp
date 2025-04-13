@@ -62,6 +62,7 @@
 			case 2: return '已结算';
 			case 3: return '已过期';
 			case 4: return '正使用';
+			case 5: return '待结算';
 			case 6: return '已取消'
 			default: return '未知';
 		}
@@ -73,6 +74,7 @@
 			case 2: return 'status-completed';
 			case 3: return 'status-expired';
 			case 4: return 'status-active';
+			case 5: return 'status-pending';
 			case 6: return 'status-expired';
 			default: return '';
 		}

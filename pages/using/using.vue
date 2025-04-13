@@ -97,11 +97,11 @@
 					<text>isPlay {{isPlay}}</text>
 					<text>isOvernight {{isOvernight}}</text>
 					<text>endtime {{reservationData.endtime}}</text>
-					<text>订单信息</text>
-					<text>{{orderData}}</text>
 					<text>是否为闲时: {{isFree}}</text>
 					<text>签到开始日期: {{startDay}}</text>
 					<text>当前日期: {{nowDay}}</text>
+					<text>预约订单号和签到订单号</text>
+					<text>{{reservationID}} {{signinID}}</text>
 				</view>
 			</uni-group>
 		</view>
@@ -133,8 +133,13 @@
 	import { onMounted, ref, onUnmounted, computed, toRaw, reactive } from 'vue'
 	import isFreeDay from '@/modules/isFreeDay.ts'
 	import holiday2025 from '@/static/holiday/2025.json'
+
 	const todo = uniCloud.importObject('todo')
+	const siginHandler = uniCloud.importObject('signinHandler')
+	const reservationHandler = uniCloud.importObject('reservationHandler')
+	const orderHandler = uniCloud.importObject('orderHandler')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
 	const isOvernight = ref(false)
 	const isPlay = ref(true)
@@ -152,7 +157,9 @@
 		"starttime" : number
 		"endtime" : number
 	}
+	//新的付费订单逻辑不在该页面生成订单
 	//疑似无用
+	/*
 	interface billInformation {
 		"user_id" : string
 		"reservation_id" : string
@@ -162,25 +169,16 @@
 		"starttime" : number
 		"endtime" : number
 	}
+	*/
+
 
 	interface priceList {
 		"_id" : string;
 		"price" : number;
 		"noplayprice" : number
 	}
-
-
 	const Data = ref<signInData[]>([])
 	const machineName = ref("")
-	const orderData : billInformation = reactive({
-		"user_id": uniCloud.getCurrentUserInfo('uni_id_token').uid,
-		"reservation_id": "",
-		"total_fee": 0,
-		"singlePrice": 0,
-		"status": 0,
-		"starttime": 0,
-		"endtime": 0
-	})
 
 	//价格相关
 	const isFree = ref(true)
@@ -188,8 +186,8 @@
 	const singlePrice = ref(5)
 	const overnightPrice = ref(50)
 	const noplayprice = ref(1)
-	const totalPrice = ref(0) // 总价，实时更新
-	const today = ref(0)
+	const totalPrice = ref(0) // 总价,该价格实际为预计价格,具体价格计算在后端进行
+	//const today = ref(0)
 
 	// 显示费用信息
 	const displayRate = computed(() => {
@@ -294,6 +292,9 @@
 		debug.value = e.detail.value
 	}
 
+	//付款结算逻辑
+	const reservationID = ref("")
+	const signinID = ref("")
 	//付款订单相关
 	let options = {
 		total_fee: 1, // 支付金额，单位分 100 = 1元
@@ -303,37 +304,107 @@
 		description: "签到结算", // 支付描述
 	};
 	async function submit() {
-		//const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
-		orderData.endtime = dayjs().unix() * 1000
-		const result = await todo.Order_Get(orderData.user_id)
-		console.log(result.data)
-		//options.total_fee = orderData.total_fee
-		if (result.data.length) {
-			orderHandle()
-		} else {
-			await todo.Order_Add(orderData)
-			if (orderData.total_fee == 0) {
-				await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid, res.uid)
-				uni.showToast({
-					title: "感谢使用"
-				})
-				uni.reLaunch({
-					url: "/pages/index/index"
-				})
-				console.log("success")
-				stopTimer();
+		// //const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
+		// const result = await todo.Order_Get(res.uid)
+		// console.log(result.data)
+		// //options.total_fee = orderData.total_fee
+		// if (result.data.length) {
+		// 	orderHandle()
+		// } else {
+		// 	//await todo.Order_Add(orderData)
+		// 	if (true) {
+		// 		await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid, res.uid)
+		// 		uni.showToast({
+		// 			title: "感谢使用"
+		// 		})
+		// 		uni.reLaunch({
+		// 			url: "/pages/index/index"
+		// 		})
+		// 		console.log("success")
+		// 		stopTimer();
 
-			} else {
-				orderHandle()
-			}
+		// 	} else {
+		// 		orderHandle()
+		// 	}
+		// }
+		console.log(membershipType.value)
+		switch (membershipType.value) {
+			case "weekly_monthly":
+				//大月卡大周卡走零元逻辑
+				console.log("大月卡大周卡")
+				await monthlyOrder()
+				break;
+			case "music_game":
+				console.log("鱼窝歇脚卡会员")
+				if (!isPlay.value) {
+					await monthlyOrder()
+				}
+				break;
+			case "none":
+				console.log("并非会员")
+				await updateOrder()
+				break;
+			default:
+				console.log("没有会员信息")
+				uni.showToast({
+					title: "神秘错误",
+					icon: "error"
+				})
+				break;
 		}
 	}
+	//非会员逻辑
+	async function updateOrder() {
+		try {
+			const result = await orderHandler.UpdateOrder(res.uid, isPlay.value, isOvernight.value)
+			console.log(result)
+		} catch (e) { }
+	}
+	//会员逻辑
+	async function monthlyOrder() {
+		try {
+			console.log(reservationID.value + " " + signinID.value)
+			const result = await orderHandler.SetFreePlayStatus(res.uid,isPlay.value)
+			console.log(result)
+			if (result) {
+				const res = await Promise.all([
+					Reservation_Update(reservationID.value, 2),
+					SignIn_Update(signinID.value, 2)])
+				if (res) {
+					uni.switchTab({
+						url: '/pages/signIn/signIn'
+					})
+				} else {
+					uni.showToast({
+						title: "未知错误,联系管理员",
+						icon: "error"
+					})
+				}
+			}
+
+		} catch (e) { }
+	}
+	//修改预约订单状态 reservationID
+	async function Reservation_Update(id : string, status : number) {
+		try {
+			const result = await reservationHandler.Reservation_Update(id, status)
+			console.log(result)
+		} catch (e) { }
+	}
+	//修改签到订单状态 signinID
+	async function SignIn_Update(id : string, status : number) {
+		try {
+			const result = await siginHandler.SignIn_Update(id, status)
+			console.log(result)
+		} catch (e) { }
+	}
+	//修改为跳转支付相关
 	async function orderHandle() {
 		try {
-			const result = await todo.Order_Get(orderData.user_id)
+			const result = await todo.Order_Get(res.uid)
 			console.log(result.data[0])
 			options.order_no = toRaw(result.data[0]._id)
-			options.total_fee = orderData.total_fee
+			//options.total_fee = orderData.total_fee
 			let optionsStr = encodeURI(JSON.stringify(options));
 			console.log(options)
 			uni.redirectTo({
@@ -350,7 +421,6 @@
 		})
 		// TODO: 打开客服/帮助页面或弹窗
 	}
-
 	//日期格式化
 	function formatDate(timestamp : number) {
 		if (!timestamp) return "未知时间";
@@ -395,9 +465,7 @@
 			membershipType.value = "none"; // 错误时默认为非会员
 		}
 	}
-
-
-	//按照会员类型来设定价格，现已启用
+	//按照会员类型来设定价格，现已弃用
 	/*
 	function setPriceByMembership() {
 			switch (membershipType.value) {
@@ -437,12 +505,12 @@
 			}
 		}
 	*/
-
 	//查询签到信息,并根据签到信息来初始化数据
 	async function searchSignin() {
 		try {
-			const result = await todo.SignIn_Search(res.uid)
+			const result = await siginHandler.SignIn_Search(res.uid)
 			console.log("签到数据:", result.data)
+
 			if (result.data && result.data.length > 0) {
 				//console.log(result.data)
 				Data.value = result.data
@@ -451,11 +519,18 @@
 				getReservationData(Data.value[0].reservationid)//获取本次签到对应的预约信息
 				startTime.value = result.data[0].starttime; // 从接口获取开始时间
 				startDay.value = dayjs(startTime.value).format('YYYY-MM-DD')
-				today.value = dayjs(startTime.value).day()
-				console.log("订单开始于星期" + today.value)
+
+				signinID.value = Data.value[0]._id
+				reservationID.value = Data.value[0].reservationid
+
+				//使用新的忙、闲时判断
+				//today.value = dayjs(startTime.value).day()
+				//新逻辑订单不由该页面生成,故订单相关全部弃用
+				//console.log("订单开始于星期" + today.value)
 				//setPriceByMembership()
-				orderData.starttime = startTime.value
-				orderData.reservation_id = Data.value[0].reservationid
+				//orderData.starttime = startTime.value
+				//orderData.reservation_id = Data.value[0].reservationid
+
 				if (startTime.value && startTime.value !== 0) {
 					startTimer(); // 开始计时
 				}
@@ -470,22 +545,22 @@
 				title: "获取使用信息失败",
 				icon: 'none'
 			})
-			Data.value = null; // 出错时也清空数据
+			Data.value = []; // 出错时也清空数据
 			stopTimer(); // 停止计时器，防止意外运行
 		}
 	}
-
 	//从预约订单获得机台名称和预计结束时间
 	const reservationData = reactive({
 		"endtime": 0,
 		"machineName": "",
 	})
 	async function getReservationData(content : string) {
-		const res = await todo.SearchReservationInfo(content)
-		reservationData.machineName = res.data[0].machineId[0].name
+		const res = await reservationHandler.SearchReservationInfo(content)
+		reservationData.machineName = res.data[0].machineName
 		reservationData.endtime = res.data[0].endTime
 	}
 
+	//计费相关
 	function startTimer() {
 		if (startTime.value === null || startTime.value === 0) return; // 确保有开始时间
 
@@ -501,15 +576,11 @@
 			calculateFee(elapsedMilliseconds);
 		}, 1000); // 每秒更新一次
 	}
-
-
 	// 总价计算
 	function calculateFee(elapsedMilliseconds : number) {
 		// 如果是周/月卡会员，费用为0
 		if (membershipType.value == "weekly_monthly") {
 			totalPrice.value = 0;
-			orderData.status = 1
-			orderData.total_fee = totalPrice.value * 100
 			return;
 		}
 		// 计算已用时间（分钟）
@@ -521,7 +592,6 @@
 		if (isOvernight.value) {
 			// 过夜预约使用固定价格
 			totalPrice.value = isPlay.value ? overnightPrice.value : (overnightPrice.value * 0.2);
-			orderData.total_fee = totalPrice.value * 100
 			// 不玩机台按20%收费
 		} else {
 			//普通预约按游玩时间计算，先确认是否游玩机台
@@ -532,10 +602,16 @@
 				// 如果玩机台且超过封顶价格，使用封顶价格
 				if (calculatedPrice > overnightPrice.value) {
 					totalPrice.value = overnightPrice.value;
-					orderData.total_fee = totalPrice.value * 100
 				} else {
 					totalPrice.value = calculatedPrice;
-					orderData.total_fee = totalPrice.value * 100
+				}
+				// 跨日逻辑
+				if ((startDay.value != nowDay.value) && !isOvernight.value) {
+					if (totalPrice.value != overnightPrice.value) {
+						totalPrice.value += (overnightPrice.value - (4 * baseRate))
+					} else {
+						totalPrice.value += overnightPrice.value
+					}
 				}
 				/* //不再区分音游会员
 				else if (membershipType.value == "none") {
@@ -563,26 +639,17 @@
 				}
 			}
 		}
-		//跨日补一份包夜费用
-		/*
-		if((startDay != nowDay)&& !isOvernight.value){
-			totalPrice.value += overnightPrice.value
-		}
-		*/
 
 		// 保留两位小数
-		orderData.total_fee = totalPrice.value * 100
 		totalPrice.value = Math.round(totalPrice.value * 100) / 100;
-
 	}
-
-
 	function stopTimer() {
 		if (timerInterval) {
 			clearInterval(timerInterval);
 			timerInterval = null;
 		}
 	}
+
 
 	// ?
 	function formatTime(totalSeconds : number) : string {
