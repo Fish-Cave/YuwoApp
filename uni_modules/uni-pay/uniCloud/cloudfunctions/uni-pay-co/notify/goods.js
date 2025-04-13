@@ -40,6 +40,11 @@ module.exports = async (obj) => {
 		})
 		user_order_success = true
 	}else{
+		await db.collection("fishcave-orders").where({
+			_id: order_no
+		}).update({
+			status: 2
+		})
 		user_order_success = false
 	}
 

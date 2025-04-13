@@ -295,14 +295,19 @@
 	//付款结算逻辑
 	const reservationID = ref("")
 	const signinID = ref("")
+
 	//付款订单相关
-	let options = {
-		total_fee: 1, // 支付金额，单位分 100 = 1元
-		type: "goods", // 支付回调类型
-		order_no: "", // 业务系统订单号
-		// 插件支付单号
-		description: "签到结算", // 支付描述
-	};
+	const orderID = ref("")
+	async function GetUnhandleOrder() {
+		try {
+			const result = await orderHandler.GetUnhandleOrder(res.uid)
+			orderID.value = result.data[0]._id
+			console.log("本次签到对应的订单ID为" + orderID.value)
+		} catch (e) {
+
+		}
+	}
+
 	async function submit() {
 		// //const res = await todo.SignIn_Settle(Data.value[0]._id, Data.value[0].reservationid)
 		// const result = await todo.Order_Get(res.uid)
@@ -338,6 +343,8 @@
 				console.log("鱼窝歇脚卡会员")
 				if (!isPlay.value) {
 					await monthlyOrder()
+				} else {
+					await updateOrder()
 				}
 				break;
 			case "none":
@@ -356,20 +363,25 @@
 	//非会员逻辑
 	async function updateOrder() {
 		try {
+			console.log('updateOrder')
 			const result = await orderHandler.UpdateOrder(res.uid, isPlay.value, isOvernight.value)
-			console.log(result)
+			console.log(typeof(result))
+			if (result != null) {
+				console.log('test')
+				await orderHandle()
+			}
 		} catch (e) { }
 	}
 	//会员逻辑
 	async function monthlyOrder() {
 		try {
 			console.log(reservationID.value + " " + signinID.value)
-			const result = await orderHandler.SetFreePlayStatus(res.uid,isPlay.value)
+			const result = await orderHandler.SetFreePlayStatus(res.uid, isPlay.value)
 			console.log(result)
 			if (result) {
 				const res = await Promise.all([
 					Reservation_Update(reservationID.value, 2),
-					SignIn_Update(signinID.value, 2)])
+					SignIn_Update(signinID.value, 3)])
 				if (res) {
 					uni.switchTab({
 						url: '/pages/signIn/signIn'
@@ -400,17 +412,30 @@
 	}
 	//修改为跳转支付相关
 	async function orderHandle() {
-		try {
-			const result = await todo.Order_Get(res.uid)
-			console.log(result.data[0])
-			options.order_no = toRaw(result.data[0]._id)
-			//options.total_fee = orderData.total_fee
+		if (orderID.value != "") {
+			let options = {
+				total_fee: totalPrice.value * 100, // 支付金额，单位分 100 = 1元
+				type: "goods", // 支付回调类型
+				order_no: orderID.value, // 业务系统订单号
+				description: "签到结算", // 描述
+			};
 			let optionsStr = encodeURI(JSON.stringify(options));
-			console.log(options)
-			uni.redirectTo({
-				url: `/pages/pay/pay?options=${optionsStr}`
-			});
-		} catch (e) { }
+			try {
+				const result = await Promise.all([
+					Reservation_Update(reservationID.value, 5),
+					SignIn_Update(signinID.value, 2)])
+				if (result) {
+					uni.redirectTo({
+						url: `/pages/pay/pay?options=${optionsStr}`
+					});
+				}
+			} catch (e) { }
+		} else {
+			uni.showToast({
+				title : "未找到订单",
+				icon : "error"
+			})
+		}
 	}
 
 	// 帮助
@@ -522,7 +547,7 @@
 
 				signinID.value = Data.value[0]._id
 				reservationID.value = Data.value[0].reservationid
-
+				console.log(signinID.value+" "+reservationID.value)
 				//使用新的忙、闲时判断
 				//today.value = dayjs(startTime.value).day()
 				//新逻辑订单不由该页面生成,故订单相关全部弃用
@@ -667,8 +692,8 @@
 	onMounted(() => {
 		searchSignin()
 		getMembershipStatus()
+		GetUnhandleOrder()
 		//getPriceList()
-		console.log(Data)
 	})
 
 	onUnmounted(() => {

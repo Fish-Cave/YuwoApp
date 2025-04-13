@@ -201,8 +201,10 @@
 	import { ref, getCurrentInstance, onMounted, reactive, computed, watch, toRaw } from 'vue';
 	import holiday2025 from '@/static/holiday/2025.json'
 	const todo = uniCloud.importObject('todo')
+	const siginHandler = uniCloud.importObject('signinHandler')
 	const reservationHandler = uniCloud.importObject('reservationHandler')
-	//你不早说
+	const orderHandler = uniCloud.importObject('orderHandler')
+
 	const machineName = ref("")
 	const debug = ref(false);
 	const isNoPlayMachine = ref(false); // 新增：是否是不游玩机台的标志
@@ -253,7 +255,7 @@
 	const isUserFree = ref(true)
 	async function setIsUserFree() {
 		try {
-			const result = await todo.Order_Get(res.uid)
+			const result = await orderHandler.GetUnhandleOrder(res.uid)
 			console.log(result.data.length)
 			if (result.data.length) {
 				isUserFree.value = false

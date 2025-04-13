@@ -8,11 +8,6 @@
 					</text>
 				</view>
 				<view style="width: 20rpx;"></view>
-				<view>
-					<text class="price-amount">
-						单价{{data.singlePrice / 100}}¥
-					</text>
-				</view>
 			</view>
 			<view>
 				<view v-if="data.status == 1" class="status-badge status-completed">
@@ -23,29 +18,29 @@
 				</view>
 			</view>
 		</view>
-		
+
 		<view class="divider"></view>
-		
+
 		<view class="order-info" style="margin: 10rpx 0;">
 			<text class="order-time">
-				订单时间：
-				<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.create_date'>
+				订单时间:
+				<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.starttime'>
 				</uni-dateformat>
 			</text>
 		</view>
 		<view style="display: flex;">
 			<view class="order-details">
 				<view class="order-id">
-					<text class="id-label">预约单号：</text>
+					<text class="id-label">预约单号:</text>
 					<text class="id-value">{{ data._id }}</text>
 				</view>
 				<view class="order-id">
-					<text class="id-label">支付单号：</text>
+					<text class="id-label">支付单号:</text>
 					<text class="id-value">{{ data._id }}</text>
 				</view>
 			</view>
 			<view>
-				<view v-if="data.status == 0" class="sign-in-button" @click="goTopay()">
+				<view v-if="data.status == 0" class="sign-in-button" @click="goTopay(data._id)">
 					<text>支付</text>
 				</view>
 			</view>
@@ -67,42 +62,50 @@
 		computed
 	} from 'vue'
 	const todo = uniCloud.importObject('todo')
+	const reservationHandler = uniCloud.importObject('reservationHandler')
+	const orderHandler = uniCloud.importObject('orderHandler')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+
 	interface fishOrderData {
 		_id: string,
-		reservation_id: string,
-		singlePrice: number,
-		total_fee: number,
 		status: number,
-		create_date: number
+		reservation_id: string,
+		starttime: number,
+		total_fee: number
 	}
 	const Data = ref < fishOrderData[] > ([])
 	const reservationData = ref([])
 	async function getFishOrder() {
 		try {
-			const result = await todo.Get_fishOrderList(res.uid)
+			const result = await orderHandler.GetUserOrderList(res.uid)
 			Data.value = result.data
 			console.log(result.data)
 		} catch (e) {
 
 		}
 	}
-	async function searchReservation(uid: String) {
+
+	async function goTopay(orderID: string) {
+		let options = {
+			total_fee: 0, // 支付金额，单位分 100 = 1元
+			type: "goods", // 支付回调类型
+			order_no: orderID, // 业务系统订单号
+			description: "用户界面结算", // 描述
+		};
 		try {
-			const result = await todo.SearchReservationInfo(uid)
-			reservationData.value = result.data
-			console.log(toRaw(reservationData.value[0].machineId[0].name))
+			const result = await orderHandler.GetHandledOrder(orderID)
+			options.total_fee = result.data[0].total_fee
+			let optionsStr = encodeURI(JSON.stringify(options));
+			if (result) {
+				uni.redirectTo({
+					url: `/pages/pay/pay?options=${optionsStr}`
+				});
+			}
 		} catch (e) {
 
 		}
 	}
-	function goTopay(){
-		uni.showToast({
-			title: "还没做",
-			icon : "error"
-		})
-	}
-	
+
 	onMounted(() => {
 		getFishOrder()
 	})
@@ -119,12 +122,13 @@
 		display: flex;
 		justify-content: flex-end;
 	}
-	
+
 	.divider {
 		height: 2rpx;
 		background-color: #e5e5e5;
 		margin: 10rpx 0;
 	}
+
 	/* 玻璃拟态卡片 */
 	.glass-card {
 		background: rgba(255, 255, 255, 0.7);
@@ -228,7 +232,7 @@
 		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 		display: flex;
 		justify-content: center;
-		width: 80rpx;
+		width: 60rpx;
 	}
 
 	.sign-in-button:active {
@@ -260,7 +264,7 @@
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
-	
+
 	/*说明区域*/
 	.tips-container {
 		padding: 0 20rpx;
@@ -268,33 +272,33 @@
 		display: flex;
 		justify-content: center;
 	}
-	
+
 	.tips {
 		font-size: 20rpx;
 		color: gray;
 	}
-	
+
 	@media (prefers-color-scheme: dark) {
-	
+
 		/* 全局样式 */
 		.container {
 			padding: 20px;
 			background: rgb(0, 0, 0);
 			min-height: 100vh;
 		}
-	
+
 		.button-container {
 			margin-top: 20rpx;
 			display: flex;
 			justify-content: flex-end;
 		}
-	
+
 		.divider {
 			height: 2rpx;
 			background-color: rgb(51, 49, 50);
 			margin: 10rpx 0;
 		}
-	
+
 		/* 玻璃拟态卡片 */
 		.glass-card {
 			background: rgb(22, 22, 24);
@@ -307,7 +311,7 @@
 			margin-bottom: 20px;
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 		}
-		
+
 		.order-time {
 			font-size: 13px;
 			color: white;
@@ -316,22 +320,22 @@
 			border-radius: 12px;
 			align-self: flex-start;
 		}
-	
+
 		/* 预约项目 */
-	
+
 		.reservation-info {
 			display: flex;
 			flex-direction: column;
 			flex: 1;
 		}
-	
+
 		.machine-name {
 			font-size: 18px;
 			font-weight: bold;
 			margin-bottom: 6px;
 			color: white;
 		}
-	
+
 		.reservation-time {
 			font-size: 13px;
 			color: lightgray;
@@ -340,13 +344,13 @@
 			border-radius: 12px;
 			align-self: flex-start;
 		}
-	
+
 		.id-label {
 			font-size: 12px;
 			color: gray;
 			margin-right: 4px;
 		}
-	
+
 		.id-value {
 			font-size: 12px;
 			color: gray;

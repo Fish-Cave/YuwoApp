@@ -148,8 +148,10 @@ export default {
             } else {
                 // 代表用户已付款，但你自己写的回调没有执行成功（通常是因为你的回调代码有问题）
                 console.log("回调代码有问题");
-                uni.redirectTo({
-                    url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
+                uni.showToast({
+                	title: '回调错误,详情咨询管理员',
+					icon:'error',
+                	duration: 2000
                 });
             }
         },

@@ -80,7 +80,8 @@ module.exports = {
 		})
 		const signin = dbJQL.collection('signin')
 		return await signin.where({
-			userid: uid
+			userid: uid,
+			status: 0
 		}).field({
 			"id": true,
 			"status": true,

@@ -192,5 +192,47 @@ module.exports = {
 			}
 		}
 
+	},
+
+	GetUnhandleOrder: async function(uid) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		return order.where({
+			user_id : uid,
+			status : -1
+		}).limit(1).field({
+			_id: true
+		}).get()
+	},
+	
+	GetHandledOrder: async function(orderID) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		return order.where({
+			_id : orderID
+		}).limit(1).field({
+			_id: true,
+			total_fee: true,
+		}).get()
+	},
+	
+	GetUserOrderList: async function(uid) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		return order.where({
+			user_id : uid,
+		}).limit(10).field({
+			_id: true,
+			status: true,
+			reservation_id:true,
+			starttime:true,
+			total_fee:true
+		}).get()
 	}
 }
