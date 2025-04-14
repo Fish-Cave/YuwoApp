@@ -1911,4 +1911,11 @@ module.exports = {
 		singin.remove()
 		console.log("数据已全部删除")
 	},
+	AddVipPrices: async function(content){
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const vipprice = dbJQL.collection('prices_vip')
+		await vipprice.add(content)
+	}
 }

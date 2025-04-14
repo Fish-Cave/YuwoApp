@@ -301,6 +301,10 @@
 	async function GetUnhandleOrder() {
 		try {
 			const result = await orderHandler.GetUnhandleOrder(res.uid)
+			if(result.data.length == 0){
+				const result = await orderHandler.GetHandleOrderByuid(res.uid)
+				orderID.value = result.data[0]._id
+			}
 			orderID.value = result.data[0]._id
 			console.log("本次签到对应的订单ID为" + orderID.value)
 		} catch (e) {
@@ -366,7 +370,7 @@
 			console.log('updateOrder')
 			const result = await orderHandler.UpdateOrder(res.uid, isPlay.value, isOvernight.value)
 			console.log(typeof(result))
-			if (result != null) {
+			if (result) {
 				console.log('test')
 				await orderHandle()
 			}

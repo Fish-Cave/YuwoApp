@@ -1,0 +1,7 @@
+{
+  "name": "autoStopOrder",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

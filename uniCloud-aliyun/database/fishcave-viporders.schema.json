@@ -1,0 +1,88 @@
+{
+	"bsonType": "object",
+	"required": ["user_id", "type", "status"],
+	"permission": {
+		"read": true,
+		"create": true,
+		"update": true,
+		"delete": false
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"user_id": {
+			"title": "用户ID",
+			"bsonType": "string",
+			"description": "用户id，参考uni-id-users表",
+			"foreignKey": "uni-id-users._id"
+		},
+		"total_fee": {
+			"title": "订单总金额",
+			"bsonType": "int",
+			"description": "订单总金额，单位为分，100等于1元"
+		},
+		"type": {
+			"title": "会员类型",
+			"bsonType": "string",
+			"description": "充值的会员类型",
+			"enum":["member","weekly","monthly"]
+		},
+		"isRenewal": {
+			"title": "是否是续费",
+			"bsonType": "bool",
+			"description": "是否是续费"
+		},
+		"status": {
+			"bsonType": "number",
+			"description": "订单状态 (0表示'待确认',1表示 '已完成', 2表示 '未完成')",
+			"defaultValue": -1,
+			"enum": [{
+				"text": "待确认",
+				"value": -1
+			}, {
+				"text": "待支付",
+				"value": 0
+			}, {
+				"text": "已支付",
+				"value": 1
+			}, {
+				"text": "支付失败",
+				"value": 2
+			}, {
+				"text": "已取消",
+				"value": 3
+			}]
+		},
+		"device_id": {
+			"bsonType": "string",
+			"description": "客户端设备ID"
+		},
+		"client_ip": {
+			"title": "客户端IP",
+			"bsonType": "string",
+			"description": "创建支付的客户端ip",
+			"trim": "both"
+		},
+		"description": {
+			"title": "支付描述",
+			"bsonType": "string",
+			"description": "支付描述",
+			"trim": "both"
+		},
+		"user_order_success": {
+			"title": "回调状态",
+			"bsonType": "bool",
+			"description": "用户异步通知逻辑是否全部执行完成，且无异常（建议前端通过此参数是否为true来判断是否支付成功）"
+		},
+		"create_date": {
+			"title": "创建时间",
+			"bsonType": "timestamp",
+			"description": "创建时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		}
+	},
+	"version": "0.0.1"
+}

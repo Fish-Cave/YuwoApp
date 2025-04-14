@@ -48,6 +48,12 @@ module.exports = {
 				starttime: true,
 				singlePrice: true,
 			}).limit(1).get()
+			if(result.data.length == 0){
+				return {
+				  errCode: 0, // 错误码
+				  errMsg: "", // 错误信息
+				}
+			}
 			console.log(result.data)
 			orderID = result.data[0]._id
 			starttime = result.data[0].starttime
@@ -129,6 +135,10 @@ module.exports = {
 					endtime: endtime,
 					total_fee: totalPrice,
 				})
+				return {
+					errCode: 0, // 错误码
+					errMsg: "", // 错误信息
+				}
 			} catch (e) {}
 		}
 	},
@@ -169,7 +179,7 @@ module.exports = {
 				}).update({
 					status: 1,
 					total_fee: 0,
-					endtime : Date.now()
+					endtime: Date.now()
 				})
 			} else {
 				console.log('返回没有会员的提示信息')
@@ -187,7 +197,7 @@ module.exports = {
 				}).update({
 					status: 1,
 					total_fee: 0,
-					endtime : Date.now()
+					endtime: Date.now()
 				})
 			}
 		}
@@ -200,39 +210,130 @@ module.exports = {
 		})
 		const order = dbJQL.collection('fishcave-orders')
 		return order.where({
-			user_id : uid,
-			status : -1
+			user_id: uid,
+			status: -1
 		}).limit(1).field({
 			_id: true
 		}).get()
 	},
 	
+	GetHandleOrderByuid: async function(uid) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const order = dbJQL.collection('fishcave-orders')
+		return order.where({
+			user_id: uid,
+			status: 0
+		}).limit(1).field({
+			_id: true
+		}).get()
+	},
+
 	GetHandledOrder: async function(orderID) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
 		const order = dbJQL.collection('fishcave-orders')
 		return order.where({
-			_id : orderID
+			_id: orderID
 		}).limit(1).field({
 			_id: true,
 			total_fee: true,
 		}).get()
 	},
-	
+
 	GetUserOrderList: async function(uid) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 			clientInfo: this.getClientInfo()
 		})
 		const order = dbJQL.collection('fishcave-orders')
 		return order.where({
-			user_id : uid,
+			user_id: uid,
 		}).limit(10).field({
 			_id: true,
 			status: true,
-			reservation_id:true,
-			starttime:true,
-			total_fee:true
+			reservation_id: true,
+			starttime: true,
+			total_fee: true
 		}).get()
+	},
+
+	GennerateVipOrder: async function(uid, content) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const viporder = dbJQL.collection('fishcave-viporders')
+		const orderData = await viporder.where({
+			user_id: uid,
+			status: -1
+		}).get()
+		if (orderData.data.length != 0) {
+			const orderID = orderData.data[0]._id
+			try {
+				const result = await viporder.where({
+					_id: orderID
+				}).update({
+					type: content.type
+				})
+			} catch (e) {}
+		} else {
+			try {
+				const result = viporder.add(content)
+			} catch (e) {}
+		}
+	},
+
+	SearchVipOrder: async function(uid) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const viporder = dbJQL.collection('fishcave-viporders')
+		return viporder.where({
+			user_id: uid,
+			status: -1
+		}).field({
+			_id: true
+		}).get()
+	},
+
+
+	CalculateVipOder: async function(uid) {
+		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
+			clientInfo: this.getClientInfo()
+		})
+		const viporder = dbJQL.collection('fishcave-viporders')
+		const vippricelist = dbJQL.collection('prices_vip')
+		const orderData = await viporder.where({
+			user_id: uid,
+			status: -1
+		}).get()
+		const orderID = orderData.data[0]._id
+		const pricetype = orderData.data[0].type
+		//查找价格并修改总价
+		if (pricetype) {
+			try {
+				const result = await vippricelist.where({
+					type: pricetype
+				}).field({
+					price: true
+				}).get()
+				const price = result.data[0].price
+				const update = await viporder.where({
+					_id: orderID
+				}).update({
+					total_fee: price
+				})
+				return {
+					errCode: 0,
+					errMsg: '',
+				}
+			} catch (e) {}
+		} else {
+			return {
+				errCode: "VALIDATION_ERROR",
+				errMsg: '未找到会员类型',
+			}
+		}
 	}
 }

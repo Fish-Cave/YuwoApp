@@ -231,11 +231,11 @@
 		return (membershipInfo.value.membership && membershipInfo.value.membership.length > 0) ||
 			(membershipInfo.value.subscriptionPackage && membershipInfo.value.subscriptionPackage.length > 0);
 	});
-	
+
 	// 获取客服电话
 	const customerServicePhone = ref('');
 	const isLoadingPhone = ref(false); // 防止重复点击
-	
+
 	// 获取会员信息
 	async function getMembershipInfo() {
 		try {
@@ -312,16 +312,9 @@
 	}
 
 	function goToRecharge() {
-		if (res.role.includes('admin')) {
-			uni.navigateTo({
-				url: '/pages/recharge/recharge'
-			});
-		} else {
-			uni.showToast({
-				title: "暂不开放,请联系管理充值",
-				icon: "error"
-			})
-		}
+		uni.navigateTo({
+			url: '/pages/recharge/recharge'
+		});
 	}
 
 	async function goToUsing() {
@@ -437,7 +430,7 @@
 		const amountInYuan = (amountInCents / 100).toFixed(2); // 转换为元，保留两位小数
 		return `¥${amountInYuan}`;
 	}
-	
+
 	//获取客服电话号码
 	async function callCustomerService() {
 		if (isLoadingPhone.value) {
@@ -478,7 +471,7 @@
 			uni.hideLoading();
 		}
 	}
-	
+
 	function makeTheCall(phoneNumber : string) {
 		if (!phoneNumber) {
 			uni.showToast({ title: '无效的电话号码', icon: 'none' });
@@ -504,7 +497,7 @@
 			}
 		});
 	}
-	
+
 	onMounted(async () => {
 		getPriceList()
 		//getReservationData() // 获取订单数据
@@ -894,9 +887,9 @@
 		font-weight: bold;
 		color: #333;
 	}
-	
+
 	.card-function {
-	    color:#6b7280;
+		color: #6b7280;
 	}
 
 	.orders-container {
@@ -1206,85 +1199,86 @@
 			margin-bottom: 20px;
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 		}
+
 		.user-info-card {
-		    background: rgb(191, 105, 18);
-		    margin-bottom: 24px;
+			background: rgb(191, 105, 18);
+			margin-bottom: 24px;
 		}
-		
+
 		.username {
-		    font-weight: bold;
-		    color: white;
-		    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-		    /* 允许长单词/URL换行 */
-		    overflow-wrap: break-word;
-		    /* 中文/日文等任意字符处换行 */
-		    word-break: break-all;
-		    /* 保留空白符但允许换行 */
-		    white-space: pre-line;
-		    /* 触发换行的容器宽度 */
-		    max-width: 300rpx;
+			font-weight: bold;
+			color: white;
+			text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			/* 允许长单词/URL换行 */
+			overflow-wrap: break-word;
+			/* 中文/日文等任意字符处换行 */
+			word-break: break-all;
+			/* 保留空白符但允许换行 */
+			white-space: pre-line;
+			/* 触发换行的容器宽度 */
+			max-width: 300rpx;
 		}
-		
+
 		.membership-info-card {
-		    background: rgb(22, 22, 24);
-		    border-radius: 16px;
-		    padding: 16px;
-		    margin: 14px 0;
-		    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-		    border: 1px solid rgba(255, 255, 255, 0.4);
+			background: rgb(22, 22, 24);
+			border-radius: 16px;
+			padding: 16px;
+			margin: 14px 0;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+			border: 1px solid rgba(255, 255, 255, 0.4);
 		}
-		
+
 		.membership-name {
 			font-size: 16px;
 			font-weight: 600;
 			color: white;
 			margin-bottom: 6px;
 		}
-		
+
 		.membership-info-header {
-		    display: flex;
-		    align-items: center;
-		    margin-bottom: 12px;
-		    padding-bottom: 8px;
-		    border-bottom: 1px solid rgb(51, 49, 50);
+			display: flex;
+			align-items: center;
+			margin-bottom: 12px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid rgb(51, 49, 50);
 		}
-		
+
 		.membership-info-title {
-		    font-size: 16px;
-		    font-weight: 600;
-		    color: lightgray;
-		    margin-left: 8px;
+			font-size: 16px;
+			font-weight: 600;
+			color: lightgray;
+			margin-left: 8px;
 		}
-		
+
 		.membership-item {
-		    display: flex;
-		    align-items: center;
-		    background: rgb(59, 59, 61);
-		    border-radius: 12px;
-		    padding: 12px;
-		    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-		    transition: transform 0.2s ease;
+			display: flex;
+			align-items: center;
+			background: rgb(59, 59, 61);
+			border-radius: 12px;
+			padding: 12px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+			transition: transform 0.2s ease;
 		}
-		
+
 		.validity-label {
-		    color: darkgray;
-		    margin-right: 4px;
+			color: darkgray;
+			margin-right: 4px;
 		}
-		
+
 		.validity-date {
-		    font-weight: 500;
-		    color: gray;
+			font-weight: 500;
+			color: gray;
 		}
-		
+
 		.user-id {
-		    font-size: 12px;
-		    color: lightgray;
-		    background: rgb(59, 59, 61);
-		    padding: 4px 10px;
-		    border-radius: 12px;
-		    align-self: flex-start;
+			font-size: 12px;
+			color: lightgray;
+			background: rgb(59, 59, 61);
+			padding: 4px 10px;
+			border-radius: 12px;
+			align-self: flex-start;
 		}
-		
+
 		/*会员充值按钮 */
 		.becamemember-button {
 			background: rgb(194, 106, 16);
@@ -1300,71 +1294,71 @@
 			display: flex;
 			justify-content: center;
 		}
-		
-		
+
+
 		/* 统计信息区域 */
 		.stats-container {
-		    display: flex;
-		    justify-content: space-between;
-		    align-items: center;
-		    padding: 18px 12px;
-		    background: rgb(22, 22, 24);
-		    border-radius: 16px;
-		    margin-top: 12px;
-		    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-		    border: 1px solid rgba(255, 255, 255, 0.4);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 18px 12px;
+			background: rgb(22, 22, 24);
+			border-radius: 16px;
+			margin-top: 12px;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.4);
 		}
-		
-		
+
+
 		.stat-label {
-		    font-size: 13px;
-		    color: darkgray;
-		    font-weight: 500;
+			font-size: 13px;
+			color: darkgray;
+			font-weight: 500;
 		}
-		
+
 		.stat-divider {
-		    width: 1px;
-		    height: 36px;
-		    background: rgb(51, 49, 50);
-		    margin: 0 8px;
+			width: 1px;
+			height: 36px;
+			background: rgb(51, 49, 50);
+			margin: 0 8px;
 		}
-		
+
 		/* 功能按钮部分 */
-		
+
 		.feature-label {
-		    font-size: 14px;
-		    color: lightgray;
-		    font-weight: 500;
+			font-size: 14px;
+			color: lightgray;
+			font-weight: 500;
 		}
-		
+
 		/* 订单卡片样式 */
 
 		.card-title {
-		    font-size: 16px;
-		    font-weight: bold;
-		    color: white;
+			font-size: 16px;
+			font-weight: bold;
+			color: white;
 		}
-		
+
 		.card-function {
-		    color:lightgray;
+			color: lightgray;
 		}
-		
+
 		/* 功能项样式 */
 		.utility-item:active {
-		    background-color: rgb(59, 59, 61);
+			background-color: rgb(59, 59, 61);
 		}
-		
+
 		.utility-text {
-		    flex: 1;
-		    margin-left: 12px;
-		    font-size: 15px;
-		    color: white;
+			flex: 1;
+			margin-left: 12px;
+			font-size: 15px;
+			color: white;
 		}
-		
+
 		.utility-divider {
-		    height: 1px;
-		    background-color: rgb(51, 49, 50);
-		    margin: 0 8px;
+			height: 1px;
+			background-color: rgb(51, 49, 50);
+			margin: 0 8px;
 		}
 	}
 </style>

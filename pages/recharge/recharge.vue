@@ -1,7 +1,7 @@
 <template>
 	<view class="container" style="display: flex; flex-direction: column; padding: 20rpx;">
 		<view>
-			<view class="user-info-card glass-card" >
+			<view class="user-info-card glass-card">
 				<view class="user-info-header">
 					<view class="avatar-container">
 						<!-- 使用 uni-id-pages-avatar 组件显示头像 -->
@@ -27,7 +27,7 @@
 			</view>
 			<view class="tips-container">
 				<text class="tips">
-					音游会员可以享受🐟窝内消费八折折扣!
+					歇脚卡会员可以在🐟窝内免费歇脚！
 				</text>
 			</view>
 			<view>
@@ -76,7 +76,7 @@
 							</view>
 						</view>
 					</view>
-					
+
 					<view class="goods-card" @click="makeOrder('monthly')">
 						<view class="goods-content">
 							<view class="goods-info">
@@ -95,10 +95,27 @@
 				</view>
 			</view>
 		</view>
+
+		<!--DEBUG-->
+		<uni-group v-if="res.role.includes('admin')" title="debug" class="glass-card">
+			<template v-slot:title>
+				<view style="display: flex; justify-content: space-between; align-items: center;">
+					<uni-section title="Debug" type="line"></uni-section>
+					<switch @change="switchChange"></switch>
+				</view>
+			</template>
+			<view v-if="debug">
+				<text>
+					{{Data}}
+					{{orderID}}
+				</text>
+			</view>
+		</uni-group>
+
 		<view class="footer">
 			<view class="price-summary">
 				<text class="detail">当前价格</text>
-				<text class="price-amount">{{orderData.total_fee / 100}}¥</text>
+				<text class="price-amount">{{totalFee / 100}}¥</text>
 			</view>
 			<view class="submit-button" @click="submit()">
 				<text>确认购买</text>
@@ -112,12 +129,22 @@
 	// 引入 uni-id-pages 的 store
 	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 	const todo = uniCloud.importObject('todo')
+	const orderHandler = uniCloud.importObject('orderHandler')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	// 使用计算属性获取用户信息
 	const userInfo = computed(() => store.userInfo)
+	//Debug
+	const debug = ref(false)
+	function switchChange(e) {
+		console.log('switch1 发生 change 事件，携带值为', e.detail.value)
+		debug.value = e.detail.value
+	}
+
+
 	const segmentedValues = ['鱼窝歇脚卡', '周卡/月卡'];
 	const segmentedCurrent = ref(0);
 	const rechargeItems = ref(0);
+	const totalFee = ref(0)
 	const types = reactive({
 		member: false,
 		weekly: false,
@@ -129,9 +156,14 @@
 		types.monthly = false
 	}
 	const priceList = ref({
-		member : 1500,
-		weekly : 15800,
-		monthly : 35800
+		member: 1500,
+		weekly: 15800,
+		monthly: 35800
+	})
+	const Data = reactive({
+		user_id: res.uid,
+		type: "",
+		status: -1
 	})
 
 	function onSegmentChange(e) {
@@ -139,42 +171,74 @@
 			rechargeItems.value = e.currentIndex
 		}
 	}
-	function makeOrder(values : String) {
+	const orderID = ref("")
+	//生成订单
+	async function makeOrder(values : String) {
 		switch (values) {
 			case "member":
 				initTypes()
 				types.member = true
+				Data.type = "member"
 				console.log(toRaw(types))
-				orderData.value.total_fee = priceList.value.member
-				options.total_fee = priceList.value.member
+				try {
+					const result = await orderHandler.GennerateVipOrder(res.uid, Data)
+				} catch (e) { }
+				totalFee.value = priceList.value.member
 				break;
 			case "weekly":
 				initTypes()
 				types.weekly = true
+				Data.type = "weekly"
 				console.log(toRaw(types))
-				orderData.value.total_fee = priceList.value.weekly
-				options.total_fee = priceList.value.weekly
+				try {
+					const result = await orderHandler.GennerateVipOrder(res.uid, Data)
+				} catch (e) { }
+				totalFee.value = priceList.value.weekly
 				break;
 			case "monthly":
 				initTypes()
 				types.monthly = true
+				Data.type = "monthly"
 				console.log(toRaw(types))
-				orderData.value.total_fee = priceList.value.monthly
-				options.total_fee = priceList.value.monthly
+				try {
+					const result = await orderHandler.GennerateVipOrder(res.uid, Data)
+				} catch (e) { }
+				totalFee.value = priceList.value.monthly
 				break;
 		}
+		searchOrder ()
 	}
-	interface billInformation {
-		"user_id" : string
-		"reservation_id" : string
-		"total_fee" : number
-		"singlePrice" : number
-		"status" : string
+	async function searchOrder (){
+		try{
+			const result = await orderHandler.SearchVipOrder(res.uid)
+			orderID.value = result.data[0]._id
+		}catch(e){ }
+	} 
+	async function submit() {
+		if (Data.type != "") {
+			try {
+				const result = await orderHandler.CalculateVipOder(res.uid)
+				if(result){
+					let options = {
+						total_fee: totalFee.value, // 支付金额，单位分 100 = 1元
+						type: "vip", // 支付回调类型
+						order_no: orderID.value, // 业务系统订单号
+						description: "充值或续费鱼窝会员项目", // 支付描述
+					};
+					let optionsStr = encodeURI(JSON.stringify(options));
+					uni.navigateTo({
+						url:`/pages/pay/pay?options=${optionsStr}`
+					});
+				}
+			} catch (e) { }
+		}else{
+			uni.showToast({
+				title : "请选择会员类型",
+				icon : "error"
+			})
+		}
 	}
-	const orderData = ref({
-		total_fee : 0
-	})
-	let options = {
+	/* let options = {
 		total_fee: 1, // 支付金额，单位分 100 = 1元
 		type: "recharge", // 支付回调类型
 		order_no: "", // 业务系统订单号
@@ -190,11 +254,12 @@
 		uni.navigateTo({
 			url: `/pages/pay/pay?options=${optionsStr}`
 		});
-	}
+	} */
 	onMounted(() => {
 		initTypes()
 	})
 </script>
+
 <style scoped>
 	.container {
 		padding: 20px;
@@ -410,15 +475,15 @@
 		font-size: 40rpx;
 		font-weight: bold;
 	}
-	
+
 	@media (prefers-color-scheme: dark) {
 		.container {
 			padding: 20px;
-			background: rgb(0,0,0);
+			background: rgb(0, 0, 0);
 			min-height: 100vh;
 			position: relative;
 		}
-		
+
 		/* 玻璃拟态卡片 */
 		.glass-card {
 			background: rgb(22, 22, 24);
@@ -431,7 +496,7 @@
 			margin-bottom: 20px;
 			transition: transform 0.3s ease, box-shadow 0.3s ease;
 		}
-		
+
 		.footer {
 			position: fixed;
 			bottom: 0;
@@ -444,70 +509,71 @@
 			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 			z-index: 100;
 		}
-		
+
 		.nickname {
-		    font-size: 36rpx;
-		    font-weight: bold;
-		    margin-bottom: 8px;
-		    color: white;
+			font-size: 36rpx;
+			font-weight: bold;
+			margin-bottom: 8px;
+			color: white;
 		}
+
 		.recharge-info-title {
-		    font-size: 16px;
-		    font-weight: 600;
-		    color: lightgray;
-		    margin-left: 8px;
+			font-size: 16px;
+			font-weight: 600;
+			color: lightgray;
+			margin-left: 8px;
 		}
 
 		.user-id {
-		    font-size: 24rpx;
-		    color: lightgray;
-		    background: rgb(59, 59, 61);
-		    padding: 4px 10px;
-		    border-radius: 12px;
-		    align-self: flex-start;
+			font-size: 24rpx;
+			color: lightgray;
+			background: rgb(59, 59, 61);
+			padding: 4px 10px;
+			border-radius: 12px;
+			align-self: flex-start;
 		}
-		
+
 		.tips {
-		    font-size: 20rpx;
-		    color: lightgray;
+			font-size: 20rpx;
+			color: lightgray;
 		}
-		
+
 		.goods-card {
-		    background: rgb(22, 22, 24);
-		    backdrop-filter: blur(10px);
-		    border-radius: 20px;
-		    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
-		    border: 1px solid rgba(255, 255, 255, 0.18);
-		    overflow: hidden;
-		    padding: 16px;
-		    margin-bottom: 20px;
-		    transition: transform 0.3s ease, box-shadow 0.3s ease;
-		    height: 160rpx;
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			overflow: hidden;
+			padding: 16px;
+			margin-bottom: 20px;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			height: 160rpx;
 		}
-		
+
 		.goods-content {
-		    display: flex;
-		    flex-direction: column;
-		    justify-content: space-between;
-		    height: 100%;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			height: 100%;
 		}
-		
+
 		.goods-price {
-		    display: flex;
-		    justify-content: flex-end;
-		    padding: 0 20rpx;
+			display: flex;
+			justify-content: flex-end;
+			padding: 0 20rpx;
 		}
-		
+
 		.goods-info {
-		    display: flex;
-		    justify-content: space-between;
-		    padding: 0 10rpx;
+			display: flex;
+			justify-content: space-between;
+			padding: 0 10rpx;
 		}
-		
+
 		.goods-detail {
-		    font-size: 40rpx;
-		    font-weight: bold;
-			color : white
+			font-size: 40rpx;
+			font-weight: bold;
+			color: white
 		}
 	}
 </style>

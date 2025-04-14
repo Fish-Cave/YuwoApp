@@ -1,0 +1,49 @@
+{
+	"bsonType": "object",
+	"required": ["type", "price", "unit", "description"],
+	"permission": {
+		"read": true,
+		"create": false,
+		"update": false,
+		"delete": false,
+		"count": false
+	},
+	"properties": {
+		"_id": {
+			"bsonType": "objectId",
+			"description": "价格ID，唯一索引，系统自动生成"
+		},
+		"type": {
+			"bsonType": "string",
+			"description": "充值的会员类型",
+			"enum":["member","weekly","monthly"]
+		},
+		"price": {
+			"bsonType": "number",
+			"description": "价格 (例如: 100 元\/小时)",
+			"min": 0
+		},
+		"unit": {
+			"bsonType": "string",
+			"description": "价格单位"
+		},
+		"description": {
+			"bsonType": "string",
+			"description": "描述"
+		},
+		"createTime": {
+			"bsonType": "timestamp",
+			"description": "创建时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		},
+		"updateTime": {
+			"bsonType": "timestamp",
+			"description": "更新时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		}
+	}
+}

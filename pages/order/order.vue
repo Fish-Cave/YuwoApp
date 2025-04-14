@@ -255,9 +255,12 @@
 	const isUserFree = ref(true)
 	async function setIsUserFree() {
 		try {
-			const result = await orderHandler.GetUnhandleOrder(res.uid)
-			console.log(result.data.length)
-			if (result.data.length) {
+			const [UnhandleOrder, HandlerOrder] = await Promise.all([
+				orderHandler.GetUnhandleOrder(res.uid),
+				orderHandler.GetHandleOrderByuid(res.uid)
+			],
+			)
+			if (UnhandleOrder.data.length || HandlerOrder.data.length) {
 				isUserFree.value = false
 			}
 		} catch (e) { }
