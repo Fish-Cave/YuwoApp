@@ -67,12 +67,10 @@ const isHtmlOnApp = ref(false); // 标记是否是App端加载HTML
 // --- 计算属性 ---
 // 判断是否是 PDF 链接
 const isPdf = computed(() => helpUrl.value.toLowerCase().endsWith('.pdf'));
-// 判断是否是 HTML 链接 (你可以根据实际情况调整，比如也检查 .htm)
+// 判断是否是 HTML 链接 
 const isHtml = computed(() => {
     const lowerCaseUrl = helpUrl.value.toLowerCase();
     return lowerCaseUrl.endsWith('.html') || lowerCaseUrl.endsWith('.htm');
-    // 或者，如果你的 .md 链接没有改后缀，但你知道它们是 HTML，可以这样判断：
-    // return lowerCaseUrl.endsWith('.md'); // 假设 .md 后缀的链接实际是 HTML
 });
 
 // --- 生命周期 ---
@@ -137,7 +135,6 @@ function retryLoad() {
 
 // --- PDF 处理 ---
 async function downloadPdf() {
-    // ... (保持之前的 downloadPdf 实现)
     return new Promise<void>((resolve, reject) => {
         uni.showLoading({ title: '下载 PDF 中...' });
         uni.downloadFile({
@@ -163,7 +160,6 @@ async function downloadPdf() {
 }
 
 function openPdfDocument() {
-    // ... (保持之前的 openPdfDocument 实现)
     if (!pdfFilePath.value) {
         errorMsg.value = 'PDF 文件尚未下载或下载失败。';
         uni.showToast({ title: '请先下载文件', icon: 'none' });
@@ -214,13 +210,13 @@ function openInDeviceBrowser() {
     // #endif
 }
 
-// 非 App 端：处理 web-view 的消息 (可选)
+// 非 App 端：处理 web-view 的消息 
 function handleWebViewMessage(event: any) {
     console.log('收到来自 web-view 的消息：', event.detail.data);
     // 处理从 HTML 页面 postMessage 过来的数据
 }
 
-// 非 App 端：处理 web-view 加载错误 (可选)
+// 非 App 端：处理 web-view 加载错误 
 function handleWebViewError(event: any) {
     console.error('web-view 加载错误:', event);
     // 可以在这里显示错误提示，但 web-view 本身可能也会显示错误页
