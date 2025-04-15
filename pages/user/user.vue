@@ -361,10 +361,15 @@
 
 	// 功能项点击处理
 	function handleUtilityClick(utility : string) {
-		uni.showToast({
-			title: '功能开发中',
-			icon: 'none'
-		});
+	    if (utility === 'help') {
+	        uni.navigateTo({
+	            url: '/pages/helpCenter/helpCenter' // 跳转到帮助中心列表页
+	        });
+	    } else if (utility === 'notifications') {
+	         uni.showToast({
+	            title: '消息通知功能开发中',
+	            icon: 'none'
+	        });
 	}
 
 	//登出

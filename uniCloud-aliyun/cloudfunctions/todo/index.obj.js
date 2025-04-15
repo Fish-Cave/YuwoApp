@@ -1917,5 +1917,180 @@ module.exports = {
 		})
 		const vipprice = dbJQL.collection('prices_vip')
 		await vipprice.add(content)
-	}
+	},
+	/**
+	 * 获取帮助中心文档列表
+	 * @returns {object} 包含文档列表的查询结果
+	 */
+	async HelpCenter_List() {
+		// 读取列表不需要特殊权限，dbschema 中已配置 read: true
+		try {
+			const res = await helpCenterCollection.field({
+				_id: true,
+				helptitle: true,
+				helpurl: true // 列表页可能不需要url，看前端是否需要提前加载
+			}).orderBy('helptitle', 'asc').get(); // 按标题升序排列
+			return {
+				errCode: 0,
+				errMsg: '获取成功',
+				data: res.data
+			};
+		} catch (e) {
+			console.error("HelpCenter_List error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '获取帮助列表失败: ' + e.message
+			};
+		}
+	},
+
+	/**
+	 * 获取单个帮助文档详情 (如果列表页只传id，查看页需要调用这个)
+	 * @param {string} id 文档ID
+	 * @returns {object} 文档详情
+	 */
+	async HelpCenter_Get(id) {
+		if (!id) {
+			return { errCode: 'PARAM_ERROR', errMsg: '缺少文档ID' };
+		}
+		try {
+			const res = await helpCenterCollection.doc(id).get();
+			if (!res.data || res.data.length === 0) {
+				return { errCode: 'NOT_FOUND', errMsg: '未找到指定的帮助文档' };
+			}
+			return {
+				errCode: 0,
+				errMsg: '获取成功',
+				data: res.data[0]
+			};
+		} catch (e) {
+			console.error("HelpCenter_Get error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '获取帮助文档详情失败: ' + e.message
+			};
+		}
+	},
+
+	/**
+	 * 添加新的帮助文档 (仅限管理员)
+	 * @param {object} data 包含 helptitle 和 helpurl 的对象
+	 * @returns {object} 操作结果，包含新文档的 ID
+	 */
+	async HelpCenter_Add(data) {
+		// 1. 权限检查
+		const authError = this._checkAdminPermission();
+		if (authError) {
+			return authError; // 没有权限，直接返回错误
+		}
+
+		// 2. 参数校验
+		if (!data || !data.helptitle || !data.helpurl) {
+			return { errCode: 'PARAM_ERROR', errMsg: '缺少必要的文档信息 (标题和链接)' };
+		}
+
+		// 3. 执行添加
+		try {
+			const res = await helpCenterCollection.add({
+				helptitle: data.helptitle,
+				helpurl: data.helpurl,
+				create_time: Date.now() // 可选：添加创建时间
+			});
+			return {
+				errCode: 0,
+				errMsg: '添加成功',
+				id: res.id // 返回新记录的ID
+			};
+		} catch (e) {
+			console.error("HelpCenter_Add error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '添加帮助文档失败: ' + e.message
+			};
+		}
+	},
+
+	/**
+	 * 更新帮助文档 (仅限管理员)
+	 * @param {string} id 要更新的文档 ID
+	 * @param {object} data 包含要更新的 helptitle 和/或 helpurl 的对象
+	 * @returns {object} 操作结果
+	 */
+	async HelpCenter_Update(id, data) {
+		// 1. 权限检查
+		const authError = this._checkAdminPermission();
+		if (authError) {
+			return authError;
+		}
+
+		// 2. 参数校验
+		if (!id) {
+			return { errCode: 'PARAM_ERROR', errMsg: '缺少文档ID' };
+		}
+		if (!data || (!data.helptitle && !data.helpurl)) {
+			return { errCode: 'PARAM_ERROR', errMsg: '没有提供要更新的内容' };
+		}
+
+		// 3. 构建更新数据
+		const updateData = {};
+		if (data.helptitle) updateData.helptitle = data.helptitle;
+		if (data.helpurl) updateData.helpurl = data.helpurl;
+		updateData.update_time = Date.now(); // 可选：更新修改时间
+
+		// 4. 执行更新
+		try {
+			const res = await helpCenterCollection.doc(id).update(updateData);
+			if (res.updated === 0) {
+				 return { errCode: 'NOT_FOUND', errMsg: '未找到要更新的文档或内容无变化' };
+			}
+			return {
+				errCode: 0,
+				errMsg: '更新成功',
+				updated: res.updated
+			};
+		} catch (e) {
+			console.error("HelpCenter_Update error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '更新帮助文档失败: ' + e.message
+			};
+		}
+	},
+
+	/**
+	 * 删除帮助文档 (仅限管理员)
+	 * @param {string} id 要删除的文档 ID
+	 * @returns {object} 操作结果
+	 */
+	async HelpCenter_Delete(id) {
+		// 1. 权限检查
+		const authError = this._checkAdminPermission();
+		if (authError) {
+			return authError;
+		}
+
+		// 2. 参数校验
+		if (!id) {
+			return { errCode: 'PARAM_ERROR', errMsg: '缺少文档ID' };
+		}
+
+		// 3. 执行删除
+		try {
+			const res = await helpCenterCollection.doc(id).remove();
+			 if (res.deleted === 0) {
+				 return { errCode: 'NOT_FOUND', errMsg: '未找到要删除的文档' };
+			}
+			return {
+				errCode: 0,
+				errMsg: '删除成功',
+				deleted: res.deleted
+			};
+		} catch (e) {
+			console.error("HelpCenter_Delete error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '删除帮助文档失败: ' + e.message
+			};
+		}
+	},
 }

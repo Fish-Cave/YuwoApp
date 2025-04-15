@@ -1,0 +1,1 @@
+{"bsonType":"object","required":["helptitle"],"permission":{"read":true,"create":true,"update":true,"delete":true},"properties":{"_id":{"description":"ID，系统自动生成"},"helptitle":{"bsonType":"string","description":"文档标题"},"helpurl":{"bsonType":"string","description":"文档的链接"}}}
