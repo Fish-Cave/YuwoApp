@@ -198,6 +198,13 @@
 			{
 				"navigationBarTitleText" : "管理员订单管理"
 			}
+		},
+		{
+			"path" : "pages/userManagement/userManagement",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {

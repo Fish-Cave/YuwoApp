@@ -1,0 +1,53 @@
+// user-messages.schema.json
+{
+  "bsonType": "object",
+  "required": ["sender_id", "recipient_id", "title", "content", "send_time"],
+  "permission": {
+    "read": "auth.role == 'admin' || auth.uid == doc.recipient_id",
+    "create": "auth.role == 'admin'",
+    "update": "auth.role == 'admin' || auth.uid == doc.recipient_id",
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "sender_id": {
+      "bsonType": "string",
+      "description": "发送者ID"
+    },
+    "recipient_id": {
+      "bsonType": "string",
+      "description": "接收者ID"
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "消息标题",
+      "trim": "both"
+    },
+    "content": {
+      "bsonType": "string",
+      "description": "消息内容",
+      "trim": "both"
+    },
+    "type": {
+      "bsonType": "string",
+      "description": "消息类型",
+      "enum": ["normal", "promotion", "important", "system"],
+      "defaultValue": "normal"
+    },
+    "send_time": {
+      "bsonType": "timestamp",
+      "description": "发送时间"
+    },
+    "is_read": {
+      "bsonType": "bool",
+      "description": "是否已读",
+      "defaultValue": false
+    },
+    "read_time": {
+      "bsonType": "timestamp",
+      "description": "阅读时间"
+    }
+  }
+}

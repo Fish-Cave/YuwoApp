@@ -1,0 +1,37 @@
+// user-operation-logs.schema.json
+{
+  "bsonType": "object",
+  "required": ["user_id", "operator_id", "operation", "operation_time"],
+  "permission": {
+    "read": "auth.role == 'admin'",
+    "create": "auth.role == 'admin'",
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "被操作的用户ID"
+    },
+    "operator_id": {
+      "bsonType": "string",
+      "description": "操作者ID"
+    },
+    "operation": {
+      "bsonType": "string",
+      "description": "操作类型",
+      "trim": "both"
+    },
+    "details": {
+      "bsonType": "object",
+      "description": "操作详情"
+    },
+    "operation_time": {
+      "bsonType": "timestamp",
+      "description": "操作时间"
+    }
+  }
+}
