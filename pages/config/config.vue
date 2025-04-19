@@ -5,7 +5,19 @@
 			<view class="header-title">系统配置管理</view>
 			<view class="header-subtitle">管理页面仅限管理员访问</view>
 		</view>
-
+		<view class="section-card glass-card">
+					<view class="card-header">
+						<text class="card-title">快捷入口</text>
+					</view>
+					<view class="section-content" style="flex-direction: row; justify-content: space-around;">
+						<button class="quick-entry-button" @click="navigateTo('/pages/orderManagement/orderManagement')">
+							订单管理
+						</button>
+						<button class="quick-entry-button" @click="navigateTo('/pages/userManagement/userManagement')">
+							用户管理
+						</button>
+					</view>
+				</view>
 		<!-- Machine Management Section -->
 		<view class="section-card glass-card">
 			<view class="card-header">
@@ -375,6 +387,12 @@ import dayjs from 'dayjs';
 
 // 导入云函数
 const todo = uniCloud.importObject('todo');
+
+function navigateTo(url) {
+	uni.navigateTo({
+		url: url
+	});
+}
 
 // 控制各个部分的展开/折叠状态
 const sections = reactive({
@@ -1657,6 +1675,29 @@ onMounted(() => {
 
 .danger-button {
 	background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+}
+
+.quick-entry-button {
+	background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%); /* 蓝色渐变，根据你的主题调整 */
+	color: white;
+	border: none;
+	border-radius: 12px; /* 圆角 */
+	padding: 12px 20px; /* 按钮内边距 */
+	font-size: 16px;
+	font-weight: 500;
+	box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	margin-top: 10px;
+}
+
+.quick-entry-button:active {
+	transform: translateY(2px);
+	box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+}
+
+.section-content[style*="flex-direction: row"] { 
+	padding-top: 0; 
+	padding-bottom: 16px; 
 }
 
 /* 动画 */
