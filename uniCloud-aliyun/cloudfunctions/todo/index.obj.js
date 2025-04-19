@@ -1,6 +1,7 @@
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
+const helpCenterCollection = db.collection('help-center');
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -129,7 +130,47 @@ module.exports = {
 			"noplayprice": true,
 		}).get()
 	},
+	// 更新机台信息
+	Machines_Update: function(id, updateData) {
+		const collection = db.collection('machines');
+		return collection.doc(id).update(updateData);
+	},
+	  
+	// 更新价格信息
+	Prices_Update: function(id, updateData) {
+		const collection = db.collection('prices');
+		return collection.doc(id).update(updateData);
+	},
 
+	// 更新会员价格信息
+	VipPrices_Update: function(id, updateData) {
+		const collection = db.collection('prices_vip');
+		return collection.doc(id).update(updateData);
+	},
+
+	// 获取单个机台详情
+	GetMachineDetail: function(id) {
+		const collection = db.collection('machines');
+		return collection.doc(id).get();
+	},
+
+	// 获取单个价格方案详情
+	GetPriceDetail: function(id) {
+		const collection = db.collection('prices');
+		return collection.doc(id).get();
+	},
+
+	// 获取会员价格列表
+	GetVipPrices: function() {
+		const collection = db.collection('prices_vip');
+		return collection.get();
+	},
+
+	// 获取单个会员价格详情
+	GetVipPriceDetail: function(id) {
+		const collection = db.collection('prices_vip');
+		return collection.doc(id).get();
+	},
 	/**
 	 * 获取用户会员信息
 	 * @param {string} userID 用户ID
