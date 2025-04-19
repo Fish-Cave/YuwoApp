@@ -345,7 +345,7 @@
 	// 跳转到全部订单页
 	function goTooderlist() {
 		uni.navigateTo({
-			url: '/pages/orederlist/orederlist'
+			url: '/pages/orderList/orderList'
 		});
 	}
 

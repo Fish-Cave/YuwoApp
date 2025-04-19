@@ -2134,4 +2134,386 @@ module.exports = {
 			};
 		}
 	},
+
+	/**
+	 * 获取筛选后的订单并支持分页 (用于订单管理页)
+	 * @param {Object} params 查询参数
+	 * @param {string} [params.keyword] 关键词搜索(订单ID/用户ID/机台名)
+	 * @param {number} [params.status] 订单状态
+	 * @param {number} [params.startDate] 开始日期时间戳
+	 * @param {number} [params.endDate] 结束日期时间戳
+	 * @param {number} [params.minAmount] 最小金额(分)
+	 * @param {number} [params.maxAmount] 最大金额(分)
+	 * @param {number} [params.pageSize=10] 每页数量
+	 * @param {number} [params.pageNumber=1] 页码
+	 * @param {string} [params.sortField="create_date"] 排序字段
+	 * @param {string} [params.sortOrder="desc"] 排序方向
+	 * @returns {Object} 订单列表及分页信息
+	 */
+	async Get_FilteredOrders(params) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  // 构建查询条件
+	  const query = {};
+	  
+	  // 关键词搜索(订单ID/用户ID/机台名)
+	  if (params.keyword) {
+	    query.$or = [
+	      { _id: params.keyword },
+	      { user_id: params.keyword },
+	      { machineName: new RegExp(params.keyword, 'i') }
+	    ];
+	  }
+	  
+	  // 状态筛选
+	  if (params.status !== undefined && params.status !== null) {
+	    query.status = Number(params.status);
+	  }
+	  
+	  // 日期范围筛选
+	  if (params.startDate && params.endDate) {
+	    query.create_date = dbJQL.command.gte(params.startDate).and(dbJQL.command.lte(params.endDate));
+	  } else if (params.startDate) {
+	    query.create_date = dbJQL.command.gte(params.startDate);
+	  } else if (params.endDate) {
+	    query.create_date = dbJQL.command.lte(params.endDate);
+	  }
+	  
+	  // 金额范围筛选
+	  if (params.minAmount && params.maxAmount) {
+	    query.total_fee = dbJQL.command.gte(params.minAmount).and(dbJQL.command.lte(params.maxAmount));
+	  } else if (params.minAmount) {
+	    query.total_fee = dbJQL.command.gte(params.minAmount);
+	  } else if (params.maxAmount) {
+	    query.total_fee = dbJQL.command.lte(params.maxAmount);
+	  }
+	  
+	  // 设置分页参数
+	  const pageSize = params.pageSize || 10;
+	  const pageNumber = params.pageNumber || 1;
+	  const sortField = params.sortField || "create_date";
+	  const sortOrder = params.sortOrder || "desc";
+	  
+	  try {
+	    // 构建基础查询
+	    let baseQuery = dbJQL.collection('fishcave-orders')
+	      .where(query)
+	      .orderBy(sortField, sortOrder);
+	    
+	    // 获取总记录数
+	    const countResult = await baseQuery.count();
+	    const total = countResult.total;
+	    
+	    // 获取当前页数据
+	    const result = await baseQuery
+	      .skip((pageNumber - 1) * pageSize)
+	      .limit(pageSize)
+	      .get();
+	    
+	    // 计算总页数
+	    const totalPages = Math.ceil(total / pageSize);
+	    
+	    return {
+	      code: 0,
+	      data: result.data,
+	      pagination: {
+	        total,
+	        totalPages,
+	        pageSize,
+	        pageNumber,
+	        hasNext: pageNumber < totalPages,
+	        hasPrev: pageNumber > 1
+	      }
+	    };
+	  } catch (e) {
+	    console.error("Get_FilteredOrders error:", e);
+	    return {
+	      code: -1,
+	      errMsg: "获取订单数据失败: " + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 获取单个订单详情
+	 * @param {string} orderId 订单ID
+	 * @returns {Object} 订单详情
+	 */
+	async GetOrderDetail(orderId) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 获取订单信息
+	    const orderResult = await dbJQL.collection('fishcave-orders')
+	      .doc(orderId)
+	      .get();
+	    
+	    if (orderResult.data.length === 0) {
+	      return {
+	        code: -1,
+	        errMsg: "未找到订单信息"
+	      };
+	    }
+	    
+	    const orderData = orderResult.data[0];
+	    
+	    // 获取关联的用户信息
+	    const userResult = await dbJQL.collection('uni-id-users')
+	      .doc(orderData.user_id)
+	      .field("nickname,username,avatar,avatar_file")
+	      .get();
+	    
+	    // 获取关联的机台信息
+	    const machineResult = await dbJQL.collection('machines')
+	      .where({
+	        _id: orderData.machineId
+	      })
+	      .field("name,type,capacity,machinenum")
+	      .get();
+	    
+	    // 合并数据
+	    const detailData = {
+	      ...orderData,
+	      username: userResult.data.length > 0 ? (userResult.data[0].nickname || userResult.data[0].username) : '未知用户',
+	      userAvatar: userResult.data.length > 0 ? (userResult.data[0].avatar || '') : '',
+	      userAvatarFile: userResult.data.length > 0 ? (userResult.data[0].avatar_file || null) : null,
+	      machineName: machineResult.data.length > 0 ? machineResult.data[0].name : '未知机台',
+	      machineType: machineResult.data.length > 0 ? machineResult.data[0].type : '',
+	    };
+	    
+	    return {
+	      code: 0,
+	      data: detailData
+	    };
+	  } catch (e) {
+	    console.error("GetOrderDetail error:", e);
+	    return {
+	      code: -1,
+	      errMsg: "获取订单详情失败: " + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 更新订单信息
+	 * @param {Object} data 更新数据
+	 * @param {string} data.orderId 订单ID
+	 * @param {number} [data.status] 订单状态
+	 * @param {number} [data.totalFee] 订单金额(分)
+	 * @param {number} [data.starttime] 开始时间戳
+	 * @param {number} [data.endtime] 结束时间戳
+	 * @param {string} data.editReason 修改原因
+	 * @returns {Object} 更新结果
+	 */
+	async UpdateOrder(data) {
+	  // 权限检查 (仅限管理员)
+	  const authError = this._checkAdminPermission();
+	  if (authError) {
+	    return authError;
+	  }
+	  
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    // 验证参数
+	    if (!data.orderId) {
+	      return {
+	        code: -1,
+	        errMsg: "缺少订单ID"
+	      };
+	    }
+	    
+	    if (!data.editReason) {
+	      return {
+	        code: -1,
+	        errMsg: "缺少修改原因"
+	      };
+	    }
+	    
+	    // 获取原订单数据
+	    const orderResult = await dbJQL.collection('fishcave-orders')
+	      .doc(data.orderId)
+	      .get();
+	    
+	    if (orderResult.data.length === 0) {
+	      return {
+	        code: -1,
+	        errMsg: "未找到订单信息"
+	      };
+	    }
+	    
+	    const oldOrderData = orderResult.data[0];
+	    
+	    // 构建更新数据
+	    const updateData = {};
+	    const changes = {};
+	    
+	    // 状态更新
+	    if (data.status !== undefined && oldOrderData.status !== data.status) {
+	      updateData.status = data.status;
+	      changes.status = {
+	        from: this._getStatusText(oldOrderData.status),
+	        to: this._getStatusText(data.status)
+	      };
+	    }
+	    
+	    // 金额更新
+	    if (data.totalFee !== undefined && oldOrderData.total_fee !== data.totalFee) {
+	      updateData.total_fee = data.totalFee;
+	      changes.totalFee = {
+	        from: `¥${(oldOrderData.total_fee / 100).toFixed(2)}`,
+	        to: `¥${(data.totalFee / 100).toFixed(2)}`
+	      };
+	    }
+	    
+	    // 时间更新
+	    if (data.starttime !== undefined && oldOrderData.starttime !== data.starttime) {
+	      updateData.starttime = data.starttime;
+	      changes.startTime = {
+	        from: this._formatDateTime(oldOrderData.starttime),
+	        to: this._formatDateTime(data.starttime)
+	      };
+	    }
+	    
+	    if (data.endtime !== undefined && oldOrderData.endtime !== data.endtime) {
+	      updateData.endtime = data.endtime;
+	      changes.endTime = {
+	        from: this._formatDateTime(oldOrderData.endtime),
+	        to: this._formatDateTime(data.endtime)
+	      };
+	    }
+	    
+	    // 如果没有变更，返回成功
+	    if (Object.keys(updateData).length === 0) {
+	      return {
+	        code: 0,
+	        data: {
+	          updated: 0
+	        },
+	        errMsg: "未检测到数据变更"
+	      };
+	    }
+	    
+	    // 添加更新时间
+	    updateData.update_date = Date.now();
+	    
+	    // 执行更新
+	    const updateResult = await dbJQL.collection('fishcave-orders')
+	      .doc(data.orderId)
+	      .update(updateData);
+	    
+	    // 记录编辑日志
+	    await this._logOrderEdit({
+	      orderId: data.orderId,
+	      operatorId: this.getClientInfo().userInfo.uid,
+	      editType: "订单信息修改",
+	      changes: changes,
+	      reason: data.editReason,
+	      editTime: Date.now()
+	    });
+	    
+	    return {
+	      code: 0,
+	      data: {
+	        updated: updateResult.updated
+	      },
+	      errMsg: "订单更新成功"
+	    };
+	  } catch (e) {
+	    console.error("UpdateOrder error:", e);
+	    return {
+	      code: -1,
+	      errMsg: "更新订单失败: " + e.message
+	    };
+	  }
+	},
+	
+	/**
+	 * 记录订单编辑日志
+	 * @param {Object} logData 日志数据
+	 * @private
+	 */
+	async _logOrderEdit(logData) {
+	  const db = uniCloud.database();
+	  try {
+	    // 获取操作人信息
+	    const operatorResult = await db.collection('uni-id-users')
+	      .doc(logData.operatorId)
+	      .field("nickname,username")
+	      .get();
+	    
+	    const operatorName = operatorResult.data.length > 0 
+	      ? (operatorResult.data[0].nickname || operatorResult.data[0].username) 
+	      : '未知用户';
+	    
+	    // 添加日志记录
+	    await db.collection('order-edit-logs').add({
+	      orderId: logData.orderId,
+	      operatorId: logData.operatorId,
+	      operatorName: operatorName,
+	      editType: logData.editType,
+	      changes: logData.changes,
+	      reason: logData.reason,
+	      editTime: logData.editTime
+	    });
+	  } catch (e) {
+	    console.error("Log order edit error:", e);
+	    // 日志记录失败不影响主要业务逻辑
+	  }
+	},
+	
+	/**
+	 * 获取订单编辑日志
+	 * @param {string} orderId 订单ID
+	 * @returns {Object} 日志列表
+	 */
+	async GetOrderEditLogs(orderId) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	  
+	  try {
+	    const result = await dbJQL.collection('order-edit-logs')
+	      .where({
+	        orderId: orderId
+	      })
+	      .orderBy("editTime", "desc")
+	      .get();
+	    
+	    return {
+	      code: 0,
+	      data: result.data
+	    };
+	  } catch (e) {
+	    console.error("GetOrderEditLogs error:", e);
+	    return {
+	      code: -1,
+	      errMsg: "获取编辑日志失败: " + e.message
+	    };
+	  }
+	},
+	
+	// 辅助方法：获取状态文本
+	_getStatusText(status) {
+	  switch (parseInt(status)) {
+	    case 0: return '待确认';
+	    case 1: return '已完成';
+	    case 2: return '未完成';
+	    case 3: return '已退款';
+	    default: return '未知状态';
+	  }
+	},
+	
+	// 辅助方法：格式化日期时间
+	_formatDateTime(timestamp) {
+	  if (!timestamp) return '--';
+	  const date = new Date(timestamp);
+	  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+	}
 }
