@@ -3,9 +3,10 @@ exports.main = async () => {
 	const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
 		clientInfo: this.getClientInfo()
 	})
-	const order = dbJQL.collection('fishcave-orders')
-	const signin = dbJQL.collection('signin')
-	const reservation = dbJQL.collection('reservation-log')
+	const db = uniCloud.database();
+	const order = db.collection('fishcave-orders')
+	const signin = db.collection('signin')
+	const reservation = db.collection('reservation-log')
 	//将状态为-1(待确认)付费订单状态修改为0(待支付)
 	await order.where({
 		status : -1

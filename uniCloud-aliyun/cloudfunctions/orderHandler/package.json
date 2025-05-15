@@ -1,9 +1,17 @@
 {
-  "name": "orderHandler",
-  "dependencies": {
-    "dayjs": "^1.11.13"
-  },
-  "extensions": {
-    "uni-cloud-jql": {}
-  }
+    "name": "orderHandler",
+    "dependencies": {
+        "dayjs": "^1.11.13"
+    },
+    "extensions": {
+        "uni-cloud-jql": []
+    },
+    "cloudfunction-config": {
+        "memorySize": 1024,
+        "timeout": 10,
+        "triggers": [],
+        "path": "",
+        "runtime": "Nodejs16",
+        "concurrency": 4
+    }
 }
