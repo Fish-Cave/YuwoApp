@@ -335,5 +335,62 @@ module.exports = {
 				errMsg: '未找到会员类型',
 			}
 		}
-	}
+	},
+	async createSettleOrder(userId, amountFen) {
+	  const dbJQL = uniCloud.databaseForJQL({
+	    clientInfo: this.getClientInfo()
+	  });
+	
+	  // 简单的参数验证
+	  if (!userId) {
+	    return {
+	      errCode: 400,
+	      errMsg: '缺少用户ID'
+	    };
+	  }
+	  if (typeof amountFen !== 'number' || amountFen <= 0) {
+	     return {
+	       errCode: 400,
+	       errMsg: '无效的支付金额'
+	     };
+	  }
+	
+	  try {
+	    // 创建新的订单记录
+	    const result = await dbJQL.collection('fishcave-orders').add({
+	      user_id: userId,
+	      total_fee: amountFen,
+	      status: 0, // 0: 待支付
+	      // 移除 create_date: Date.now(), 让数据库根据 schema 自动设置 (根据我们之前的讨论)
+	      description: '补票支付', // 订单描述
+	      // 移除 type: 'settle', 因为 schema 中没有定义 type 字段
+	      // type: 'settle', // <-- 删除或注释掉这一行
+	      // 可以添加其他字段，例如关联的签到ID或预约ID，如果补票是针对特定记录的话
+	      // signInId: null,
+	      // reservation_id: null,
+	    });
+	
+	    if (!result || !result.id) {
+	      console.error("创建补票订单失败:", result);
+	      return {
+	        errCode: 500,
+	        errMsg: '创建订单失败'
+	      };
+	    }
+	
+	    console.log("补票订单创建成功, ID:", result.id);
+	    return {
+	      errCode: 0,
+	      id: result.id,
+	      errMsg: '订单创建成功'
+	    };
+	
+	  } catch (e) {
+	    console.error("创建补票订单异常:", e);
+	    return {
+	      errCode: 500,
+	      errMsg: '创建订单异常: ' + e.message
+	    };
+	  }
+	},
 }

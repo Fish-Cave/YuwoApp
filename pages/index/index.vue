@@ -16,6 +16,10 @@
 					<text class="noplay">不游玩机台？</text>
 					<text class="link-text">请点击这里</text>
 				</view>
+				<view class="glass-card pay-arrears-card" @click="goToSettlePage">
+					<text class="arrears-text">需要补票？</text>
+					<text class="link-text">请点击这里</text>
+				</view>
 			</view>
 			<view>
 				<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
@@ -114,7 +118,24 @@
 		}
 
 	}
-
+	
+	const goToSettlePage = () => {
+	    console.log("用户点击了 '需要补票？点击这里' 卡片");
+	
+	    // 添加权限检查
+	    if (res.role.includes("user") || res.role.includes("admin")) {
+	        // 用户有权限，执行导航
+	        uni.navigateTo({
+	            url: '/pages/settle/settle' // 假设您的补票页面路径是 /pages/settle/settle
+	        });
+	    } else {
+	        // 用户没有权限，显示提示
+	        uni.showToast({
+	            title: "您还没有预约权限,请联系管理员申请权限",
+	            icon: 'error'
+	        });
+	    }
+	};
 
 	uni.$on("uni-id-pages-login-success", function () {
 		uni.reLaunch({
