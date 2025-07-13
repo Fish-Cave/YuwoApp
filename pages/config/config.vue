@@ -13,9 +13,9 @@
 						<button class="quick-entry-button" @click="navigateTo('/pages/orderManagement/orderManagement')">
 							订单管理
 						</button>
-						<button class="quick-entry-button" @click="navigateTo('/pages/userManagement/userManagement')">
+						<!--<button class="quick-entry-button" @click="navigateTo('/pages/userManagement/userManagement')">
 							用户管理
-						</button>
+						</button>-->
 						<button class="quick-entry-button" @click="navigateTo('/pages/userDataManagement/userDataManagement')">
 							用户数据管理
 						</button>
@@ -323,7 +323,7 @@
 			</view>
 		</view>
 
-		<!-- User Management Section -->
+		<!-- User Management Section 
 		<view class="section-card glass-card">
 			<view class="card-header">
 				<text class="card-title">用户权限管理</text>
@@ -354,6 +354,7 @@
 				</view>
 			</view>
 		</view>
+		-->
 
 		<!-- System Operations Section -->
 		<view class="section-card glass-card">

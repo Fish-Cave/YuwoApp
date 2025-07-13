@@ -14,11 +14,9 @@
 			<view class="bottom-divider">
 				<view class="glass-card not-playing-card" @click="goToNoPlayPage">
 					<text class="noplay">不游玩机台？</text>
-					<text class="link-text">请点击这里</text>
 				</view>
-				<view class="glass-card pay-arrears-card" @click="goToSettlePage">
-					<text class="arrears-text">需要补票？</text>
-					<text class="link-text">请点击这里</text>
+				<view class="glass-card not-playing-card" @click="goToSettlePage">
+					<text class="noplay">需要补票？</text>
 				</view>
 			</view>
 			<view>
@@ -262,11 +260,6 @@
 		text-align: center;
 	}
 
-	.link-text {
-		color: #007bff;
-		text-decoration: underline;
-		margin-left: 5rpx;
-	}
 
 	/*说明区域*/
 	.tips-container {
@@ -288,8 +281,15 @@
 
 	.bottom-divider {
 		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+		display: flex;
+		flex-direction: row; /* 横向排列 */
+		align-items: center; /* 垂直居中子元素 */
 	}
-
+	.bottom-divider .glass-card {
+		flex: 1; /* 让每个卡片占用相等的剩余空间 */
+		margin: 20rpx 10rpx; /* 调整左右外边距，避免卡片紧贴 */
+ 	}
+	
 	@media (prefers-color-scheme: dark) {
 
 		.container {
@@ -324,8 +324,14 @@
 
 		.bottom-divider {
 			border-bottom: 1px solid rgb(51, 49, 50);
+			display: flex;
+			flex-direction: row; /* 横向排列 */
+			align-items: center; /* 垂直居中子元素 */
 		}
-
+		.bottom-divider .glass-card {
+			flex: 1; /* 让每个卡片占用相等的剩余空间 */
+			margin: 20rpx 10rpx; /* 调整左右外边距，避免卡片紧贴 */
+		}
 		.calendar {
 			font-color: white;
 		}
