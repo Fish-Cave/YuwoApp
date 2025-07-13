@@ -336,6 +336,12 @@ module.exports = {
 			}
 		}
 	},
+	/**
+	 * 创建一个自定义金额的补票订单
+	 * @param {string} userId 用户ID
+	 * @param {number} amountFen 支付金额 (分)
+	 * @returns {object} 包含新订单ID的结果
+	 */
 	async createSettleOrder(userId, amountFen) {
 	  const dbJQL = uniCloud.databaseForJQL({
 	    clientInfo: this.getClientInfo()
@@ -361,10 +367,9 @@ module.exports = {
 	      user_id: userId,
 	      total_fee: amountFen,
 	      status: 0, // 0: 待支付
-	      // 移除 create_date: Date.now(), 让数据库根据 schema 自动设置 (根据我们之前的讨论)
+	      // 移除 create_date: Date.now(), 让数据库根据 schema 自动设置
 	      description: '补票支付', // 订单描述
-	      // 移除 type: 'settle', 因为 schema 中没有定义 type 字段
-	      // type: 'settle', // <-- 删除或注释掉这一行
+	      type: 'settle', // 订单类型，用于区分普通预约订单
 	      // 可以添加其他字段，例如关联的签到ID或预约ID，如果补票是针对特定记录的话
 	      // signInId: null,
 	      // reservation_id: null,

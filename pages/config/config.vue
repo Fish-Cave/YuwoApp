@@ -16,6 +16,9 @@
 						<button class="quick-entry-button" @click="navigateTo('/pages/userManagement/userManagement')">
 							用户管理
 						</button>
+						<button class="quick-entry-button" @click="navigateTo('/pages/userDataManagement/userDataManagement')">
+							用户数据管理
+						</button>
 					</view>
 				</view>
 		<!-- Machine Management Section -->
