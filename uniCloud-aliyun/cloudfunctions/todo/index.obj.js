@@ -2467,6 +2467,61 @@ module.exports = {
 	    // 日志记录失败不影响主要业务逻辑
 	  }
 	},
+	/**
+	 * 创建补票/自定义支付订单
+	 * @param {string} userId 用户ID
+	 * @param {number} amountFen 支付金额，单位为分
+	 * @returns {object} 操作结果，包含新订单的ID
+	 */
+	async createSettleOrder(userId, amountFen) {
+		// 1. 参数校验
+		if (!userId || !amountFen || amountFen <= 0) {
+			return {
+				errCode: 'INVALID_PARAMS',
+				errMsg: '缺少必要参数或金额无效'
+			};
+		}
+
+		const db = uniCloud.database();
+		const orderCollection = db.collection('fishcave-orders');
+
+		try {
+			// 2. 创建订单数据
+			const orderData = {
+				user_id: userId,
+				total_fee: amountFen,
+				status: 0, // 0: 待支付
+				order_type: 'settle', // 标记为补票订单
+				description: '补票/自定义支付',
+				create_date: Date.now(),
+				// 这里可以不关联 reservation_id, machineId 等，因为是自定义支付
+			};
+
+			// 3. 将订单写入数据库
+			const result = await orderCollection.add(orderData);
+
+			if (!result.id) {
+				return {
+					errCode: 'DB_ADD_FAILED',
+					errMsg: '创建订单失败'
+				};
+			}
+
+			// 4. 返回成功信息和订单ID
+			return {
+				errCode: 0,
+				errMsg: '订单创建成功',
+				id: result.id
+			};
+
+		} catch (e) {
+			console.error("createSettleOrder error:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '数据库操作失败: ' + e.message
+			};
+		}
+	},
 	
 	/**
 	 * 获取订单编辑日志
