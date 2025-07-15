@@ -121,6 +121,316 @@
             "date": "2025-06-02",
             "isOffDay": true
         },
+		{
+		    "name": "暑假",
+		    "date": "2025-07-01",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-02",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-03",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-04",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-05",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-06",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-07",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-08",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-09",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-10",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-11",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-12",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-13",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-14",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-15",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-16",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-17",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-18",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-19",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-20",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-21",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-22",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-23",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-24",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-25",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-26",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-27",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-28",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-29",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-30",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-07-31",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-01",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-02",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-03",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-04",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-05",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-06",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-07",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-08",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-09",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-10",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-11",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-12",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-13",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-14",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-15",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-16",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-17",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-18",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-19",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-20",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-21",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-22",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-23",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-24",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-25",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-26",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-27",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-28",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-29",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-30",
+		    "isOffDay": true
+		},
+		{
+		    "name": "暑假",
+		    "date": "2025-08-31",
+		    "isOffDay": true
+		},
         {
             "name": "国庆节、中秋节",
             "date": "2025-09-28",

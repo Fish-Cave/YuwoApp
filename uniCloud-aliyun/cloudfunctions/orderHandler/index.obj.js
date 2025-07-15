@@ -346,7 +346,8 @@ module.exports = {
 	  const dbJQL = uniCloud.databaseForJQL({
 	    clientInfo: this.getClientInfo()
 	  });
-	
+	  const startTimeMillis = Date.now();
+	  
 	  // 简单的参数验证
 	  if (!userId) {
 	    return {
@@ -369,10 +370,12 @@ module.exports = {
 	      status: 0, // 0: 待支付
 	      // 移除 create_date: Date.now(), 让数据库根据 schema 自动设置
 	      description: '补票支付', // 订单描述
-	      type: 'settle', // 订单类型，用于区分普通预约订单
+	      //type: 'settle', // 订单类型，用于区分普通预约订单
 	      // 可以添加其他字段，例如关联的签到ID或预约ID，如果补票是针对特定记录的话
 	      // signInId: null,
-	      // reservation_id: null,
+	      reservation_id: "0",
+		  singlePrice: false,
+		  starttime: startTimeMillis,
 	    });
 	
 	    if (!result || !result.id) {

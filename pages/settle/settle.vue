@@ -34,39 +34,35 @@
 		<!-- 底部按钮区域 -->
 		<view class="footer">
 			<view class="button-container">
+				<!-- 点击按钮直接调用我们修改后的支付函数 -->
 				<view class="submit-button" @click="initiatePayment">确认支付</view>
-				<!-- uni-pay 组件用于发起支付 -->
-				<!-- 添加 ref="payRef" 并监听支付结果事件 -->
-				<uni-pay
-					ref="payRef"
-					@mounted="onPayMounted"
-					@success="onPaySuccess"
-					@fail="onPayFail"
-					@cancel="onPayCancel"
-					:to-success-page="false"
-				></uni-pay>
 			</view>
 		</view>
+		
+		<!-- 
+		  【重要改动】
+		  我们不再需要在这里直接使用 uni-pay 组件，
+		  因为支付流程已经统一到 /pages/pay/pay 页面处理。
+		-->
+		<!-- <uni-pay ref="payRef" ... ></uni-pay> -->
+		
 	</view>
 </template>
 
 <script setup lang="ts">
-	import { ref, computed, onMounted } from 'vue'; // 导入 onMounted
-	import uniPay from '@/uni_modules/uni-pay/components/uni-pay/uni-pay.vue'; // 确保路径正确
-	import { useProfileStore } from '../../stores/userProfileStore'; // 如果需要用户信息
-	const userProfile = useProfileStore(); // 如果需要用户信息
-
+	import { ref, computed, onMounted } from 'vue';
+	
 	// 获取当前用户信息，用于获取用户ID
 	const res = uniCloud.getCurrentUserInfo('uni_id_token');
 	const userId = res.uid;
 
 	// 导入后端云对象
-	const orderHandler = uniCloud.importObject('orderHandler'); // 假设处理订单的云对象叫 orderHandler
+	const orderHandler = uniCloud.importObject('orderHandler');
 
-	// 用户输入的金额 (字符串，可能带小数)
+	// 用户输入的金额
 	const customAmount = ref('');
 
-	// 计算格式化后的金额 (保留两位小数)
+	// 计算格式化后的金额
 	const formattedAmount = computed(() => {
 		const amount = parseFloat(customAmount.value);
 		if (isNaN(amount) || amount <= 0) {
@@ -77,82 +73,19 @@
 
 	// uni-easyinput 的样式配置
 	const inputStyles = {
-		color: '#333', // 默认颜色
-		borderColor: '#fff', // 边框颜色 (这里设置为白色，因为背景是半透明白色)
-		backgroundColor: 'rgba(255, 255, 255, 0.5)', // 输入框背景半透明
+		color: '#333',
+		borderColor: '#fff',
+		backgroundColor: 'rgba(255, 255, 255, 0.5)',
 		borderRadius: '8px',
 		paddingLeft: '10px',
 		paddingRight: '10px',
 		height: '40px'
 	};
 
-	// uni-pay 组件的引用
-	const payRef = ref(null);
+	// 【重要改动】删除了所有 uni-pay 相关的 ref 和事件回调函数
+	// (payRef, onPayMounted, onPaySuccess, onPayFail, onPayCancel)
 
-	// uni-pay 组件 mounted 事件回调
-	const onPayMounted = (insideData) => {
-		console.log('uni-pay 组件已挂载并准备就绪:', insideData);
-		// insideData 包含支付提供商等信息，如果需要可以在这里处理
-	};
-
-	// uni-pay 支付成功事件回调
-	const onPaySuccess = (res) => {
-		console.log('uni-pay 支付成功:', res);
-		uni.hideLoading(); // 隐藏创建订单时的 loading
-
-		if (res.user_order_success) {
-			// 代表用户已付款，且你自己写的回调成功并正确执行了
-			console.log("支付成功且回调执行成功");
-			uni.showToast({
-				title: '支付成功',
-				icon: 'success',
-				duration: 2000
-			});
-
-			// 支付成功后跳转到 uni-pay 提供的成功页面，或者您自己的页面
-			// 这里参考 pay.vue 的跳转方式
-			uni.redirectTo({
-				url: `/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}`
-				// 如果 pay.vue 的成功页面需要更多参数，可以在这里添加
-				// 例如: &adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}
-			});
-
-		} else {
-			// 代表用户已付款，但你自己写的回调没有执行成功（通常是因为你的回调代码有问题）
-			console.error("支付成功但回调执行失败");
-			uni.showToast({
-				title: '支付成功，但处理失败，请联系管理员',
-				icon: 'error',
-				duration: 3000
-			});
-			// 可以在这里选择跳转到错误页面或留在当前页
-		}
-	};
-
-	// uni-pay 支付失败事件回调
-	const onPayFail = (err) => {
-		console.error('uni-pay 支付失败:', err);
-		uni.hideLoading();
-		uni.showToast({
-			title: '支付失败: ' + (err.errMsg || err.message || '未知错误'),
-			icon: 'none',
-			duration: 3000
-		});
-	};
-
-	// uni-pay 支付取消事件回调
-	const onPayCancel = (res) => {
-		console.log('uni-pay 支付取消:', res);
-		uni.hideLoading();
-		uni.showToast({
-			title: '支付已取消',
-			icon: 'none',
-			duration: 2000
-		});
-	};
-
-
-	// 发起支付
+	// 发起支付的函数（已重构）
 	const initiatePayment = async () => {
 		const amount = parseFloat(customAmount.value);
 
@@ -170,18 +103,15 @@
 
 		// 2. 调用后端创建补票订单
 		uni.showLoading({
-			title: '创建订单中...'
+			title: '正在创建订单...'
 		});
 
 		try {
-			// 假设后端有一个 createSettleOrder 函数来创建这种自定义支付订单
-			// 它应该返回一个包含订单ID的对象，例如 { errCode: 0, id: '...' }
+			// 调用云函数创建自定义支付订单
 			const orderResult = await orderHandler.createSettleOrder(userId, amountFen);
 
-			// uni.hideLoading(); // 暂时不隐藏，等支付组件准备好再隐藏
-
-			if (orderResult.errCode !== 0) {
-				uni.hideLoading(); // 创建订单失败，隐藏 loading
+			if (orderResult.errCode !== 0 || !orderResult.id) {
+				uni.hideLoading();
 				uni.showToast({
 					title: '创建订单失败: ' + (orderResult.errMsg || '未知错误'),
 					icon: 'none'
@@ -192,61 +122,47 @@
 			const orderId = orderResult.id;
 			console.log("补票订单创建成功，订单ID:", orderId);
 
-			// 3. 准备支付参数
-			const payOptions = {
-				total_fee: amountFen, // 支付金额，单位分
-				type: "settle", // 支付回调类型，对应 uni-pay-co/notify/settle.js
-				order_no: orderId, // 后端创建的订单号
-				description: "补票支付", // 支付描述
-				provider: 'weixin', // 可以指定支付方式，不指定则弹出选择框
-				return_url: '/pages/pay/paysuccess', // 支付成功后跳转的页面，如果 to-success-page 为 false，这里可以忽略
-				// 其他 uni-pay 需要的参数...
+			// 3. 【核心改动】准备参数并跳转到统一支付页
+			const options = {
+				total_fee: amountFen,       // 支付金额，单位分
+				type: "settle",             // 支付回调类型，与后端 uni-pay-co/notify/settle.js 对应
+				order_no: orderId,          // 后端返回的订单号
+				description: "补票/自定义支付", // 支付描述
 			};
 
-			// 4. 调用 uni-pay 发起支付
-			console.log("发起支付，参数:", payOptions);
+			// 将支付参数对象转换为字符串并编码
+			const optionsStr = encodeURI(JSON.stringify(options));
+			
+			uni.hideLoading();
 
-			// **重要：在调用 createOrder() 之前，检查 payRef.value 是否存在且有 createOrder 方法**
-			if (payRef.value && typeof payRef.value.createOrder === 'function') {
-				uni.hideLoading(); // 隐藏创建订单时的 loading，准备打开支付界面
-				payRef.value.createOrder(payOptions); // 调用 createOrder 方法
-			} else {
-				uni.hideLoading(); // 隐藏创建订单时的 loading
-				console.error("支付组件未准备好或引用错误", payRef.value);
-				uni.showToast({
-					title: '支付组件加载失败，请稍后再试',
-					icon: 'none'
-				});
-			}
-
-			// uni-pay 组件会处理后续的支付流程和回调
+			// 跳转到统一的支付页面，并携带参数
+			uni.navigateTo({
+				url: `/pages/pay/pay?options=${optionsStr}`
+			});
 
 		} catch (e) {
 			uni.hideLoading();
 			console.error("发起支付异常:", e);
 			uni.showToast({
-				title: '发起支付异常: ' + (e.errMsg || e.message || '网络错误'),
+				title: '操作失败，请稍后重试',
 				icon: 'none'
 			});
 		}
 	};
 
-	// 可以添加 onMounted 等生命周期钩子，如果需要初始化数据或检查权限
 	onMounted(() => {
-		// 可以在这里再次检查权限，虽然首页已经检查过
 		if (!userId) {
 			uni.showToast({
-				title: "用户未登录或无法获取ID",
+				title: "用户未登录",
 				icon: 'error'
 			});
 			setTimeout(() => {
-				uni.navigateBack(); // 没有用户ID则返回
+				uni.navigateBack();
 			}, 1500);
 		}
 	});
 
 </script>
-
 <style scoped>
 	/* 复制 using.vue 的基础样式 */
 	.container {
