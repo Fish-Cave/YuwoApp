@@ -34,40 +34,40 @@
 					</uni-dateformat>
 				</text>
 			</view>
-			<view style="display: flex;">
+			<view style="display: flex; justify-content: space-between; align-items: center;">
+				<view class="order-details">
+					<view class="order-id">
+						<view class="id-label">开始时间:</view>
+						<view class="id-value">
+							<uni-dateformat :date="data.starttime"></uni-dateformat>
+						</view>
+					</view>
+					<view class="order-id">
+						<view class="id-label">结束时间:</view>
+						<view class="id-value">
+							<uni-dateformat :date="data.endtime"></uni-dateformat>
+						</view>
+					</view>
+					<view class="order-id">
+						<view class="id-label">总时长:</view>
+						<view class="id-value">
+							{{((data.endtime - data.starttime) / 60000).toFixed(0)}} 分钟
+						</view>
+					</view>
+					<view class="order-id">
+						<text class="id-label">预约单号：</text>
+						<text class="id-value">{{ data._id }}</text>
+					</view>
+					<view class="order-id">
+						<text class="id-label">支付单号：</text>
+						<text class="id-value">{{ data._id }}</text>
+					</view>
+				</view>
+				<!-- 将支付按钮放在这里，并调整布局 -->
 				<view>
-					<view v-if="data.status == 0" class="sign-in-button" @click="goTopay()">
+					<view v-if="data.status == 0" class="sign-in-button" @click="goTopay(data._id)">
 						<text>支付</text>
 					</view>
-				</view>
-			</view>
-
-			<view class="order-details">
-				<view class="order-id">
-					<view class="id-label">开始时间:</view>
-					<view class="id-value">
-						<uni-dateformat :date="data.starttime"></uni-dateformat>
-					</view>
-				</view>
-				<view class="order-id">
-					<view class="id-label">结束时间:</view>
-					<view class="id-value">
-						<uni-dateformat :date="data.endtime"></uni-dateformat>
-					</view>
-				</view>
-				<view class="order-id">
-					<view class="id-label">总时长:</view>
-					<view class="id-value">
-						{{((data.endtime - data.starttime) / 60000).toFixed(0)}} 分钟
-					</view>
-				</view>
-				<view class="order-id">
-					<text class="id-label">预约单号：</text>
-					<text class="id-value">{{ data._id }}</text>
-				</view>
-				<view class="order-id">
-					<text class="id-label">支付单号：</text>
-					<text class="id-value">{{ data._id }}</text>
 				</view>
 			</view>
 		</view>
@@ -85,13 +85,14 @@
 <script setup lang='ts'>
 	import {
 		onMounted,
-		reactive,
-		ref,
-		toRaw,
-		computed
+		ref
 	} from 'vue'
-	const todo = uniCloud.importObject('todo')
+	
+	// 引入 orderHandler 云对象，用于处理订单相关逻辑
+	const orderHandler = uniCloud.importObject('orderHandler')
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
+
+	// 订单数据接口定义
 	interface fishOrderData {
 		_id: string,
 		reservation_id: string,
@@ -102,32 +103,69 @@
 		starttime: number,
 		endtime: number
 	}
+
 	const Data = ref < fishOrderData[] > ([])
-	const reservationData = ref([])
+
+	// 获取订单列表的函数
 	async function getFishOrder() {
 		try {
-			const result = await todo.Get_fishOrderList(res.uid)
+			// 使用 orderHandler.GetUserOrderList 获取订单列表，与 recent.vue 保持一致
+			const result = await orderHandler.GetUserOrderList(res.uid)
 			Data.value = result.data
-			console.log(result.data)
+			console.log("订单列表数据:", result.data)
 		} catch (e) {
-
-		}
-	}
-	async function searchReservation(uid: String) {
-		try {
-			const result = await todo.SearchReservationInfo(uid)
-			reservationData.value = result.data
-			console.log(toRaw(reservationData.value[0].machineId[0].name))
-		} catch (e) {
-
+			console.error("获取订单列表失败:", e)
+			uni.showToast({
+				title: '加载失败',
+				icon: 'error'
+			})
 		}
 	}
 
-	function goTopay() {
-		uni.showToast({
-			title: "还没做",
-			icon: "error"
+	// 支付函数，从 recent.vue 移植而来
+	async function goTopay(orderID: string) {
+		uni.showLoading({
+			title: '正在创建支付...'
 		})
+		
+		// 定义支付参数
+		let options = {
+			total_fee: 0, // 支付金额，单位分 100 = 1元
+			type: "goods", // 支付回调类型
+			order_no: orderID, // 业务系统订单号
+			description: "订单支付", // 描述
+		};
+		
+		try {
+			// 调用云函数获取订单的准确金额
+			const result = await orderHandler.GetHandledOrder(orderID)
+			if (result.data && result.data.length > 0) {
+				options.total_fee = result.data[0].total_fee
+				
+				// 将支付参数对象转换为字符串并编码，传递给支付页面
+				let optionsStr = encodeURI(JSON.stringify(options));
+				
+				uni.hideLoading()
+				
+				// 跳转到支付页面
+				uni.navigateTo({ // 使用 navigateTo 体验更好，可以返回
+					url: `/pages/pay/pay?options=${optionsStr}`
+				});
+			} else {
+				uni.hideLoading()
+				uni.showToast({
+					title: '订单信息错误',
+					icon: 'error'
+				})
+			}
+		} catch (e) {
+			uni.hideLoading()
+			console.error("支付发起失败:", e)
+			uni.showToast({
+				title: '支付发起失败',
+				icon: 'error'
+			})
+		}
 	}
 
 	onMounted(() => {
@@ -225,27 +263,33 @@
 		background: rgba(255, 193, 7, 0.1);
 		color: #FF9800;
 	}
+	
+	.order-details {
+		flex: 1; /* 让详情部分占据多余空间 */
+	}
 
 	.order-id {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		margin-bottom: 4rpx; /* 增加一点间距 */
 	}
 
 	.id-label {
 		font-size: 12px;
 		color: #9ca3af;
 		margin-right: 4px;
+		flex-shrink: 0; /* 防止标签被压缩 */
 	}
 
 	.id-value {
 		font-size: 12px;
 		color: #6b7280;
 		overflow: hidden;
-		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		max-width: 400rpx;
+		text-align: right; /* 值靠右对齐 */
 	}
 
 	.sign-in-button {
@@ -253,12 +297,13 @@
 		color: #fff;
 		font-size: 14px;
 		font-weight: 600;
-		padding: 6px 14px;
+		padding: 8px 16px; /* 增大按钮，方便点击 */
 		border-radius: 20px;
 		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 		display: flex;
 		justify-content: center;
 		width: 80rpx;
+		margin-left: 20rpx; /* 与左侧详情保持间距 */
 	}
 
 	.sign-in-button:active {
