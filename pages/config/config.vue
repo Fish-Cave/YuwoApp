@@ -425,15 +425,15 @@ const machineData = reactive({
 	type: "",
 	capacity: 1,
 	description: "",
-	status: "available",
+	status: 0,
 	machinenum: 1,
 	imageUrl: ""
 });
 
 const machineStatusOptions = [
-	{ value: 'available', text: '可用' },
-	{ value: 'maintenance', text: '维护中' },
-	{ value: 'offline', text: '离线' }
+	{ value: 0, text: '可用' },
+	{ value: 1, text: '维护中' },
+	{ value: 2, text: '离线' }
 ];
 
 // 切换机台表单模式
@@ -546,7 +546,7 @@ function resetMachineForm() {
 	machineData.type = "";
 	machineData.capacity = 1;
 	machineData.description = "";
-	machineData.status = "available";
+	machineData.status = 0;
 	machineData.machinenum = 1;
 	machineData.imageUrl = "";
 	selectedMachineId.value = '';
@@ -599,9 +599,9 @@ async function loadMachines() {
 // 获取机台状态的显示文本
 function getStatusText(status) {
 	switch (status) {
-		case 'available': return '可用';
-		case 'maintenance': return '维护中';
-		case 'offline': return '离线';
+		case 0: return '可用';
+		case 1: return '维护中';
+		case 2: return '离线';
 		default: return '未知状态';
 	}
 }
@@ -609,9 +609,9 @@ function getStatusText(status) {
 // 获取机台状态的样式类名
 function getStatusClass(status) {
 	switch (status) {
-		case 'available': return 'status-available';
-		case 'maintenance': return 'status-maintenance';
-		case 'offline': return 'status-offline';
+		case 0: return 'status-available';
+		case 1: return 'status-maintenance';
+		case 2: return 'status-offline';
 		default: return '';
 	}
 }

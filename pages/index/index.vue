@@ -275,7 +275,7 @@
 	}
 
 	.noplay {
-		font-size: 20rpx;
+		font-size: 25rpx;
 		color: black;
 	}
 
@@ -313,7 +313,7 @@
 		}
 
 		.noplay {
-			font-size: 20rpx;
+			font-size: 25rpx;
 			color: white;
 		}
 
