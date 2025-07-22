@@ -17,8 +17,17 @@
 
 - ***必须用HBuilderX才能编译，uniapp的编译器内建在HBuilderX里，其他IDE由于缺少编译器无法编译！***
 ---
-## 奇怪的BUG
-- 使用Chrome等浏览器预览效果一切正常，使用微信小程序模拟器预览不能正常显示(已解决，uniapp项目不能使用标准的html标签，必须用文档提供的标签)
+## Usage
+
+目前本 repo 不包含任何 secret，曾经用来测试并包含在 repo history 的 secret 已全部重置，请参考官方文档对 secret 的配置
+
+目前本 repo 仅提供对微信小程序的支持，由于本项目采用 uniapp，故其他平台小程序理论可用但并未部署测试。
+
+使用方法：
+
+1. clone 到本地后使用 hbuilder x 打开
+2. 绑定云端 unicloud，从云端下载所有 unicloud 云对象 / db schema
+3. run
 
 ## Contributors
 
