@@ -50,105 +50,87 @@ module.exports = {
      * @param {boolean} params.filterSubscription - 是否只显示有月卡的用户
      * @returns {object} { data: Array, total: Number }
      */
-    async getUsersForAdmin({ searchQuery, page = 1, pageSize = 10, filterMembership = false, filterSubscription = false }) {
-        const usersCollection = db.collection('uni-id-users');
+    async getUsersForAdmin({ searchQuery, page = 1, pageSize = 10, filterMembership = false, filterSubscription = false, roleFilter = 'all' }) { // 1. 接收新参数
+		const usersCollection = db.collection('uni-id-users');
 
-        let initialMatchStage = {};
-        if (searchQuery) {
-            initialMatchStage.nickname = new RegExp(searchQuery, 'i');
-        }
+		let initialMatchStage = {};
+		if (searchQuery) {
+			// 优化搜索：同时搜索昵称或ID
+			initialMatchStage.$or = [
+				{ nickname: new RegExp(searchQuery, 'i') },
+				{ _id: new RegExp(searchQuery + '$', 'i') }
+			];
+		}
 
-        // 构建过滤阶段的条件 (使用聚合表达式)
-        let filterExpressions = [];
-        if (filterMembership) {
-            // 过滤掉 membershipInfo 数组为空的用户: { $gt: [ { $size: '$membershipInfo' }, 0 ] }
-            filterExpressions.push($.gt([ $.size('$membershipInfo'), 0 ]));
-        }
-        if (filterSubscription) {
-            // 过滤掉 subscriptionPackageInfo 数组为空的用户: { $gt: [ { $size: '$subscriptionPackageInfo' }, 0 ] }
-            filterExpressions.push($.gt([ $.size('$subscriptionPackageInfo'), 0 ]));
-        }
+		// 2. [新增] 在初始匹配阶段加入角色筛选
+		if (roleFilter && roleFilter !== 'all') {
+			initialMatchStage.role = roleFilter;
+		}
 
-        // 如果有过滤条件，构建一个 $match 阶段，使用 $expr 包含聚合表达式
-        let filterMatchStage = null;
-        if (filterExpressions.length > 0) {
-             filterMatchStage = {
-                 $match: {
-                     $expr: filterExpressions.length === 1 ? filterExpressions[0] : $.and(filterExpressions)
-                 }
-             };
-        }
+		// 构建过滤阶段的条件 (使用聚合表达式)
+		let filterExpressions = [];
+		if (filterMembership) {
+			filterExpressions.push($.gt([ $.size('$membershipInfo'), 0 ]));
+		}
+		if (filterSubscription) {
+			filterExpressions.push($.gt([ $.size('$subscriptionPackageInfo'), 0 ]));
+		}
 
+		let filterMatchStage = null;
+		if (filterExpressions.length > 0) {
+			 filterMatchStage = {
+				 $match: {
+					 $expr: filterExpressions.length === 1 ? filterExpressions[0] : $.and(filterExpressions)
+				 }
+			 };
+		}
 
-        // 1. 获取总数 (需要应用所有过滤条件)
-        // 使用聚合管道来获取应用过滤后的总数
-        let countPipeline = usersCollection.aggregate()
-             .match(initialMatchStage) // 应用搜索过滤
-             .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' }) // 关联会员信息
-             .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' }); // 关联月卡信息
+		// 1. 获取总数 (应用所有过滤条件)
+		let countPipeline = usersCollection.aggregate()
+			 .match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
+			 .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' })
+			 .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' });
 
-        // 在 count 管道中应用过滤，这里继续使用 addFields + match 的方式，因为它在 count 之前更直观
-        if (filterExpressions.length > 0) { // 使用 filterExpressions 来判断是否有过滤条件
-             countPipeline = countPipeline.addFields({ // 添加临时字段用于过滤
-                 _membershipInfoSize: { $size: '$membershipInfo' },
-                 _subscriptionPackageInfoSize: { $size: '$subscriptionPackageInfo' }
-            });
+		if (filterMatchStage) { // 应用会员/月卡筛选
+			 countPipeline = countPipeline.match(filterMatchStage.$match);
+		}
 
-            let tempFilterConditions = [];
-            if (filterMembership) {
-                 tempFilterConditions.push({ _membershipInfoSize: dbCmd.gt(0) });
-            }
-            if (filterSubscription) {
-                 tempFilterConditions.push({ _subscriptionPackageInfoSize: dbCmd.gt(0) });
-            }
+		countPipeline = countPipeline.count('total');
 
-            countPipeline = countPipeline.match(tempFilterConditions.length === 1 ? tempFilterConditions[0] : { $and: tempFilterConditions });
+		const totalRes = await countPipeline.end();
+		const total = totalRes.data.length > 0 ? totalRes.data[0].total : 0;
 
-            // 清理临时字段 (可选，但推荐)
-            countPipeline = countPipeline.project({
-                 _membershipInfoSize: 0,
-                 _subscriptionPackageInfoSize: 0
-            });
-        }
+		if (total === 0) {
+			return { data: [], total: 0 };
+		}
 
-        countPipeline = countPipeline.count('total'); // 计算总数
+		// 2. 进行聚合查询，获取当页数据
+		let dataPipeline = usersCollection.aggregate()
+			.match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
+			.lookup({ from: 'membership', localField: 'userID', foreignField: 'userID', as: 'membershipInfo' })
+			.lookup({ from: 'subscription-package', localField: 'userID', foreignField: 'userID', as: 'subscriptionPackageInfo' });
 
-        const totalRes = await countPipeline.end();
-        const total = totalRes.data.length > 0 ? totalRes.data[0].total : 0;
+		if (filterMatchStage) { // 应用会员/月卡筛选
+			 dataPipeline = dataPipeline.match(filterMatchStage.$match);
+		}
 
+		dataPipeline = dataPipeline
+			.skip((page - 1) * pageSize)
+			.limit(pageSize)
+			.project({
+				username: 1,
+				nickname: 1,
+				role: 1,
+				membership_expiry: $.arrayElemAt(['$membershipInfo.validthru', 0]),
+				membership_status: $.arrayElemAt(['$membershipInfo.status', 0]),
+				subscription_package_expiry: $.arrayElemAt(['$subscriptionPackageInfo.validthru', 0]),
+				subscription_package_status: $.arrayElemAt(['$subscriptionPackageInfo.status', 0]),
+			});
 
-        if (total === 0) {
-            return { data: [], total: 0 };
-        }
+		const users = await dataPipeline.end();
 
-        // 2. 进行聚合查询，获取当页数据 (应用所有过滤条件)
-        let dataPipeline = usersCollection.aggregate()
-            .match(initialMatchStage) // 应用搜索过滤
-            .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' }) // 关联会员信息
-            .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' }); // 关联月卡信息
-
-        if (filterMatchStage) {
-             // 直接使用 filterMatchStage 应用过滤
-             dataPipeline = dataPipeline.match(filterMatchStage.$match); // <-- 这里是 { $match: { $expr: ... } }
-        }
-
-        dataPipeline = dataPipeline
-            .skip((page - 1) * pageSize) // 跳过前面的页
-            .limit(pageSize) // 获取当前页数量
-            .project({
-                username: 1,
-                nickname: 1,
-                role: 1,
-                membership_expiry: $.arrayElemAt(['$membershipInfo.validthru', 0]),
-                membership_status: $.arrayElemAt(['$membershipInfo.status', 0]),
-                subscription_package_expiry: $.arrayElemAt(['$subscriptionPackageInfo.validthru', 0]),
-                subscription_package_status: $.arrayElemAt(['$subscriptionPackageInfo.status', 0]),
-            });
-
-        const users = await dataPipeline.end();
-
-        return { data: users.data, total: total };
-    },
+		return { data: users.data, total: total };
+	},
 
     // batchGrantMembership 方法保持不变
     async batchGrantMembership({ userIds, membershipType, durationInDays }) {

@@ -8,13 +8,22 @@
 
 			<!-- 筛选条件 -->
 			<view class="filter-options">
-				<text class="filter-label">筛选:</text>
-				<uni-data-checkbox
-					multiple
-					v-model="activeFilters"
-					:localdata="filterOptions"
-					@change="handleFilterChange"
-				></uni-data-checkbox>
+			    <text class="filter-label">会员:</text>
+			    <uni-data-checkbox
+			        multiple
+			        v-model="activeFilters"
+			        :localdata="filterOptions"
+			        @change="handleFilterChange"
+			    ></uni-data-checkbox>
+			</view>
+			<!-- 角色筛选 -->
+			<view class="filter-options">
+			    <text class="filter-label">角色:</text>
+			    <uni-data-checkbox
+			        v-model="roleFilter"
+			        :localdata="roleFilterOptions"
+			        @change="handleFilterChange"
+			    ></uni-data-checkbox>
 			</view>
 		</view>
 
@@ -138,7 +147,12 @@
 		{ value: 'membership', text: '只看歇脚卡用户' },
 		{ value: 'subscription', text: '只看月卡用户' }
 	]);
-
+	const roleFilter = ref('all'); // 默认显示所有用户
+	const roleFilterOptions = ref([
+	    { value: 'all', text: '全部角色' },
+	    { value: 'user', text: '正式用户' },
+	    { value: 'preUser', text: '预备用户' }
+	]);
 	// 批量选择状态
 	const selectedIndexs = ref([]); // 存储选中行的索引
 	// computed 属性根据选中的索引获取对应的用户ID
@@ -202,7 +216,8 @@
 				page: pageCurrent.value,
 				pageSize: pageSize.value,
 				filterMembership: filterMembership, // 传递筛选参数
-				filterSubscription: filterSubscription //  传递筛选参数
+				filterSubscription: filterSubscription ,//  传递筛选参数
+				roleFilter: roleFilter.value
 			});
 			tableData.value = res.data;
 			total.value = res.total;
