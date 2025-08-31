@@ -140,10 +140,9 @@
 				groupedReservations.value = groupReservationsByUser(reservations.value);
 
 				// 如果有预约数据，设置时间范围
-				if (groupedReservations.value && groupedReservations.value.length > 0) {
-					const today = dayjs().startOf('day');
-					startTime.value = today.valueOf();
-					endTime.value = today.add(1, 'day').valueOf();
+				if (data.startTime && data.endTime) {
+				        startTime.value = data.startTime;
+				        endTime.value = data.endTime;
 				} else {
 					// 如果没有预约数据，设置为当天的时间范围
 					const today = dayjs().startOf('day');

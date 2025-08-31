@@ -241,7 +241,9 @@
 	function viewReservations(machineData) {
 		// 存储数据到 localStorage
 		const detailData = {
-			GetMachineReservationInfo: machineData
+			GetMachineReservationInfo: machineData,
+			startTime: props.startTime,
+			endTime: props.endTime
 		};
 		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
 
