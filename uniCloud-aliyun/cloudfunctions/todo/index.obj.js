@@ -1,3 +1,4 @@
+// 原始的index.obj.js
 // 云对象教程: https://uniapp.dcloud.net.cn/uniCloud/cloud-obj
 // jsdoc语法提示教程：https://ask.dcloud.net.cn/docs/#//ask.dcloud.net.cn/article/129
 const db = uniCloud.database();
@@ -1390,89 +1391,7 @@ module.exports = {
 			};
 		}
 	},
-	/**
-	 * 获取筛选后的订单并支持分页
-	 * @param {Object} params 查询参数
-	 * @param {string} params.userId 用户ID
-	 * @param {number} [params.status] 订单状态 (0:待确认, 1:已完成, 2:未完成, 3:已退款)，不传则查询所有状态
-	 * @param {number} [params.pageSize=10] 每页数量
-	 * @param {number} [params.pageNumber=1] 页码
-	 * @param {string} [params.sortField="create_date"] 排序字段
-	 * @param {string} [params.sortOrder="desc"] 排序方向 (desc:降序, asc:升序)
-	 * @returns {Object} 订单列表及分页信息
-	 
-	async Get_FilteredOrders(params) {
-	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
-	  });
-	  
-	  // 提取参数
-	  const userId = params.userId;
-	  const status = params.status; // 状态筛选
-	  const pageSize = params.pageSize || 10; // 默认每页10条
-	  const pageNumber = params.pageNumber || 1; // 默认第一页
-	  const sortField = params.sortField || "create_date"; // 默认按创建时间排序
-	  const sortOrder = params.sortOrder || "desc"; // 默认降序
-	  
-	  // 验证必要参数
-	  if (!userId) {
-	    return {
-	      code: -1,
-	      errMsg: "缺少用户ID参数"
-	    };
-	  }
-	  
-	  // 构建查询条件
-	  const query = {
-	    user_id: userId
-	  };
-	  
-	  // 如果提供了状态参数，添加到查询条件
-	  if (status !== undefined && status !== null) {
-	    query.status = Number(status);
-	  }
-	  
-	  try {
-	    // 构建基础查询
-	    let baseQuery = dbJQL.collection('fishcave-orders')
-	      .where(query)
-	      .orderBy(sortField, sortOrder);
-	    
-	    // 1. 获取总记录数
-	    const countResult = await baseQuery.count();
-	    const total = countResult.total;
-	    
-	    // 2. 应用分页获取数据
-	    const result = await baseQuery
-	      .skip((pageNumber - 1) * pageSize)
-	      .limit(pageSize)
-	      .get();
-	    
-	    // 3. 计算分页信息
-	    const totalPages = Math.ceil(total / pageSize);
-	    
-	    // 4. 构建返回数据
-	    return {
-	      code: 0,
-	      data: result.data,
-	      pagination: {
-	        total,
-	        totalPages,
-	        pageSize,
-	        pageNumber,
-	        hasNext: pageNumber < totalPages,
-	        hasPrev: pageNumber > 1
-	      }
-	    };
-	  } catch (e) {
-	    console.error("Get_FilteredOrders error:", e);
-	    return {
-	      code: -2,
-	      errMsg: "获取订单数据失败: " + e.message
-	    };
-	  }
-	},
-	*/
+
 	/**
 	 * 按状态统计订单数量 (管理员视图，统计所有订单)
 	 * @returns {Object} 不同状态的订单数量及总金额
@@ -2332,8 +2251,76 @@ module.exports = {
 	      actualData: ordersResult.data?.length > 0 ? '有数据' : '无数据'
 	    });
 	
+	    // 获取所有订单的用户ID和预约ID
+	    const userIds = [];
+	    const reservationIds = [];
+	    ordersResult.data.forEach(order => {
+	      if (order.user_id && !userIds.includes(order.user_id)) {
+	        userIds.push(order.user_id);
+	      }
+	      if (order.reservation_id && !reservationIds.includes(order.reservation_id)) {
+	        reservationIds.push(order.reservation_id);
+	      }
+	    });
+	
+	    // 批量获取用户信息
+	    const usersResult = userIds.length > 0 
+	      ? await db.collection('uni-id-users')
+	          .where({_id: db.command.in(userIds)})
+	          .field({_id: true, nickname: true, username: true})
+	          .get()
+	      : {data: []};
+	
+	    // 创建用户信息映射
+	    const userMap = {};
+	    usersResult.data.forEach(user => {
+	      userMap[user._id] = {
+	        nickname: user.nickname || user.username || '未知用户',
+	        username: user.username || '未知用户'
+	      };
+	    });
+	
+	    // 批量获取预约信息
+	    const reservationsResult = reservationIds.length > 0
+	      ? await db.collection('reservation-log')
+	          .where({_id: db.command.in(reservationIds)})
+	          .field({_id: true, machineId: true})
+	          .get()
+	      : {data: []};
+	
+	    // 创建预约信息映射
+	    const reservationMap = {};
+	    const machineIds = [];
+	    reservationsResult.data.forEach(reservation => {
+	      reservationMap[reservation._id] = reservation;
+	      if (reservation.machineId && !machineIds.includes(reservation.machineId)) {
+	        machineIds.push(reservation.machineId);
+	      }
+	    });
+	
+	    // 批量获取机台信息
+	    const machinesResult = machineIds.length > 0
+	      ? await db.collection('machines')
+	          .where({_id: db.command.in(machineIds)})
+	          .field({_id: true, name: true})
+	          .get()
+	      : {data: []};
+	
+	    // 创建机台信息映射
+	    const machineMap = {};
+	    machinesResult.data.forEach(machine => {
+	      machineMap[machine._id] = machine;
+	    });
+	
 	    // 处理订单数据
 	    const orders = (ordersResult.data || []).map(order => {
+	      // 获取用户信息
+	      const userInfo = userMap[order.user_id] || {};
+	      
+	      // 获取机台信息
+	      const reservation = reservationMap[order.reservation_id] || {};
+	      const machine = machineMap[reservation.machineId] || {};
+	      
 	      // 计算时长
 	      let duration = 0;
 	      if (order.starttime && order.endtime) {
@@ -2350,17 +2337,19 @@ module.exports = {
 	        endtime: order.endtime,
 	        duration: duration,
 	        user_id: order.user_id,
+	        username: userInfo.nickname || userInfo.username || '未知用户',
 	        reservation_id: order.reservation_id,
+	        machineName: machine.name || '未知机台',
 	        description: order.description || '',
 	        order_type: order.order_type || 'normal',
 	        // 添加一些计算字段
 	        isOvernight: order.starttime && order.endtime ? 
 	          new Date(order.starttime).getDate() !== new Date(order.endtime).getDate() : false,
 	        formattedAmount: order.total_fee ? (order.total_fee / 100).toFixed(2) : '0.00',
-	        statusText: getStatusText(order.status), // 使用全局函数
-	        formattedCreateDate: formatDateTime(order.create_date), // 使用全局函数
-	        formattedStartTime: formatDateTime(order.starttime), // 使用全局函数
-	        formattedEndTime: formatDateTime(order.endtime) // 使用全局函数
+	        statusText: getStatusText(order.status),
+	        formattedCreateDate: formatDateTime(order.create_date),
+	        formattedStartTime: formatDateTime(order.starttime),
+	        formattedEndTime: formatDateTime(order.endtime)
 	      };
 	    });
 	
