@@ -185,23 +185,30 @@
 		<button v-if="res.uid!=null" class="logout-button glass-button" @click="logOut()">退出登录</button>
 
 	</view>
-
-	<!-- 新增：二维码弹窗 (已添加回来) -->
+	<!-- 二维码弹窗 -->
 	<uni-popup ref="qrCodePopup" type="center">
-		<view class="qr-code-modal">
-			<view class="modal-header">
-				<text class="modal-title">我的二维码</text>
-				<uni-icons type="closeempty" size="24" color="#666" @click="closeQrCodePopup()"></uni-icons>
-			</view>
-			<view class="modal-content">
-				<text class="modal-uid">UID: {{ userInfo._id }}</text>
-				<view class="qr-code-display">
-					<image v-if="qrCodeDataUrl" :src="qrCodeDataUrl" class="qr-code-image" mode="aspectFit"></image>
-					<text v-else>正在生成二维码...</text>
-				</view>
-			</view>
-		</view>
+	    <view class="qr-code-modal">
+	        <view class="modal-header">
+	            <text class="modal-title">我的二维码</text>
+	            <uni-icons type="closeempty" size="24" color="#666" @click="closeQrCodePopup()"></uni-icons>
+	        </view>
+	        <view class="modal-content">
+	            <text class="modal-uid">UID: {{ userInfo._id }}</text>
+	            <view class="qr-code-display">
+	                <uqrcode 
+	                    ref="uqrcodeRef"
+	                    canvas-id="userQrcode"
+	                    :value="userInfo._id"
+	                    :size="200"
+	                    :options="qrCodeOptions"
+	                    @complete="onQrComplete"
+						v-if="userInfo._id"
+	                />
+	            </view>
+	        </view>
+	    </view>
 	</uni-popup>
+
 </template>
 
 <script setup lang="ts">
@@ -219,7 +226,6 @@
 	} from '@/uni_modules/uni-id-pages/common/store.js'
 	import dayjs from 'dayjs' // 确保导入dayjs用于日期格式化
 	import recent from './recent'
-	import QRCode from 'qrcode' // 引入 qrcode 库
 
 	const isAdmin = computed(() => {
 		return res && res.role && res.role.includes('admin');
@@ -283,42 +289,77 @@
 	}
 	const qrCodePopup = ref(null);
 	const qrCodeDataUrl = ref(''); // 存储生成的二维码图片数据 URL
+	const qrCodeText = ref('');
+	const qrcode = ref(null);
 
+	// 添加二维码选项
+	const qrCodeOptions = ref({
+	    margin: 10,
+	    backgroundColor: '#ffffff',
+	    foregroundColor: '#000000',
+	    // 可以添加更多配置
+	});
+	
+	const qrCodeGenerated = ref(false);
+	const uqrcodeRef = ref(null);
 	// 显示二维码弹窗
-	async function showQrCodePopup() {
-		if (!userInfo.value._id) {
-			uni.showToast({
-				title: '无法获取用户UID',
-				icon: 'none'
-			});
-			return;
-		}
-
-		// 生成二维码数据 URL
-		try {
-			qrCodeDataUrl.value = await QRCode.toDataURL(userInfo.value._id, {
-				errorCorrectionLevel: 'H', // 高容错率
-				width: 200, // 二维码尺寸
-				margin: 2, // 边距
-				color: {
-					dark: '#000000', // 深色模块颜色
-					light: '#FFFFFF' // 浅色模块颜色
-				}
-			});
-			qrCodePopup.value.open('center'); // 打开弹窗
-		} catch (err) {
-			console.error('生成二维码失败:', err);
-			uni.showToast({
-				title: '生成二维码失败',
-				icon: 'error'
-			});
-		}
+	function showQrCodePopup() {
+	    if (!userInfo.value._id) {
+	        uni.showToast({
+	            title: '无法获取用户UID',
+	            icon: 'none'
+	        });
+	        return;
+	    }
+	    
+	    qrCodePopup.value.open('center');
 	}
-
+	
+	// 二维码生成完成回调
+	function onQrComplete(res) {
+	    console.log('二维码生成完成:', res);
+	    if (res.success) {
+	        qrCodeGenerated.value = true;
+	    } else {
+	        uni.showToast({
+	            title: '生成二维码失败',
+	            icon: 'error'
+	        });
+	    }
+	}
+	
 	// 关闭二维码弹窗
 	function closeQrCodePopup() {
-		qrCodePopup.value.close();
+	    qrCodePopup.value.close();
 	}
+	
+	// 保存二维码到相册
+	function saveQrCode() {
+	    if (!qrCodeGenerated.value) {
+	        uni.showToast({
+	            title: '二维码尚未生成完成',
+	            icon: 'none'
+	        });
+	        return;
+	    }
+	    
+	    uqrcodeRef.value.save({
+	        success: () => {
+	            uni.showToast({
+	                icon: 'success',
+	                title: '保存成功'
+	            });
+	        },
+	        fail: (err) => {
+	            console.error('保存失败:', err);
+	            uni.showToast({
+	                icon: 'error',
+	                title: '保存失败'
+	            });
+	        }
+	    });
+	}
+	
 	// 格式化日期
 	function formatDate(timestamp) {
 		if (!timestamp) return '未知';
