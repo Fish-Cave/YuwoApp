@@ -101,26 +101,27 @@
 		status: number,
 		create_date: number,
 		starttime: number,
-		endtime: number
+		endtime: number,
+		type: string,
+		description?: string 
 	}
 
 	const Data = ref < fishOrderData[] > ([])
 
 	// 获取订单列表的函数
 	async function getFishOrder() {
-		try {
-			// 使用 orderHandler.GetUserOrderList 获取订单列表，与 recent.vue 保持一致
-			const result = await orderHandler.GetUserOrderList(res.uid)
-			Data.value = result.data
-			console.log("订单列表数据:", result.data)
-		} catch (e) {
-			console.error("获取订单列表失败:", e)
-			uni.showToast({
-				title: '加载失败',
-				icon: 'error'
-			})
+			try {
+				const result = await orderHandler.GetUserOrderList(res.uid)
+				Data.value = result.data
+				console.log("订单列表数据:", result.data)
+			} catch (e) {
+				console.error("获取订单列表失败:", e)
+				uni.showToast({
+					title: '加载失败',
+					icon: 'error'
+				})
+			}
 		}
-	}
 
 	// 支付函数，从 recent.vue 移植而来
 	async function goTopay(orderID: string) {
@@ -128,27 +129,25 @@
 			title: '正在创建支付...'
 		})
 		
-		// 定义支付参数
-		let options = {
-			total_fee: 0, // 支付金额，单位分 100 = 1元
-			type: "goods", // 支付回调类型
-			order_no: orderID, // 业务系统订单号
-			description: "订单支付", // 描述
-		};
-		
 		try {
-			// 调用云函数获取订单的准确金额
+			// 调用云函数获取订单的准确信息，包括类型和描述
 			const result = await orderHandler.GetHandledOrder(orderID)
 			if (result.data && result.data.length > 0) {
-				options.total_fee = result.data[0].total_fee
+				const orderData = result.data[0]; // 获取订单数据
+
+				// 【核心修改】根据后端返回的订单数据构建 options
+				let options = {
+					total_fee: orderData.total_fee,
+					type: orderData.type, // <-- 【修改】使用后端返回的真实类型
+					order_no: orderID,
+					description: orderData.description || "订单支付", // <-- 【修改】使用后端返回的描述，或默认值
+				};
 				
-				// 将支付参数对象转换为字符串并编码，传递给支付页面
 				let optionsStr = encodeURI(JSON.stringify(options));
 				
 				uni.hideLoading()
 				
-				// 跳转到支付页面
-				uni.navigateTo({ // 使用 navigateTo 体验更好，可以返回
+				uni.navigateTo({
 					url: `/pages/pay/pay?options=${optionsStr}`
 				});
 			} else {

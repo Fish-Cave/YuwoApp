@@ -20,8 +20,9 @@
 					<view class="info-row">
 						<view class="info-label">本次消费类型</view>
 						<view class="info-value">
-							<text v-if="options.type == 'goods'">签到结算</text>
-							<text v-else>会员充值</text>
+							<text v-if="options.type === 'goods'">签到结算</text>
+							<text v-else-if="options.type === 'settle'">补票/自定义支付</text> <!-- 【新增】处理补票类型 -->
+							<text v-else>其他</text>
 						</view>
 					</view>
 				</view>

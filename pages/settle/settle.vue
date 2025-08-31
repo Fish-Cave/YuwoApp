@@ -31,21 +31,12 @@
 			</view>
 		</view>
 
-		<!-- 底部按钮区域 -->
+
 		<view class="footer">
 			<view class="button-container">
-				<!-- 点击按钮直接调用我们修改后的支付函数 -->
 				<view class="submit-button" @click="initiatePayment">确认支付</view>
 			</view>
 		</view>
-		
-		<!-- 
-		  【重要改动】
-		  我们不再需要在这里直接使用 uni-pay 组件，
-		  因为支付流程已经统一到 /pages/pay/pay 页面处理。
-		-->
-		<!-- <uni-pay ref="payRef" ... ></uni-pay> -->
-		
 	</view>
 </template>
 
@@ -139,7 +130,7 @@
 			uni.navigateTo({
 				url: `/pages/pay/pay?options=${optionsStr}`
 			});
-
+			
 		} catch (e) {
 			uni.hideLoading();
 			console.error("发起支付异常:", e);
@@ -352,3 +343,4 @@
 		}
 	}
 </style>
+" -->

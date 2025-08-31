@@ -9,6 +9,141 @@ function generateUUID() {
     return v.toString(16);
   });
 };
+// 全局函数：检查管理员权限
+function checkAdminPermission(clientInfo) {
+    try {
+        console.log("权限检查 - 用户信息:", JSON.stringify(clientInfo));
+
+        if (!clientInfo || !clientInfo.uniIdToken) {
+            console.log("权限检查失败: 未找到身份令牌");
+            return { errCode: 'PERMISSION_DENIED', errMsg: '用户未登录或无权访问' };
+        }
+
+        const tokenParts = clientInfo.uniIdToken.split('.');
+        if (tokenParts.length !== 3) {
+            console.log("权限检查失败: 令牌格式无效");
+            return { errCode: 'INVALID_TOKEN', errMsg: '令牌格式无效' };
+        }
+
+        let payload;
+        try {
+            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const jsonStr = Buffer.from(base64, 'base64').toString();
+            payload = JSON.parse(jsonStr);
+            console.log("解析后的令牌信息:", JSON.stringify(payload));
+        } catch (e) {
+            console.error("解析令牌失败:", e);
+            return { errCode: 'TOKEN_PARSE_ERROR', errMsg: '无法解析身份令牌: ' + e.message };
+        }
+
+        const role = payload.role;
+        let hasAdminRole = false;
+
+        if (Array.isArray(role)) {
+            hasAdminRole = role.includes('admin');
+        } else if (typeof role === 'string') {
+            hasAdminRole = role === 'admin';
+        }
+
+        console.log("用户是否有管理员权限:", hasAdminRole);
+
+        if (!hasAdminRole) {
+            return { errCode: 'PERMISSION_DENIED', errMsg: '只有管理员才能执行此操作' };
+        }
+
+        return null; // 权限验证通过
+    } catch (e) {
+        console.error("权限验证过程中发生异常:", e);
+        return { errCode: 'AUTH_ERROR', errMsg: '权限验证失败: ' + e.message };
+    }
+};
+// 全局函数：检查用户是否为 'user' 或 'admin' 角色
+function checkUserOrAdminPermission(clientInfo) {
+    try {
+        if (!clientInfo || !clientInfo.uniIdToken) {
+            return { errCode: 'PERMISSION_DENIED', errMsg: '用户未登录或无权访问' };
+        }
+
+        const tokenParts = clientInfo.uniIdToken.split('.');
+        if (tokenParts.length !== 3) {
+            return { errCode: 'INVALID_TOKEN', errMsg: '令牌格式无效' };
+        }
+
+        let payload;
+        try {
+            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const jsonStr = Buffer.from(base64, 'base64').toString();
+            payload = JSON.parse(jsonStr);
+        } catch (e) {
+            console.error("解析令牌失败:", e);
+            return { errCode: 'TOKEN_PARSE_ERROR', errMsg: '无法解析身份令牌: ' + e.message };
+        }
+
+        const role = payload.role;
+        let hasRequiredRole = false;
+
+        if (Array.isArray(role)) {
+            hasRequiredRole = role.includes('user') || role.includes('admin');
+        } else if (typeof role === 'string') {
+            hasRequiredRole = role === 'user' || role === 'admin';
+        }
+
+        if (!hasRequiredRole) {
+            return { errCode: 'PERMISSION_DENIED', errMsg: '无权访问此功能' };
+        }
+
+        return null; // 权限验证通过
+    } catch (e) {
+        console.error("权限验证过程中发生异常:", e);
+        return { errCode: 'AUTH_ERROR', errMsg: '权限验证失败: ' + e.message };
+    }
+}
+function getStatusText(status) { // 移除下划线
+  switch (parseInt(status)) {
+    case 0: return '待确认';
+    case 1: return '已完成';
+    case 2: return '未完成';
+    case 3: return '已退款';
+    default: return '未知状态';
+  }
+}
+function formatDateTime(timestamp) { // 移除下划线
+  if (!timestamp) return '--';
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+/**
+ * 记录订单编辑日志
+ * @param {Object} logData 日志数据
+ */
+async function logOrderEdit(logData) { 
+  const db = uniCloud.database(); 
+  try {
+    // 获取操作人信息
+    const operatorResult = await db.collection('uni-id-users')
+      .doc(logData.operatorId)
+      .field("nickname,username")
+      .get();
+    
+    const operatorName = operatorResult.data.length > 0 
+      ? (operatorResult.data[0].nickname || operatorResult.data[0].username) 
+      : '未知用户';
+    
+    // 添加日志记录
+    await db.collection('order-edit-logs').add({
+      orderId: logData.orderId,
+      operatorId: logData.operatorId,
+      operatorName: operatorName,
+      editType: logData.editType,
+      changes: logData.changes,
+      reason: logData.reason,
+      editTime: logData.editTime
+    });
+  } catch (e) {
+    console.error("Log order edit error:", e);
+    // 日志记录失败不影响主要业务逻辑
+  }
+}
 module.exports = {
 	// 内部辅助函数：检查管理员权限
 	_checkAdminPermission() {
@@ -1265,7 +1400,7 @@ module.exports = {
 	 * @param {string} [params.sortField="create_date"] 排序字段
 	 * @param {string} [params.sortOrder="desc"] 排序方向 (desc:降序, asc:升序)
 	 * @returns {Object} 订单列表及分页信息
-	 */
+	 
 	async Get_FilteredOrders(params) {
 	  const dbJQL = uniCloud.databaseForJQL({
 	    clientInfo: this.getClientInfo()
@@ -1337,49 +1472,69 @@ module.exports = {
 	    };
 	  }
 	},
-	
+	*/
 	/**
-	 * 按状态统计订单数量
-	 * @param {string} userId 用户ID
-	 * @returns {Object} 不同状态的订单数量
+	 * 按状态统计订单数量 (管理员视图，统计所有订单)
+	 * @returns {Object} 不同状态的订单数量及总金额
 	 */
-	async Get_OrdersCount(userId) {
-	  if (!userId) {
-	    return {
-	      code: -1,
-	      errMsg: "缺少用户ID参数"
-	    };
+	async Get_OrdersCount() {
+	  // 权限检查 (仅限管理员) - 调用全局函数
+	  const authError = checkAdminPermission(this.getClientInfo());
+	  if (authError) {
+		return authError;
 	  }
 	  
 	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
+		clientInfo: this.getClientInfo()
 	  });
 	  
 	  try {
-	    // 获取不同状态的订单数量
-	    const [pendingCount, completedCount, unfinishedCount, refundedCount] = await Promise.all([
-	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 0 }).count(),
-	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 1 }).count(),
-	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 2 }).count(),
-	      dbJQL.collection('fishcave-orders').where({ user_id: userId, status: 3 }).count()
-	    ]);
-	    
-	    return {
-	      code: 0,
-	      data: {
-	        pending: pendingCount.total, // 待确认
-	        completed: completedCount.total, // 已完成
-	        unfinished: unfinishedCount.total, // 未完成
-	        refunded: refundedCount.total, // 已退款
-	        total: pendingCount.total + completedCount.total + unfinishedCount.total + refundedCount.total
-	      }
-	    };
+		// 获取不同状态的订单数量
+		const [pendingCount, completedCount, unfinishedCount, refundedCount] = await Promise.all([
+		  dbJQL.collection('fishcave-orders').where({
+			status: 0
+		  }).count(),
+		  dbJQL.collection('fishcave-orders').where({
+			status: 1
+		  }).count(),
+		  dbJQL.collection('fishcave-orders').where({
+			status: 2
+		  }).count(),
+		  dbJQL.collection('fishcave-orders').where({
+			status: 3
+		  }).count()
+		]);
+		
+		// 计算总金额
+		const totalAmountResult = await dbJQL.collection('fishcave-orders').aggregate()
+		  .group({
+			_id: null,
+			totalAmount: {
+			  $sum: '$total_fee'
+			}
+		  })
+		  .end();
+		
+		const totalAmount = totalAmountResult.data.length > 0 ? totalAmountResult.data[0].totalAmount : 0;
+		
+		return {
+		  code: 0,
+		  data: {
+			pending: pendingCount.total, // 待确认
+			completed: completedCount.total, // 已完成
+			unfinished: unfinishedCount.total, // 未完成
+			refunded: refundedCount.total, // 已退款
+			total: pendingCount.total + completedCount.total + unfinishedCount.total + refundedCount
+			  .total, // 总订单数
+			totalAmount: totalAmount // 总金额
+		  }
+		};
 	  } catch (e) {
-	    console.error("Get_OrdersCount error:", e);
-	    return {
-	      code: -2,
-	      errMsg: "统计订单数量失败: " + e.message
-	    };
+		console.error("Get_OrdersCount error:", e);
+		return {
+		  code: -2,
+		  errMsg: "统计订单数量失败: " + e.message
+		};
 	  }
 	},
 	/**
@@ -1390,6 +1545,11 @@ module.exports = {
 		const dbJQL = uniCloud.databaseForJQL({
 			clientInfo: this.getClientInfo()
 		});
+		// 权限检查 (仅限管理员) - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
+		if (authError) {
+			return authError;
+		}
 		try {
 			const res = await dbJQL.collection('uni-id-users')
 				.where({
@@ -1420,7 +1580,8 @@ module.exports = {
 	* @returns {object} 操作结果
 	*/
 	async promoteUserRole(params) {
-		const authError = this._checkAdminPermission();
+		// 权限检查 (仅限管理员) - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
 			if (authError) {
 				return authError; // 如果不是管理员，直接返回错误
 			}
@@ -1705,138 +1866,78 @@ module.exports = {
 	 * @returns {object} 操作结果
 	 */
 	async updateCustomerServicePhone(params) {
-	    const { newPhoneNo } = params;
+		const { newPhoneNo } = params;
 	
-	    // 1. 输入验证
-	    if (!newPhoneNo || typeof newPhoneNo !== 'string') {
-	        return {
-	            errCode: 'INVALID_PARAMS',
-	            errMsg: '缺少有效的 newPhoneNo 参数 (必须是字符串)'
-	        };
-	    }
+		// 1. 输入验证
+		if (!newPhoneNo || typeof newPhoneNo !== 'string') {
+			return {
+				errCode: 'INVALID_PARAMS',
+				errMsg: '缺少有效的 newPhoneNo 参数 (必须是字符串)'
+			};
+		}
 	
-	    // 2. 权限验证 - 直接从uniIdToken解析
-	    try {
-	        const clientInfo = this.getClientInfo();
-	        console.log("客服电话更新 - 用户信息:", JSON.stringify(clientInfo));
-	        
-	        // 检查是否有uniIdToken
-	        if (!clientInfo.uniIdToken) {
-	            return {
-	                errCode: 'PERMISSION_DENIED',
-	                errMsg: '未找到身份令牌'
-	            };
-	        }
-	        
-	        // 解析JWT令牌，获取角色信息
-	        // JWT格式: header.payload.signature
-	        const tokenParts = clientInfo.uniIdToken.split('.');
-	        if (tokenParts.length !== 3) {
-	            return {
-	                errCode: 'INVALID_TOKEN',
-	                errMsg: '令牌格式无效'
-	            };
-	        }
-	        
-	        // 解码payload部分（Base64解码）
-	        let payload;
-	        try {
-	            // 注意：这里需要处理Base64 URL编码
-	            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-	            const jsonStr = Buffer.from(base64, 'base64').toString();
-	            payload = JSON.parse(jsonStr);
-	        } catch (e) {
-	            console.error("解析令牌失败:", e);
-	            return {
-	                errCode: 'TOKEN_PARSE_ERROR',
-	                errMsg: '无法解析身份令牌'
-	            };
-	        }
-	        
-	        console.log("解析后的令牌信息:", JSON.stringify(payload));
-	        
-	        // 检查是否有admin角色
-	        const role = payload.role;
-	        let hasAdminRole = false;
-	        
-	        if (Array.isArray(role)) {
-	            hasAdminRole = role.includes('admin');
-	        } else if (typeof role === 'string') {
-	            hasAdminRole = role === 'admin';
-	        }
-	        
-	        console.log("用户是否有管理员权限:", hasAdminRole);
-	        
-	        if (!hasAdminRole) {
-	            return {
-	                errCode: 'PERMISSION_DENIED',
-	                errMsg: '只有管理员才能更新客服电话'
-	            };
-	        }
-	    } catch (e) {
-	        console.error("权限验证失败:", e);
-	        return {
-	            errCode: 'AUTH_ERROR',
-	            errMsg: '权限验证失败: ' + e.message
-	        };
-	    }
+		// 2. 权限验证 - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
+		if (authError) {
+			return authError;
+		}
 	
-	    const collection = db.collection('customer-service-phone');
+		const collection = db.collection('customer-service-phone');
 	
-	    try {
-	        // 3. 查询集合中是否已有记录
-	        console.log("查询现有客服电话记录");
-	        const existingRecord = await collection.limit(1).get();
+		try {
+			// 3. 查询集合中是否已有记录
+			console.log("查询现有客服电话记录");
+			const existingRecord = await collection.limit(1).get();
 	
-	        if (existingRecord.data && existingRecord.data.length > 0) {
-	            // 记录存在，更新它
-	            const recordId = existingRecord.data[0]._id;
-	            console.log("找到现有记录，ID:", recordId, "正在更新...");
-	            const updateResult = await collection.doc(recordId).update({
-	                phoneNo: newPhoneNo,
-	                updateTime: Date.now() // 添加更新时间戳
-	            });
+			if (existingRecord.data && existingRecord.data.length > 0) {
+				// 记录存在，更新它
+				const recordId = existingRecord.data[0]._id;
+				console.log("找到现有记录，ID:", recordId, "正在更新...");
+				const updateResult = await collection.doc(recordId).update({
+					phoneNo: newPhoneNo,
+					updateTime: Date.now() // 添加更新时间戳
+				});
 	
-	            console.log("更新结果:", JSON.stringify(updateResult));
-	            if (updateResult.updated === 1) {
-	                return {
-	                    errCode: 0,
-	                    errMsg: '客服电话更新成功'
-	                };
-	            } else {
-	                return {
-	                    errCode: 'UPDATE_FAILED',
-	                    errMsg: '更新客服电话失败，未找到匹配记录或数据未更改'
-	                };
-	            }
-	        } else {
-	            // 记录不存在，创建一条新记录
-	            console.log("未找到现有记录，创建新记录");
-	            const addResult = await collection.add({
-	                phoneNo: newPhoneNo,
-	                createTime: Date.now()
-	            });
-	            
-	            console.log("创建结果:", JSON.stringify(addResult));
-	            if (addResult.id) {
-	                return {
-	                    errCode: 0,
-	                    errMsg: '客服电话记录创建成功'
-	                };
-	            } else {
-	                return {
-	                    errCode: 'CREATE_FAILED',
-	                    errMsg: '创建客服电话记录失败'
-	                };
-	            }
-	        }
-	    } catch (e) {
-	        console.error("数据库操作失败:", e);
-	        return {
-	            errCode: 'DB_ERROR',
-	            errMsg: '数据库操作失败: ' + e.message
-	        };
-	    }
+				console.log("更新结果:", JSON.stringify(updateResult));
+				if (updateResult.updated === 1) {
+					return {
+						errCode: 0,
+						errMsg: '客服电话更新成功'
+					};
+				} else {
+					return {
+						errCode: 'UPDATE_FAILED',
+						errMsg: '更新客服电话失败，未找到匹配记录或数据未更改'
+					};
+				}
+			} else {
+				// 记录不存在，创建一条新记录
+				console.log("未找到现有记录，创建新记录");
+				const addResult = await collection.add({
+					phoneNo: newPhoneNo,
+					createTime: Date.now()
+				});
+				
+				console.log("创建结果:", JSON.stringify(addResult));
+				if (addResult.id) {
+					return {
+						errCode: 0,
+						errMsg: '客服电话记录创建成功'
+					};
+				} else {
+					return {
+						errCode: 'CREATE_FAILED',
+						errMsg: '创建客服电话记录失败'
+					};
+				}
+			}
+		} catch (e) {
+			console.error("数据库操作失败:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '数据库操作失败: ' + e.message
+			};
+		}
 	},
 	
 	
@@ -1845,100 +1946,39 @@ module.exports = {
 	 * @returns {object} 包含客服电话的数据或错误信息
 	 */
 	async getCustomerServicePhone() {
-	    // 1. 权限验证 - 检查是否为 user 或 admin
-	    try {
-	        const clientInfo = this.getClientInfo();
-	        console.log("获取客服电话 - 用户信息:", JSON.stringify(clientInfo));
+		// 1. 权限验证 - 检查是否为 user 或 admin - 调用全局函数
+		const authError = checkUserOrAdminPermission(this.getClientInfo());
+		if (authError) {
+			return authError;
+		}
 	
-	        // 检查是否有uniIdToken
-	        if (!clientInfo.uniIdToken) {
-	            return {
-	                errCode: 'PERMISSION_DENIED',
-	                errMsg: '用户未登录或无权访问' // 明确未登录或无令牌
-	            };
-	        }
-	
-	        // 解析JWT令牌，获取角色信息
-	        const tokenParts = clientInfo.uniIdToken.split('.');
-	        if (tokenParts.length !== 3) {
-	            return {
-	                errCode: 'INVALID_TOKEN',
-	                errMsg: '令牌格式无效'
-	            };
-	        }
-	
-	        let payload;
-	        try {
-	            // 处理Base64 URL编码
-	            const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-	            const jsonStr = Buffer.from(base64, 'base64').toString();
-	            payload = JSON.parse(jsonStr);
-	        } catch (e) {
-	            console.error("解析令牌失败:", e);
-	            return {
-	                errCode: 'TOKEN_PARSE_ERROR',
-	                errMsg: '无法解析身份令牌'
-	            };
-	        }
-	
-	        console.log("解析后的令牌信息:", JSON.stringify(payload));
-	
-	        // 检查角色是否为 'user' 或 'admin'
-	        const role = payload.role;
-	        let hasRequiredRole = false;
-	
-	        if (Array.isArray(role)) {
-	            // 检查数组中是否包含 'user' 或 'admin'
-	            hasRequiredRole = role.includes('user') || role.includes('admin');
-	        } else if (typeof role === 'string') {
-	            // 检查字符串是否等于 'user' 或 'admin'
-	            hasRequiredRole = role === 'user' || role === 'admin';
-	        }
-	
-	        console.log("用户是否有访问权限 (user or admin):", hasRequiredRole);
-	
-	        if (!hasRequiredRole) {
-	            // 如果角色不是 'user' 或 'admin'，则拒绝访问
-	            return {
-	                errCode: 'PERMISSION_DENIED',
-	                errMsg: '无权访问此功能' // 通用权限不足提示
-	            };
-	        }
-	    } catch (e) {
-	        console.error("权限验证失败:", e);
-	        return {
-	            errCode: 'AUTH_ERROR',
-	            errMsg: '权限验证失败: ' + e.message
-	        };
-	    }
-	
-	    // 2. 如果权限验证通过，执行数据库查询
-	    const collection = db.collection('customer-service-phone');
-	    try {
-	        console.log("权限验证通过，查询客服电话...");
-	        const res = await collection.limit(1).get(); // 获取第一条（也是唯一一条）记录
-	        if (res.data && res.data.length > 0) {
-	            return {
-	                errCode: 0,
-	                data: {
-	                    phoneNo: res.data[0].phoneNo // 返回电话号码
-	                }
-	            };
-	        } else {
-	            // 记录不存在，仍然返回成功，但数据为空
-	            return {
-	                errCode: 0,
-	                data: { phoneNo: '' }, // 返回空字符串表示未设置
-	                errMsg: '未找到客服电话记录'
-	            };
-	        }
-	    } catch (e) {
-	        console.error("获取客服电话数据库操作失败:", e);
-	        return {
-	            errCode: 'DB_ERROR',
-	            errMsg: '数据库操作失败: ' + e.message
-	        };
-	    }
+		// 2. 如果权限验证通过，执行数据库查询
+		const collection = db.collection('customer-service-phone');
+		try {
+			console.log("权限验证通过，查询客服电话...");
+			const res = await collection.limit(1).get(); // 获取第一条（也是唯一一条）记录
+			if (res.data && res.data.length > 0) {
+				return {
+					errCode: 0,
+					data: {
+						phoneNo: res.data[0].phoneNo // 返回电话号码
+					}
+				};
+			} else {
+				// 记录不存在，仍然返回成功，但数据为空
+				return {
+					errCode: 0,
+					data: { phoneNo: '' }, // 返回空字符串表示未设置
+					errMsg: '未找到客服电话记录'
+				};
+			}
+		} catch (e) {
+			console.error("获取客服电话数据库操作失败:", e);
+			return {
+				errCode: 'DB_ERROR',
+				errMsg: '数据库操作失败: ' + e.message
+			};
+		}
 	},
 	Delete: function(content, statusnumber) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
@@ -2019,8 +2059,8 @@ module.exports = {
 	 * @returns {object} 操作结果，包含新文档的 ID
 	 */
 	async HelpCenter_Add(data) {
-		// 1. 权限检查
-		const authError = this._checkAdminPermission();
+		// 1. 权限检查 - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
 		if (authError) {
 			return authError; // 没有权限，直接返回错误
 		}
@@ -2058,8 +2098,8 @@ module.exports = {
 	 * @returns {object} 操作结果
 	 */
 	async HelpCenter_Update(id, data) {
-		// 1. 权限检查
-		const authError = this._checkAdminPermission();
+		// 1. 权限检查 - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
 		if (authError) {
 			return authError;
 		}
@@ -2104,8 +2144,8 @@ module.exports = {
 	 * @returns {object} 操作结果
 	 */
 	async HelpCenter_Delete(id) {
-		// 1. 权限检查
-		const authError = this._checkAdminPermission();
+		// 1. 权限检查 - 调用全局函数
+		const authError = checkAdminPermission(this.getClientInfo());
 		if (authError) {
 			return authError;
 		}
@@ -2136,337 +2176,450 @@ module.exports = {
 	},
 
 	/**
-	 * 获取筛选后的订单并支持分页 (用于订单管理页)
-	 * @param {Object} params 查询参数
-	 * @param {string} [params.keyword] 关键词搜索(订单ID/用户ID/机台名)
-	 * @param {number} [params.status] 订单状态
-	 * @param {number} [params.startDate] 开始日期时间戳
-	 * @param {number} [params.endDate] 结束日期时间戳
-	 * @param {number} [params.minAmount] 最小金额(分)
-	 * @param {number} [params.maxAmount] 最大金额(分)
-	 * @param {number} [params.pageSize=10] 每页数量
-	 * @param {number} [params.pageNumber=1] 页码
-	 * @param {string} [params.sortField="create_date"] 排序字段
-	 * @param {string} [params.sortOrder="desc"] 排序方向
-	 * @returns {Object} 订单列表及分页信息
+	 * 修复后的获取筛选订单方法
 	 */
-	async Get_FilteredOrders(params) {
-	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
-	  });
-	  
-	  // 构建查询条件
-	  const query = {};
-	  
-	  // 关键词搜索(订单ID/用户ID/机台名)
-	  if (params.keyword) {
-	    query.$or = [
-	      { _id: params.keyword },
-	      { user_id: params.keyword },
-	      { machineName: new RegExp(params.keyword, 'i') }
-	    ];
-	  }
-	  
-	  // 状态筛选
-	  if (params.status !== undefined && params.status !== null) {
-	    query.status = Number(params.status);
-	  }
-	  
-	  // 日期范围筛选
-	  if (params.startDate && params.endDate) {
-	    query.create_date = dbJQL.command.gte(params.startDate).and(dbJQL.command.lte(params.endDate));
-	  } else if (params.startDate) {
-	    query.create_date = dbJQL.command.gte(params.startDate);
-	  } else if (params.endDate) {
-	    query.create_date = dbJQL.command.lte(params.endDate);
-	  }
-	  
-	  // 金额范围筛选
-	  if (params.minAmount && params.maxAmount) {
-	    query.total_fee = dbJQL.command.gte(params.minAmount).and(dbJQL.command.lte(params.maxAmount));
-	  } else if (params.minAmount) {
-	    query.total_fee = dbJQL.command.gte(params.minAmount);
-	  } else if (params.maxAmount) {
-	    query.total_fee = dbJQL.command.lte(params.maxAmount);
-	  }
-	  
-	  // 设置分页参数
-	  const pageSize = params.pageSize || 10;
-	  const pageNumber = params.pageNumber || 1;
-	  const sortField = params.sortField || "create_date";
-	  const sortOrder = params.sortOrder || "desc";
-	  
+	async Get_FilteredOrders(params = {}) {
 	  try {
-	    // 构建基础查询
-	    let baseQuery = dbJQL.collection('fishcave-orders')
-	      .where(query)
-	      .orderBy(sortField, sortOrder);
+	    console.log('Get_FilteredOrders 开始执行，参数:', params);
 	    
-	    // 获取总记录数
-	    const countResult = await baseQuery.count();
+	    // 直接在这里进行权限检查，而不是调用方法
+	    const clientInfo = this.getClientInfo();
+	    console.log("权限检查 - 用户信息:", JSON.stringify(clientInfo));
+	
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      console.log("权限检查失败: 未找到身份令牌");
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      console.log("权限检查失败: 令牌格式无效");
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	      console.log("解析后的令牌信息:", JSON.stringify(payload));
+	    } catch (e) {
+	      console.error("解析令牌失败:", e);
+	      return { code: -1, errMsg: '无法解析身份令牌: ' + e.message };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    console.log("用户是否有管理员权限:", hasAdminRole);
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    console.log('Get_FilteredOrders: 权限检查通过');
+	
+	    const {
+	      pageSize = 10,
+	      pageNumber = 1,
+	      keyword = '',
+	      status = null,
+	      startDate = null,
+	      endDate = null,
+	      minAmount = null,
+	      maxAmount = null,
+	      sortField = 'create_date',
+	      sortOrder = 'desc'
+	    } = params;
+	
+	    console.log('Get_FilteredOrders 处理后的参数:', {
+	      pageSize, pageNumber, keyword, status, 
+	      startDate, endDate, minAmount, maxAmount,
+	      sortField, sortOrder
+	    });
+	
+	    // 构建查询条件
+	    const db = uniCloud.database();
+	    let query = db.collection('fishcave-orders');
+	
+	    // 构建where条件
+	    const whereConditions = {};
+	
+	    // 关键词搜索
+	    if (keyword && keyword.trim()) {
+	      const keywordTrim = keyword.trim();
+	      console.log('添加关键词搜索条件:', keywordTrim);
+	      
+	      whereConditions.$or = [
+	        { out_trade_no: new RegExp(keywordTrim, 'i') },
+	        { user_id: new RegExp(keywordTrim, 'i') },
+	        { description: new RegExp(keywordTrim, 'i') }
+	      ];
+	    }
+	
+	    // 状态筛选
+	    if (status !== null && status !== undefined && status !== '') {
+	      const statusInt = parseInt(status);
+	      console.log('添加状态筛选条件:', statusInt);
+	      whereConditions.status = statusInt;
+	    }
+	
+	    // 日期范围筛选
+	    if (startDate && endDate) {
+	      const startDateInt = parseInt(startDate);
+	      const endDateInt = parseInt(endDate);
+	      console.log('添加日期范围筛选:', startDateInt, 'to', endDateInt);
+	      
+	      whereConditions.create_date = {
+	        $gte: startDateInt,
+	        $lte: endDateInt
+	      };
+	    }
+	
+	    // 金额范围筛选
+	    if (minAmount !== null && minAmount !== undefined && minAmount !== '') {
+	      const minAmountInt = parseInt(minAmount);
+	      console.log('添加最小金额筛选:', minAmountInt);
+	      
+	      if (!whereConditions.total_fee) whereConditions.total_fee = {};
+	      whereConditions.total_fee.$gte = minAmountInt;
+	    }
+	
+	    if (maxAmount !== null && maxAmount !== undefined && maxAmount !== '') {
+	      const maxAmountInt = parseInt(maxAmount);
+	      console.log('添加最大金额筛选:', maxAmountInt);
+	      
+	      if (!whereConditions.total_fee) whereConditions.total_fee = {};
+	      whereConditions.total_fee.$lte = maxAmountInt;
+	    }
+	
+	    console.log('最终查询条件:', JSON.stringify(whereConditions, null, 2));
+	
+	    // 应用查询条件
+	    if (Object.keys(whereConditions).length > 0) {
+	      query = query.where(whereConditions);
+	    }
+	
+	    // 计算总数
+	    console.log('开始计算总数...');
+	    const countResult = await query.count();
 	    const total = countResult.total;
-	    
-	    // 获取当前页数据
-	    const result = await baseQuery
-	      .skip((pageNumber - 1) * pageSize)
-	      .limit(pageSize)
-	      .get();
-	    
-	    // 计算总页数
 	    const totalPages = Math.ceil(total / pageSize);
 	    
+	    console.log('查询统计结果:', { total, totalPages });
+	
+	    // 分页查询
+	    const skip = (pageNumber - 1) * pageSize;
+	    console.log('开始分页查询，skip:', skip, 'limit:', pageSize);
+	    
+	    const ordersResult = await query
+	      .orderBy(sortField, sortOrder)
+	      .skip(skip)
+	      .limit(pageSize)
+	      .get();
+	
+	    console.log('订单查询结果:', {
+	      total,
+	      currentPage: pageNumber,
+	      pageSize,
+	      dataLength: ordersResult.data?.length || 0,
+	      actualData: ordersResult.data?.length > 0 ? '有数据' : '无数据'
+	    });
+	
+	    // 处理订单数据
+	    const orders = (ordersResult.data || []).map(order => {
+	      // 计算时长
+	      let duration = 0;
+	      if (order.starttime && order.endtime) {
+	        duration = Math.round((order.endtime - order.starttime) / (1000 * 60));
+	      }
+	
+	      return {
+	        _id: order._id,
+	        out_trade_no: order.out_trade_no || '',
+	        total_fee: order.total_fee || 0,
+	        status: order.status || 0,
+	        create_date: order.create_date || Date.now(),
+	        starttime: order.starttime,
+	        endtime: order.endtime,
+	        duration: duration,
+	        user_id: order.user_id,
+	        reservation_id: order.reservation_id,
+	        description: order.description || '',
+	        order_type: order.order_type || 'normal',
+	        // 添加一些计算字段
+	        isOvernight: order.starttime && order.endtime ? 
+	          new Date(order.starttime).getDate() !== new Date(order.endtime).getDate() : false,
+	        formattedAmount: order.total_fee ? (order.total_fee / 100).toFixed(2) : '0.00',
+	        statusText: getStatusText(order.status), // 使用全局函数
+	        formattedCreateDate: formatDateTime(order.create_date), // 使用全局函数
+	        formattedStartTime: formatDateTime(order.starttime), // 使用全局函数
+	        formattedEndTime: formatDateTime(order.endtime) // 使用全局函数
+	      };
+	    });
+	
+	    console.log('处理后的订单数据条数:', orders.length);
+	
 	    return {
 	      code: 0,
-	      data: result.data,
+	      data: orders,
 	      pagination: {
-	        total,
-	        totalPages,
-	        pageSize,
-	        pageNumber,
+	        current: pageNumber,
+	        pageSize: pageSize,
+	        total: total,
+	        totalPages: totalPages,
 	        hasNext: pageNumber < totalPages,
 	        hasPrev: pageNumber > 1
 	      }
 	    };
-	  } catch (e) {
-	    console.error("Get_FilteredOrders error:", e);
+	
+	  } catch (error) {
+	    console.error('Get_FilteredOrders 执行错误:', error);
+	    console.error('错误堆栈:', error.stack);
+	    
 	    return {
 	      code: -1,
-	      errMsg: "获取订单数据失败: " + e.message
+	      errMsg: `获取订单数据失败: ${error.message}`
 	    };
 	  }
 	},
-	
 	/**
-	 * 获取单个订单详情
-	 * @param {string} orderId 订单ID
-	 * @returns {Object} 订单详情
+	 * 获取订单详情
 	 */
 	async GetOrderDetail(orderId) {
-	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
-	  });
-	  
 	  try {
-	    // 获取订单信息
-	    const orderResult = await dbJQL.collection('fishcave-orders')
+	    // 直接进行权限检查
+	    const clientInfo = this.getClientInfo();
+	    
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌' };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    // 验证 orderId 参数
+	    if (!orderId || (typeof orderId !== 'string' && typeof orderId !== 'number')) {
+	      return { code: -1, errMsg: '订单ID无效' };
+	    }
+	
+	    const db = uniCloud.database();
+	    const orderResult = await db.collection('fishcave-orders')
 	      .doc(orderId)
 	      .get();
-	    
-	    if (orderResult.data.length === 0) {
-	      return {
-	        code: -1,
-	        errMsg: "未找到订单信息"
-	      };
+	
+	    if (!orderResult.data || orderResult.data.length === 0) {
+	      return { code: -1, errMsg: '订单不存在' };
 	    }
+	
+	    const order = orderResult.data[0];
 	    
-	    const orderData = orderResult.data[0];
-	    
-	    // 获取关联的用户信息
-	    const userResult = await dbJQL.collection('uni-id-users')
-	      .doc(orderData.user_id)
-	      .field("nickname,username,avatar,avatar_file")
-	      .get();
-	    
-	    // 获取关联的机台信息
-	    const machineResult = await dbJQL.collection('machines')
-	      .where({
-	        _id: orderData.machineId
-	      })
-	      .field("name,type,capacity,machinenum")
-	      .get();
-	    
-	    // 合并数据
-	    const detailData = {
-	      ...orderData,
-	      username: userResult.data.length > 0 ? (userResult.data[0].nickname || userResult.data[0].username) : '未知用户',
-	      userAvatar: userResult.data.length > 0 ? (userResult.data[0].avatar || '') : '',
-	      userAvatarFile: userResult.data.length > 0 ? (userResult.data[0].avatar_file || null) : null,
-	      machineName: machineResult.data.length > 0 ? machineResult.data[0].name : '未知机台',
-	      machineType: machineResult.data.length > 0 ? machineResult.data[0].type : '',
+	    // 计算时长
+	    let duration = 0;
+	    if (order.starttime && order.endtime) {
+	      duration = Math.round((order.endtime - order.starttime) / (1000 * 60));
+	    }
+	
+	    // 格式化订单详情
+	    const orderDetail = {
+	      _id: order._id,
+	      out_trade_no: order.out_trade_no,
+	      total_fee: order.total_fee || 0,
+	      status: order.status || 0,
+	      create_date: order.create_date,
+	      starttime: order.starttime,
+	      endtime: order.endtime,
+	      duration: duration,
+	      user_id: order.user_id,
+	      reservation_id: order.reservation_id,
+	      description: order.description || '',
+	      order_type: order.order_type || 'normal',
+	      isOvernight: order.starttime && order.endtime ? 
+	        new Date(order.starttime).getDate() !== new Date(order.endtime).getDate() : false,
+	      formattedAmount: order.total_fee ? (order.total_fee / 100).toFixed(2) : '0.00',
+	      statusText: getStatusText(order.status),
+	      formattedCreateDate: formatDateTime(order.create_date),
+	      formattedStartTime: formatDateTime(order.starttime),
+	      formattedEndTime: formatDateTime(order.endtime)
 	    };
-	    
+	
 	    return {
 	      code: 0,
-	      data: detailData
+	      data: orderDetail
 	    };
-	  } catch (e) {
-	    console.error("GetOrderDetail error:", e);
+	
+	  } catch (error) {
+	    console.error('GetOrderDetail error:', error);
 	    return {
 	      code: -1,
-	      errMsg: "获取订单详情失败: " + e.message
+	      errMsg: `获取订单详情失败: ${error.message}`
 	    };
 	  }
 	},
+/**
+ * 更新订单信息
+ */
+async UpdateOrder(updateData) {
+  try {
+    // 直接进行权限检查
+    const clientInfo = this.getClientInfo();
+    
+    if (!clientInfo || !clientInfo.uniIdToken) {
+      return { code: -1, errMsg: '用户未登录或无权访问' };
+    }
+
+    const tokenParts = clientInfo.uniIdToken.split('.');
+    if (tokenParts.length !== 3) {
+      return { code: -1, errMsg: '令牌格式无效' };
+    }
+
+    let payload;
+    try {
+      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const jsonStr = Buffer.from(base64, 'base64').toString();
+      payload = JSON.parse(jsonStr);
+    } catch (e) {
+      return { code: -1, errMsg: '无法解析身份令牌' };
+    }
+
+    const role = payload.role;
+    let hasAdminRole = false;
+
+    if (Array.isArray(role)) {
+      hasAdminRole = role.includes('admin');
+    } else if (typeof role === 'string') {
+      hasAdminRole = role === 'admin';
+    }
+
+    if (!hasAdminRole) {
+      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+    }
+
+    const { orderId, status, totalFee, starttime, endtime, editReason } = updateData;
+
+    // 验证必要参数
+    if (!orderId || (typeof orderId !== 'string' && typeof orderId !== 'number')) {
+      return { code: -1, errMsg: '订单ID无效' };
+    }
+
+    if (!editReason || editReason.trim() === '') {
+      return { code: -1, errMsg: '请输入修改原因' };
+    }
+
+    const db = uniCloud.database();
+    
+    // 先获取原订单数据用于日志记录
+    const originalOrder = await db.collection('fishcave-orders')
+      .doc(orderId)
+      .get();
+      
+    if (!originalOrder.data || originalOrder.data.length === 0) {
+      return { code: -1, errMsg: '订单不存在' };
+    }
+    
+    const oldData = originalOrder.data[0];
+    
+    // 构建更新数据
+    const updateFields = {
+      update_date: Date.now()
+    };
+
+    if (status !== undefined && status !== null) {
+      updateFields.status = parseInt(status);
+    }
+
+    if (totalFee !== undefined && totalFee !== null) {
+      updateFields.total_fee = parseInt(totalFee);
+    }
+
+    if (starttime !== undefined && starttime !== null) {
+      updateFields.starttime = parseInt(starttime);
+    }
+
+    if (endtime !== undefined && endtime !== null) {
+      updateFields.endtime = parseInt(endtime);
+    }
+
+    console.log('Updating order:', orderId, 'with data:', updateFields);
+
+    // 更新订单
+    const updateResult = await db.collection('fishcave-orders')
+      .doc(orderId)
+      .update(updateFields);
+
+    if (updateResult.updated === 0) {
+      return { code: -1, errMsg: '订单不存在或更新失败' };
+    }
+
+    // 记录编辑日志
+    try {
+      await logOrderEdit({
+        orderId: orderId,
+        operatorId: payload.uid,
+        editType: 'update',
+        changes: {
+          old: {
+            status: oldData.status,
+            total_fee: oldData.total_fee,
+            starttime: oldData.starttime,
+            endtime: oldData.endtime
+          },
+          new: updateFields
+        },
+        reason: editReason.trim(),
+        editTime: Date.now()
+      });
+    } catch (logError) {
+      console.error('记录编辑日志失败:', logError);
+      // 日志记录失败不影响订单更新
+    }
+
+    return {
+      code: 0,
+      message: '订单更新成功'
+    };
+
+  } catch (error) {
+    console.error('UpdateOrder error:', error);
+    return {
+      code: -1,
+      errMsg: `更新订单失败: ${error.message}`
+    };
+  }
+},
+
 	
-	/**
-	 * 更新订单信息
-	 * @param {Object} data 更新数据
-	 * @param {string} data.orderId 订单ID
-	 * @param {number} [data.status] 订单状态
-	 * @param {number} [data.totalFee] 订单金额(分)
-	 * @param {number} [data.starttime] 开始时间戳
-	 * @param {number} [data.endtime] 结束时间戳
-	 * @param {string} data.editReason 修改原因
-	 * @returns {Object} 更新结果
-	 */
-	async UpdateOrder(data) {
-	  // 权限检查 (仅限管理员)
-	  const authError = this._checkAdminPermission();
-	  if (authError) {
-	    return authError;
-	  }
-	  
-	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
-	  });
-	  
-	  try {
-	    // 验证参数
-	    if (!data.orderId) {
-	      return {
-	        code: -1,
-	        errMsg: "缺少订单ID"
-	      };
-	    }
-	    
-	    if (!data.editReason) {
-	      return {
-	        code: -1,
-	        errMsg: "缺少修改原因"
-	      };
-	    }
-	    
-	    // 获取原订单数据
-	    const orderResult = await dbJQL.collection('fishcave-orders')
-	      .doc(data.orderId)
-	      .get();
-	    
-	    if (orderResult.data.length === 0) {
-	      return {
-	        code: -1,
-	        errMsg: "未找到订单信息"
-	      };
-	    }
-	    
-	    const oldOrderData = orderResult.data[0];
-	    
-	    // 构建更新数据
-	    const updateData = {};
-	    const changes = {};
-	    
-	    // 状态更新
-	    if (data.status !== undefined && oldOrderData.status !== data.status) {
-	      updateData.status = data.status;
-	      changes.status = {
-	        from: this._getStatusText(oldOrderData.status),
-	        to: this._getStatusText(data.status)
-	      };
-	    }
-	    
-	    // 金额更新
-	    if (data.totalFee !== undefined && oldOrderData.total_fee !== data.totalFee) {
-	      updateData.total_fee = data.totalFee;
-	      changes.totalFee = {
-	        from: `¥${(oldOrderData.total_fee / 100).toFixed(2)}`,
-	        to: `¥${(data.totalFee / 100).toFixed(2)}`
-	      };
-	    }
-	    
-	    // 时间更新
-	    if (data.starttime !== undefined && oldOrderData.starttime !== data.starttime) {
-	      updateData.starttime = data.starttime;
-	      changes.startTime = {
-	        from: this._formatDateTime(oldOrderData.starttime),
-	        to: this._formatDateTime(data.starttime)
-	      };
-	    }
-	    
-	    if (data.endtime !== undefined && oldOrderData.endtime !== data.endtime) {
-	      updateData.endtime = data.endtime;
-	      changes.endTime = {
-	        from: this._formatDateTime(oldOrderData.endtime),
-	        to: this._formatDateTime(data.endtime)
-	      };
-	    }
-	    
-	    // 如果没有变更，返回成功
-	    if (Object.keys(updateData).length === 0) {
-	      return {
-	        code: 0,
-	        data: {
-	          updated: 0
-	        },
-	        errMsg: "未检测到数据变更"
-	      };
-	    }
-	    
-	    // 添加更新时间
-	    updateData.update_date = Date.now();
-	    
-	    // 执行更新
-	    const updateResult = await dbJQL.collection('fishcave-orders')
-	      .doc(data.orderId)
-	      .update(updateData);
-	    
-	    // 记录编辑日志
-	    await this._logOrderEdit({
-	      orderId: data.orderId,
-	      operatorId: this.getClientInfo().userInfo.uid,
-	      editType: "订单信息修改",
-	      changes: changes,
-	      reason: data.editReason,
-	      editTime: Date.now()
-	    });
-	    
-	    return {
-	      code: 0,
-	      data: {
-	        updated: updateResult.updated
-	      },
-	      errMsg: "订单更新成功"
-	    };
-	  } catch (e) {
-	    console.error("UpdateOrder error:", e);
-	    return {
-	      code: -1,
-	      errMsg: "更新订单失败: " + e.message
-	    };
-	  }
-	},
 	
-	/**
-	 * 记录订单编辑日志
-	 * @param {Object} logData 日志数据
-	 * @private
-	 */
-	async _logOrderEdit(logData) {
-	  const db = uniCloud.database();
-	  try {
-	    // 获取操作人信息
-	    const operatorResult = await db.collection('uni-id-users')
-	      .doc(logData.operatorId)
-	      .field("nickname,username")
-	      .get();
-	    
-	    const operatorName = operatorResult.data.length > 0 
-	      ? (operatorResult.data[0].nickname || operatorResult.data[0].username) 
-	      : '未知用户';
-	    
-	    // 添加日志记录
-	    await db.collection('order-edit-logs').add({
-	      orderId: logData.orderId,
-	      operatorId: logData.operatorId,
-	      operatorName: operatorName,
-	      editType: logData.editType,
-	      changes: logData.changes,
-	      reason: logData.reason,
-	      editTime: logData.editTime
-	    });
-	  } catch (e) {
-	    console.error("Log order edit error:", e);
-	    // 日志记录失败不影响主要业务逻辑
-	  }
-	},
 	/**
 	 * 创建补票/自定义支付订单
 	 * @param {string} userId 用户ID
@@ -2523,33 +2676,72 @@ module.exports = {
 		}
 	},
 	
+	
 	/**
 	 * 获取订单编辑日志
 	 * @param {string} orderId 订单ID
-	 * @returns {Object} 日志列表
+	 * @returns {Object} 编辑日志列表
 	 */
 	async GetOrderEditLogs(orderId) {
-	  const dbJQL = uniCloud.databaseForJQL({
-	    clientInfo: this.getClientInfo()
-	  });
-	  
 	  try {
-	    const result = await dbJQL.collection('order-edit-logs')
+	    // 直接进行权限检查
+	    const clientInfo = this.getClientInfo();
+	    
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌' };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    // 验证 orderId 参数
+	    if (!orderId || (typeof orderId !== 'string' && typeof orderId !== 'number')) {
+	      return { code: -1, errMsg: '订单ID无效' };
+	    }
+	
+	    const db = uniCloud.database();
+	    const logsResult = await db.collection('order-edit-logs')
 	      .where({
 	        orderId: orderId
 	      })
-	      .orderBy("editTime", "desc")
+	      .orderBy('editTime', 'desc')
+	      .limit(50)
 	      .get();
-	    
+	
 	    return {
 	      code: 0,
-	      data: result.data
+	      data: logsResult.data || []
 	    };
-	  } catch (e) {
-	    console.error("GetOrderEditLogs error:", e);
+	
+	  } catch (error) {
+	    console.error('GetOrderEditLogs error:', error);
 	    return {
 	      code: -1,
-	      errMsg: "获取编辑日志失败: " + e.message
+	      errMsg: `获取编辑日志失败: ${error.message}`
 	    };
 	  }
 	},

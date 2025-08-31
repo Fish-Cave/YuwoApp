@@ -18,10 +18,11 @@ module.exports = {
 		try {
 			const result = order.add({
 				...content,
-				singlePrice: prices
+				singlePrice: prices,
+				type: 'goods'
 			})
 		} catch (e) {
-
+			console.error("GennerateOrder failed:", e); // 建议添加错误日志
 		}
 	},
 
@@ -231,17 +232,19 @@ module.exports = {
 	},
 
 	GetHandledOrder: async function(orderID) {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		const order = dbJQL.collection('fishcave-orders')
-		return order.where({
-			_id: orderID
-		}).limit(1).field({
-			_id: true,
-			total_fee: true,
-		}).get()
-	},
+			const dbJQL = uniCloud.databaseForJQL({
+				clientInfo: this.getClientInfo()
+			})
+			const order = dbJQL.collection('fishcave-orders')
+			return order.where({
+				_id: orderID
+			}).limit(1).field({
+				_id: true,
+				total_fee: true,
+				type: true, 
+				description: true
+			}).get()
+		},
 
 	GetUserOrderList: async function(uid) {
 		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
@@ -255,7 +258,8 @@ module.exports = {
 			status: true,
 			reservation_id: true,
 			starttime: true,
-			total_fee: true
+			total_fee: true,
+			type: true
 		}).get()
 	},
 
@@ -370,7 +374,7 @@ module.exports = {
 	      status: 0, // 0: 待支付
 	      // 移除 create_date: Date.now(), 让数据库根据 schema 自动设置
 	      description: '补票支付', // 订单描述
-	      //type: 'settle', // 订单类型，用于区分普通预约订单
+	      type: 'settle', // 订单类型，用于区分普通预约订单
 	      // 可以添加其他字段，例如关联的签到ID或预约ID，如果补票是针对特定记录的话
 	      // signInId: null,
 	      reservation_id: "0",

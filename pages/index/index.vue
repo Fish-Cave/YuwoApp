@@ -27,8 +27,13 @@
 				<button v-if="isAdmin" @click="goToConfig()">配置</button>
 			</view>
 		</view>
+		<!-- 浮动配置按钮 -->
+		<view v-if="isAdmin" class="float-config-btn" @click="goToConfig()">
+			<uni-icons type="gear" size="30"></uni-icons>
+		</view>
 
 	</view>
+
 </template>
 
 <script lang="ts" setup>
@@ -159,6 +164,20 @@
 </script>
 
 <style lang="scss">
+	.float-config-btn {
+		position: fixed;
+		right: 30rpx;
+		bottom: 120rpx;
+		width: 100rpx;
+		height: 100rpx;
+		background: #f59e0b;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+		z-index: 999;
+	}
 	.container {
 		width: 100%;
 		padding: 10rpx;

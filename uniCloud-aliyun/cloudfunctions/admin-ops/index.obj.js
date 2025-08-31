@@ -50,87 +50,102 @@ module.exports = {
      * @param {boolean} params.filterSubscription - 是否只显示有月卡的用户
      * @returns {object} { data: Array, total: Number }
      */
-    async getUsersForAdmin({ searchQuery, page = 1, pageSize = 10, filterMembership = false, filterSubscription = false, roleFilter = 'all' }) { // 1. 接收新参数
-		const usersCollection = db.collection('uni-id-users');
+    async getUsersForAdmin({ searchQuery, page = 1, pageSize = 10, filterMembership = false, filterSubscription = false, roleFilter = 'all' }) {
+        const usersCollection = db.collection('uni-id-users');
+        const currentTime = Date.now();
 
-		let initialMatchStage = {};
-		if (searchQuery) {
-			// 优化搜索：同时搜索昵称或ID
-			initialMatchStage.$or = [
-				{ nickname: new RegExp(searchQuery, 'i') },
-				{ _id: new RegExp(searchQuery + '$', 'i') }
-			];
-		}
+        let initialMatchStage = {};
+        if (searchQuery) {
+            // 优化搜索：同时搜索昵称或ID
+            initialMatchStage.$or = [
+                { nickname: new RegExp(searchQuery, 'i') },
+                { _id: new RegExp(searchQuery + '$', 'i') }
+            ];
+        }
 
-		// 2. [新增] 在初始匹配阶段加入角色筛选
-		if (roleFilter && roleFilter !== 'all') {
-			initialMatchStage.role = roleFilter;
-		}
+        // 在初始匹配阶段加入角色筛选
+        if (roleFilter && roleFilter !== 'all') {
+            initialMatchStage.role = roleFilter;
+        }
 
-		// 构建过滤阶段的条件 (使用聚合表达式)
-		let filterExpressions = [];
-		if (filterMembership) {
-			filterExpressions.push($.gt([ $.size('$membershipInfo'), 0 ]));
-		}
-		if (filterSubscription) {
-			filterExpressions.push($.gt([ $.size('$subscriptionPackageInfo'), 0 ]));
-		}
+        // 构建过滤阶段的条件 (修复：检查有效会员)
+        let filterExpressions = [];
+        if (filterMembership) {
+            // 筛选有效的歇脚卡用户：存在记录 && status为true && validthru > 当前时间
+            filterExpressions.push(
+                $.and([
+                    $.gt([$.size('$membershipInfo'), 0]),
+                    $.eq([$.arrayElemAt(['$membershipInfo.status', 0]), true]),
+                    $.gt([$.arrayElemAt(['$membershipInfo.validthru', 0]), currentTime])
+                ])
+            );
+        }
+        if (filterSubscription) {
+            // 筛选有效的月卡用户：存在记录 && status为true && validthru > 当前时间
+            filterExpressions.push(
+                $.and([
+                    $.gt([$.size('$subscriptionPackageInfo'), 0]),
+                    $.eq([$.arrayElemAt(['$subscriptionPackageInfo.status', 0]), true]),
+                    $.gt([$.arrayElemAt(['$subscriptionPackageInfo.validthru', 0]), currentTime])
+                ])
+            );
+        }
 
-		let filterMatchStage = null;
-		if (filterExpressions.length > 0) {
-			 filterMatchStage = {
-				 $match: {
-					 $expr: filterExpressions.length === 1 ? filterExpressions[0] : $.and(filterExpressions)
-				 }
-			 };
-		}
+        let filterMatchStage = null;
+        if (filterExpressions.length > 0) {
+            filterMatchStage = {
+                $match: {
+                    $expr: filterExpressions.length === 1 ? filterExpressions[0] : $.and(filterExpressions)
+                }
+            };
+        }
 
-		// 1. 获取总数 (应用所有过滤条件)
-		let countPipeline = usersCollection.aggregate()
-			 .match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
-			 .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' })
-			 .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' });
+        // 1. 获取总数 (应用所有过滤条件)
+        let countPipeline = usersCollection.aggregate()
+            .match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
+            .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' })
+            .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' });
 
-		if (filterMatchStage) { // 应用会员/月卡筛选
-			 countPipeline = countPipeline.match(filterMatchStage.$match);
-		}
+        if (filterMatchStage) { // 应用会员/月卡筛选
+            countPipeline = countPipeline.match(filterMatchStage.$match);
+        }
 
-		countPipeline = countPipeline.count('total');
+        countPipeline = countPipeline.count('total');
 
-		const totalRes = await countPipeline.end();
-		const total = totalRes.data.length > 0 ? totalRes.data[0].total : 0;
+        const totalRes = await countPipeline.end();
+        const total = totalRes.data.length > 0 ? totalRes.data[0].total : 0;
 
-		if (total === 0) {
-			return { data: [], total: 0 };
-		}
+        if (total === 0) {
+            return { data: [], total: 0 };
+        }
 
-		// 2. 进行聚合查询，获取当页数据
-		let dataPipeline = usersCollection.aggregate()
-			.match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
-			.lookup({ from: 'membership', localField: 'userID', foreignField: 'userID', as: 'membershipInfo' })
-			.lookup({ from: 'subscription-package', localField: 'userID', foreignField: 'userID', as: 'subscriptionPackageInfo' });
+        // 2. 进行聚合查询，获取当页数据
+        let dataPipeline = usersCollection.aggregate()
+            .match(initialMatchStage) // <-- 角色和搜索筛选在这里生效
+            .lookup({ from: 'membership', localField: '_id', foreignField: 'userID', as: 'membershipInfo' })
+            .lookup({ from: 'subscription-package', localField: '_id', foreignField: 'userID', as: 'subscriptionPackageInfo' });
 
-		if (filterMatchStage) { // 应用会员/月卡筛选
-			 dataPipeline = dataPipeline.match(filterMatchStage.$match);
-		}
+        if (filterMatchStage) { // 应用会员/月卡筛选
+            dataPipeline = dataPipeline.match(filterMatchStage.$match);
+        }
 
-		dataPipeline = dataPipeline
-			.skip((page - 1) * pageSize)
-			.limit(pageSize)
-			.project({
-				username: 1,
-				nickname: 1,
-				role: 1,
-				membership_expiry: $.arrayElemAt(['$membershipInfo.validthru', 0]),
-				membership_status: $.arrayElemAt(['$membershipInfo.status', 0]),
-				subscription_package_expiry: $.arrayElemAt(['$subscriptionPackageInfo.validthru', 0]),
-				subscription_package_status: $.arrayElemAt(['$subscriptionPackageInfo.status', 0]),
-			});
+        dataPipeline = dataPipeline
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .project({
+                username: 1,
+                nickname: 1,
+                role: 1,
+                membership_expiry: $.arrayElemAt(['$membershipInfo.validthru', 0]),
+                membership_status: $.arrayElemAt(['$membershipInfo.status', 0]),
+                subscription_package_expiry: $.arrayElemAt(['$subscriptionPackageInfo.validthru', 0]),
+                subscription_package_status: $.arrayElemAt(['$subscriptionPackageInfo.status', 0]),
+            });
 
-		const users = await dataPipeline.end();
+        const users = await dataPipeline.end();
 
-		return { data: users.data, total: total };
-	},
+        return { data: users.data, total: total };
+    },
 
     // batchGrantMembership 方法保持不变
     async batchGrantMembership({ userIds, membershipType, durationInDays }) {
