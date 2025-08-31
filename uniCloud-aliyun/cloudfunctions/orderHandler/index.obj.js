@@ -246,21 +246,91 @@ module.exports = {
 			}).get()
 		},
 
-	GetUserOrderList: async function(uid) {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		const order = dbJQL.collection('fishcave-orders')
-		return order.where({
-			user_id: uid,
-		}).limit(10).field({
-			_id: true,
-			status: true,
-			reservation_id: true,
-			starttime: true,
-			total_fee: true,
-			type: true
-		}).get()
+	/**
+	 * 获取用户订单列表
+	 * @param {string} uid 用户ID
+	 * @param {object} options 筛选、分页和排序选项
+	 * @param {number} options.page 当前页码 (从1开始)
+	 * @param {number} options.pageSize 每页数量
+	 * @param {number} [options.status] 订单状态筛选 (可选，-1:未处理, 0:待支付, 1:已完成, null/undefined:全部)
+	 * @param {boolean} [options.noTimeOrder] 是否筛选没有时间的订单 (可选，true:只看没有时间的订单)
+	 * @returns {object} 包含订单列表和总数的对象
+	 */
+	GetUserOrderList: async function(uid, options = {}) {
+	    const dbJQL = uniCloud.databaseForJQL({
+	        clientInfo: this.getClientInfo()
+	    })
+	    const orderCollection = dbJQL.collection('fishcave-orders')
+	    const cmd = dbJQL.command // 获取 command 对象
+	
+	    const {
+	        page = 1,
+	        pageSize = 10,
+	        status,
+	        noTimeOrder
+	    } = options;
+	
+	    let query = {
+	        user_id: uid,
+	    };
+	
+	    // 1. 筛选条件
+	    if (status !== undefined && status !== null) {
+	        query.status = status;
+	    }
+	
+	    // 2. 处理"没有具体时间"的订单
+	    if (noTimeOrder) {
+	        // 如果要筛选没有时间的订单，找 starttime 等于 0 的
+	        query.starttime = 0;
+	    } else {
+	        // 如果不是筛选没有时间的订单，则排除 starttime 为 0 的订单
+	        // 使用 command.neq() 而不是 command.ne()
+	        query.starttime = cmd.neq(0);
+	    }
+	
+	    try {
+	        // 获取总数，用于分页
+	        const countResult = await orderCollection.where(query).count();
+	        const total = countResult.total;
+	
+	        // 获取分页和排序后的数据
+	        const listResult = await orderCollection.where(query)
+	            .orderBy('create_date', 'desc') // <-- 默认按创建时间倒序，最新的在前
+	            .skip((page - 1) * pageSize) // <-- 分页跳过数量
+	            .limit(pageSize) // <-- 每页数量
+	            .field({
+	                _id: true,
+	                status: true,
+	                reservation_id: true,
+	                starttime: true,
+	                endtime: true,
+	                total_fee: true,
+	                type: true,
+	                singlePrice: true,
+	                create_date: true,
+	                description: true
+	            })
+	            .get();
+	
+	        return {
+	            errCode: 0,
+	            errMsg: "获取订单列表成功",
+	            data: listResult.data,
+	            total: total,
+	            page,
+	            pageSize
+	        };
+	
+	    } catch (e) {
+	        console.error("GetUserOrderList failed:", e);
+	        return {
+	            errCode: 500,
+	            errMsg: "获取订单列表失败: " + e.message,
+	            data: [],
+	            total: 0
+	        };
+	    }
 	},
 
 	GennerateVipOrder: async function(uid, content) {
