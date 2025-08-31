@@ -17,8 +17,16 @@
 						<text class="username" style="font-size: 40rpx;">
 							{{ userInfo.nickname || '未设置昵称' }}
 						</text>
-						<view class="settings-button" @click="goToUserInfoPage()">
-							<uni-icons type="gear" size="30"></uni-icons>
+						<!-- 调整：使用 action-buttons 容器来管理两个按钮的布局 -->
+						<view class="action-buttons">
+							<!-- 二维码按钮 -->
+							<view class="settings-button" @click="showQrCodePopup()">
+								<uni-icons type="auth" size="30" ></uni-icons>
+							</view>
+							<!-- 设置按钮 -->
+							<view class="settings-button" @click="goToUserInfoPage()">
+								<uni-icons type="gear" size="30" ></uni-icons>
+							</view>
 						</view>
 					</view>
 
@@ -177,6 +185,23 @@
 		<button v-if="res.uid!=null" class="logout-button glass-button" @click="logOut()">退出登录</button>
 
 	</view>
+
+	<!-- 新增：二维码弹窗 (已添加回来) -->
+	<uni-popup ref="qrCodePopup" type="center">
+		<view class="qr-code-modal">
+			<view class="modal-header">
+				<text class="modal-title">我的二维码</text>
+				<uni-icons type="closeempty" size="24" color="#666" @click="closeQrCodePopup()"></uni-icons>
+			</view>
+			<view class="modal-content">
+				<text class="modal-uid">UID: {{ userInfo._id }}</text>
+				<view class="qr-code-display">
+					<image v-if="qrCodeDataUrl" :src="qrCodeDataUrl" class="qr-code-image" mode="aspectFit"></image>
+					<text v-else>正在生成二维码...</text>
+				</view>
+			</view>
+		</view>
+	</uni-popup>
 </template>
 
 <script setup lang="ts">
@@ -192,8 +217,10 @@
 		store,
 		mutations
 	} from '@/uni_modules/uni-id-pages/common/store.js'
-	import dayjs from 'dayjs'  // 确保导入dayjs用于日期格式化
+	import dayjs from 'dayjs' // 确保导入dayjs用于日期格式化
 	import recent from './recent'
+	import QRCode from 'qrcode' // 引入 qrcode 库
+
 	const isAdmin = computed(() => {
 		return res && res.role && res.role.includes('admin');
 	});
@@ -207,17 +234,17 @@
 
 	// 会员信息数据结构
 	interface MembershipItem {
-		_id : string;
-		userID : string;
-		status : boolean;
-		validstart ?: number;
-		validthru : number;
-		package_type ?: string;
+		_id: string;
+		userID: string;
+		status: boolean;
+		validstart?: number;
+		validthru: number;
+		package_type?: string;
 	}
 
 	interface MembershipInfo {
-		membership : MembershipItem[];
-		subscriptionPackage : MembershipItem[];
+		membership: MembershipItem[];
+		subscriptionPackage: MembershipItem[];
 	}
 
 	// 初始化会员信息
@@ -254,7 +281,44 @@
 			console.error('获取会员信息失败:', error);
 		}
 	}
+	const qrCodePopup = ref(null);
+	const qrCodeDataUrl = ref(''); // 存储生成的二维码图片数据 URL
 
+	// 显示二维码弹窗
+	async function showQrCodePopup() {
+		if (!userInfo.value._id) {
+			uni.showToast({
+				title: '无法获取用户UID',
+				icon: 'none'
+			});
+			return;
+		}
+
+		// 生成二维码数据 URL
+		try {
+			qrCodeDataUrl.value = await QRCode.toDataURL(userInfo.value._id, {
+				errorCorrectionLevel: 'H', // 高容错率
+				width: 200, // 二维码尺寸
+				margin: 2, // 边距
+				color: {
+					dark: '#000000', // 深色模块颜色
+					light: '#FFFFFF' // 浅色模块颜色
+				}
+			});
+			qrCodePopup.value.open('center'); // 打开弹窗
+		} catch (err) {
+			console.error('生成二维码失败:', err);
+			uni.showToast({
+				title: '生成二维码失败',
+				icon: 'error'
+			});
+		}
+	}
+
+	// 关闭二维码弹窗
+	function closeQrCodePopup() {
+		qrCodePopup.value.close();
+	}
 	// 格式化日期
 	function formatDate(timestamp) {
 		if (!timestamp) return '未知';
@@ -262,17 +326,17 @@
 	}
 
 	interface reservationData {
-		_id : string;
-		machineId : string;
-		isOvernight : boolean;
-		status : string;
-		startTime : string;
+		_id: string;
+		machineId: string;
+		isOvernight: boolean;
+		status: string;
+		startTime: string;
 	}
 	const Data = ref<reservationData[]>([])
 
 	interface priceList {
-		_id : string;
-		price : number
+		_id: string;
+		price: number
 	}
 	const pricelist = ref<priceList[]>([])
 	const price = ref(5)
@@ -294,7 +358,7 @@
 			console.log(toRaw(pricelist.value[0]))
 			price.value = toRaw(pricelist.value[0]).price
 			priceOvernight.value = toRaw(pricelist.value[1]).price
-		} catch { }
+		} catch {}
 	}
 
 	async function getReservationData() {
@@ -302,7 +366,7 @@
 			let result = await todo.GetReservationInfo(res.uid)
 			console.log(result.data)
 			Data.value = result.data
-		} catch { }
+		} catch {}
 	}
 
 	function goToreservationList() {
@@ -332,7 +396,7 @@
 					icon: "error"
 				})
 			}
-		} catch { }
+		} catch {}
 	}
 
 	// 跳转到 uni-id-pages 的用户信息页
@@ -350,7 +414,7 @@
 	}
 
 	// 功能按钮点击处理
-	function handleFeatureClick(feature : string) {
+	function handleFeatureClick(feature: string) {
 		if (feature !== 'ordering') {
 			uni.showToast({
 				title: '功能开发中',
@@ -360,16 +424,16 @@
 	}
 
 	// 功能项点击处理
-	function handleUtilityClick(utility : string) {
-	    if (utility === 'help') {
-	        uni.navigateTo({
-	            url: '/pages/helpCenter/helpCenter' // 跳转到帮助中心列表页
-	        });
-	    } else if (utility === 'notifications') {
-	         uni.showToast({
-	            title: '消息通知功能开发中',
-	            icon: 'none'
-	        });
+	function handleUtilityClick(utility: string) {
+		if (utility === 'help') {
+			uni.navigateTo({
+				url: '/pages/helpCenter/helpCenter' // 跳转到帮助中心列表页
+			});
+		} else if (utility === 'notifications') {
+			uni.showToast({
+				title: '消息通知功能开发中',
+				icon: 'none'
+			});
 		}
 	}
 
@@ -411,6 +475,7 @@
 			url: '/pages/recentOrder/recentOrder' // 确保路径正确
 		});
 	}
+
 	function goToLaunch() {
 		uni.redirectTo({
 			url: "/uni_modules/uni-id-pages/pages/login/login-withpwd", // 确保路径正确
@@ -451,7 +516,10 @@
 
 		// 2. 如果未获取，则从云函数获取
 		isLoadingPhone.value = true;
-		uni.showLoading({ title: '获取号码中...', mask: true });
+		uni.showLoading({
+			title: '获取号码中...',
+			mask: true
+		});
 
 		try {
 			const result = await todo.getCustomerServicePhone();
@@ -478,9 +546,12 @@
 		}
 	}
 
-	function makeTheCall(phoneNumber : string) {
+	function makeTheCall(phoneNumber: string) {
 		if (!phoneNumber) {
-			uni.showToast({ title: '无效的电话号码', icon: 'none' });
+			uni.showToast({
+				title: '无效的电话号码',
+				icon: 'none'
+			});
 			return;
 		}
 		uni.makePhoneCall({
@@ -493,9 +564,15 @@
 				// 根据错误类型可以给出更具体的提示
 				if (err.errMsg && err.errMsg.includes('cancel')) {
 					// 用户取消拨打
-					uni.showToast({ title: '已取消拨打', icon: 'none' });
+					uni.showToast({
+						title: '已取消拨打',
+						icon: 'none'
+					});
 				} else {
-					uni.showToast({ title: '无法拨打电话', icon: 'none' });
+					uni.showToast({
+						title: '无法拨打电话',
+						icon: 'none'
+					});
 				}
 			},
 			complete: () => {
@@ -609,6 +686,14 @@
 		white-space: pre-line;
 		/* 触发换行的容器宽度 */
 		max-width: 300rpx;
+	}
+
+	/* 新增：二维码按钮和设置按钮的容器 */
+	.action-buttons {
+		display: flex;
+		gap: 10px;
+		/* 按钮之间的间距 */
+		align-items: center;
 	}
 
 	/* 会员徽章容器 */
@@ -1056,6 +1141,69 @@
 		align-items: center;
 	}
 
+	/* 新增：二维码弹窗样式 */
+	.qr-code-modal {
+		background-color: #fff;
+		border-radius: 16px;
+		padding: 20px;
+		width: 80vw;
+		/* 弹窗宽度 */
+		max-width: 300px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.modal-header {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #eee;
+	}
+
+	.modal-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333;
+	}
+
+	.modal-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 15px;
+	}
+
+	.modal-uid {
+		font-size: 14px;
+		color: #666;
+		word-break: break-all;
+		/* 确保长 UID 换行 */
+		text-align: center;
+	}
+
+	.qr-code-display {
+		width: 200px;
+		/* 应与二维码生成尺寸匹配 */
+		height: 200px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: #f8f8f8;
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.qr-code-image {
+		width: 100%;
+		height: 100%;
+	}
+
+
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
 	/* 小屏幕设备 */
 	@media screen and (max-width: 375px) {
@@ -1225,6 +1373,16 @@
 			max-width: 300rpx;
 		}
 
+		/* 新增：二维码按钮暗黑模式样式 */
+		.action-buttons .settings-button {
+			background: rgba(0, 0, 0, 0.3);
+			/* 暗色背景 */
+		}
+
+		.action-buttons .settings-button:active {
+			background: rgba(0, 0, 0, 0.4);
+		}
+
 		.membership-info-card {
 			background: rgb(22, 22, 24);
 			border-radius: 16px;
@@ -1365,6 +1523,28 @@
 			height: 1px;
 			background-color: rgb(51, 49, 50);
 			margin: 0 8px;
+		}
+
+		/* 新增：二维码弹窗暗黑模式样式 */
+		.qr-code-modal {
+			background-color: #333;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+		}
+
+		.modal-title {
+			color: #eee;
+		}
+
+		.modal-uid {
+			color: #bbb;
+		}
+
+		.modal-header {
+			border-bottom: 1px solid #555;
+		}
+
+		.qr-code-display {
+			background-color: #222;
 		}
 	}
 </style>
