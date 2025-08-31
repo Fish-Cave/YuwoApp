@@ -2,6 +2,7 @@
   "dependencies": {
     "axios": "^1.8.3",
     "dayjs": "^1.11.13",
-    "pinia": "^3.0.1"
+    "pinia": "^3.0.1",
+    "qrcode": "^1.5.4"
   }
 }
