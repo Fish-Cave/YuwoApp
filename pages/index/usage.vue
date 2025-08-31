@@ -1,12 +1,13 @@
 <template>
 	<view class="container">
 		<view class="filter-container">
-			<view class="filter-button">
+			<!-- 根据是否为管理员，动态绑定点击事件和样式 -->
+			<view class="filter-button" :class="{'filter-clickable': isSuperUser}" @click="handlePlayerCountClick">
 				<uni-icons type="person-filled" size="20"></uni-icons>
 				<text class="filter-text">当前窝内签到数:</text>
-				<text style="color: orange; 
-				padding-left: 20rpx; 
-				font-size: 30rpx; font-weight: bold;">{{howManyPlayer}}</text>
+				<text style="color: orange; padding-left: 20rpx; font-size: 30rpx; font-weight: bold;">{{howManyPlayer}}</text>
+				<!-- 管理员显示一个指示箭头 -->
+				<uni-icons v-if="isSuperUser" type="arrow-right" size="16" color="#999" style="margin-left: 10rpx;"></uni-icons>
 			</view>
 			<view class="filter-button" :class="{'filter-active': showFavoritesOnly}" @click="toggleFavoritesFilter">
 				<uni-icons :type="showFavoritesOnly ? 'heart-filled' : 'heart'" size="20" color="#f472b6"></uni-icons>
@@ -133,7 +134,8 @@
 	const isPreUser = ref(false)
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
 	const isFree = ref(false) //判断闲时忙时
-	
+	const activeSignIns = ref([]);
+	const howManyPlayer = ref(0);
 	
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
@@ -483,16 +485,54 @@
 		}
 	}
 
-	const howManyPlayer = ref(0)
-
 	async function HowManyPlayer() {
-		try {
-			const result = await todo.HowManyPlayer()
-			console.log("窝几" + result.data)
-			howManyPlayer.value = result.data.length
-		} catch (e) { }
+	  try {
+	    const result = await todo.HowManyPlayer();
+	    console.log("当前签到用户数据:", result.data);
+	    if (result && result.data) {
+	      activeSignIns.value = result.data;
+	      howManyPlayer.value = result.data.length;
+	    } else {
+	      activeSignIns.value = [];
+	      howManyPlayer.value = 0;
+	    }
+	  } catch (e) {
+	    console.error("获取签到人数失败:", e);
+	    activeSignIns.value = [];
+	    howManyPlayer.value = 0;
+	  }
 	}
-
+	// 处理"当前窝内签到数"点击事件
+	function handlePlayerCountClick() {
+	  if (isSuperUser.value) {
+	    showPlayerDetails(); // 如果是管理员，显示详情
+	  }
+	}
+	// 显示签到用户详情的弹窗
+	function showPlayerDetails() {
+	  if (activeSignIns.value.length === 0) {
+	    uni.showToast({
+	      icon: 'none',
+	      title: '当前无用户签到',
+	      duration: 2000
+	    });
+	    return;
+	  }
+	
+	  // 格式化用户列表字符串
+	  const userListText = activeSignIns.value.map(player => {
+	    const startTime = dayjs(player.starttime).format('HH:mm');
+	    const userName = player.nickname || `用户ID: ${player.userid.substring(0, 6)}...`;
+	    return `用户: ${userName} (签到时间: ${startTime})`;
+	  }).join('\n');
+	
+	  uni.showModal({
+	    title: '当前签到用户列表',
+	    content: userListText,
+	    showCancel: false,
+	    confirmText: '知道了'
+	  });
+	}
 	onMounted(() => {
 		console.log("usage 组件 onMounted");
 		if (props.startTime && props.endTime) {
@@ -804,7 +844,15 @@
 	.error-text {
 		color: #ffffff;
 	}
-
+	/* 新增样式：为管理员的按钮添加可点击的视觉效果 */
+	.filter-clickable {
+	  cursor: pointer;
+	  transition: background-color 0.2s ease;
+	}
+	
+	.filter-clickable:active {
+	  background-color: rgba(255, 255, 255, 0.9);
+	}
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
 	/* 小屏幕设备 */
 	@media screen and (max-width: 375px) {
@@ -1078,5 +1126,8 @@
 			font-size: 26rpx;
 			color: white;
 		}
+		.filter-clickable:active {
+		    background-color: rgba(255, 255, 255, 0.4);
+	    }
 	}
 </style>

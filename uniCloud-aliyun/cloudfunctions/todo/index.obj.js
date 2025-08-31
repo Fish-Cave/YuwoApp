@@ -936,15 +936,57 @@ module.exports = {
 		}).orderBy("create_date", "desc").get()
 	},
 	
-	HowManyPlayer: function() {
-		const dbJQL = uniCloud.databaseForJQL({ // 获取JQL database引用，此处需要传入云对象的clientInfo
-			clientInfo: this.getClientInfo()
-		})
-		const signin = dbJQL.collection('signin')
-		return signin.where({
-			status : 0, 
-		}).get()
+	async HowManyPlayer() {
+	    const dbJQL = uniCloud.databaseForJQL({
+	        clientInfo: this.getClientInfo()
+	    });
+	    
+	    try {
+	        // 1. 首先查询所有正在签到的记录
+	        const signinResult = await dbJQL.collection('signin')
+	            .where({ status: 0 })
+	            .get();
+	            
+	        if (!signinResult || !signinResult.data) {
+	            return { data: [] };
+	        }
+	        
+	        // 创建一个简单的结果数组
+	        const processedData = signinResult.data.map(signin => {
+	            return {
+	                _id: signin._id,
+	                userid: signin.userid,
+	                starttime: signin.starttime,
+	                nickname: '未知用户' // 先设置默认值
+	            };
+	        });
+	        
+	        // 2. 对于每个签到记录，单独查询用户信息
+	        for (let i = 0; i < processedData.length; i++) {
+	            try {
+	                const userResult = await dbJQL.collection('uni-id-users')
+	                    .doc(processedData[i].userid)
+	                    .get(); // 不使用 field() 方法，获取完整文档
+	                
+	                if (userResult && userResult.data && userResult.data.length > 0) {
+	                    const userData = userResult.data[0];
+	                    processedData[i].nickname = userData.nickname || userData.username || '未知用户';
+	                } else {
+	                    processedData[i].nickname = '未知用户';
+	                }
+	            } catch (userErr) {
+	                console.error("获取用户信息失败:", userErr);
+	                processedData[i].nickname = '未知用户';
+	            }
+	        }
+	        
+	        return { data: processedData };
+	    } catch (e) {
+	        console.error("查询签到用户失败:", e);
+	        return { data: [] };
+	    }
 	},
+
 	
 	/**
 	 * 更新用户统计信息
