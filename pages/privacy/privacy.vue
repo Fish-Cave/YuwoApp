@@ -1,4 +1,39 @@
-# 用户服务协议
+<template>
+  <view class="container">
+
+    <!-- 协议内容区域 -->
+    <!-- scroll-view 必须设置高度，这里通过 flex: 1 自动填充剩余空间 -->
+    <scroll-view
+      scroll-y
+      class="agreement-scroll-view"
+      :scroll-top="scrollTop"
+      @scroll="onScroll"
+    >
+      <view class="agreement-content">
+        <!-- 使用 rich-text 显示解析后的HTML内容 -->
+        <rich-text :nodes="agreementHtml"></rich-text>
+      </view>
+    </scroll-view>
+
+    <!-- 返回顶部按钮 -->
+    <view
+      v-if="showScrollToTop"
+      class="scroll-to-top-btn"
+      @click="scrollToTop"
+    >
+      <uni-icons type="arrow-up" size="24" color="#fff"></uni-icons>
+    </view>
+  </view>
+</template>
+
+<script>
+
+export default {
+  data() {
+    return {
+      // 用户服务协议的原始文本内容
+      agreementText: `
+# 隐私政策和用户使用协议
 
 **生效日期：2025-4-3**
 
@@ -146,3 +181,202 @@
 395322960@qq.com
 
 2025-4-3
+      `,
+      agreementHtml: '', // 存储转换后的HTML
+      scrollTop: 0, // scroll-view 的滚动位置
+      oldScrollTop: 0, // 用于辅助滚动到顶部
+      showScrollToTop: false, // 是否显示返回顶部按钮
+      scrollThreshold: 200, // 滚动超过此距离显示返回顶部按钮 (px)
+    };
+  },
+  created() {
+    this.parseAgreementText();
+  },
+  methods: {
+    /**
+     * 返回上一页
+     */
+    goBack() {
+      uni.navigateBack({
+        delta: 1,
+      });
+    },
+    /**
+     * 滚动到页面顶部
+     */
+    scrollToTop() {
+      // UniApp scroll-view 的 scroll-top 属性，如果目标值与当前值相同，不会触发滚动。
+      // 因此，需要先将其设置为一个非0值（如果当前在顶部），再设置为0，以确保滚动事件被触发。
+      this.oldScrollTop = this.scrollTop;
+      this.scrollTop = this.oldScrollTop === 0 ? 1 : 0; // 如果已经在顶部，先设为1，否则设为0
+      this.$nextTick(() => {
+        this.scrollTop = 0; // 最终设为0，完成滚动
+      });
+    },
+    /**
+     * 监听 scroll-view 滚动事件
+     * 根据滚动距离判断是否显示返回顶部按钮
+     */
+    onScroll(e) {
+      const currentScrollTop = e.detail.scrollTop;
+      if (currentScrollTop > this.scrollThreshold && !this.showScrollToTop) {
+        this.showScrollToTop = true;
+      } else if (currentScrollTop <= this.scrollThreshold && this.showScrollToTop) {
+        this.showScrollToTop = false;
+      }
+    },
+    /**
+     * 解析 Markdown 格式的协议文本为 HTML
+     * 这是一个简化的解析器，用于处理标题、粗体和简单的列表
+     */
+    parseAgreementText() {
+      let html = this.agreementText;
+
+      // 替换标题
+      html = html.replace(/^#\s(.+)$/gm, '<h1>$1</h1>');
+      html = html.replace(/^##\s(.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^###\s(.+)$/gm, '<h3>$1</h3>');
+
+      // 替换粗体
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+      // 将文本按行分割，以便处理段落和列表
+      let lines = html.split('\n');
+      let processedLines = [];
+      let inList = false; // 标记是否在列表内部
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+
+        if (line.startsWith('<h1>') || line.startsWith('<h2>') || line.startsWith('<h3>')) {
+          // 如果遇到标题，且之前在列表中，则结束列表
+          if (inList) {
+            processedLines.push('</ul>');
+            inList = false;
+          }
+          processedLines.push(line);
+        } else if (line.match(/^(\d+\.|\-)\s/)) { // 匹配数字列表或无序列表项
+          // 如果不在列表中，则开始一个无序列表
+          if (!inList) {
+            processedLines.push('<ul>');
+            inList = true;
+          }
+          // 移除列表标记，直接作为列表项内容
+          let listItemContent = line.replace(/^(\d+\.|\-)\s/, '');
+          processedLines.push(`<li>${listItemContent}</li>`);
+        } else if (line === '') {
+          // 如果遇到空行，且之前在列表中，则结束列表
+          if (inList) {
+            processedLines.push('</ul>');
+            inList = false;
+          }
+          processedLines.push(''); // 保留空行，后续处理
+        } else {
+          // 如果不在列表中，且不是标题或列表项，则视为普通段落
+          if (inList) {
+            processedLines.push('</ul>'); // 结束前一个列表
+            inList = false;
+          }
+          processedLines.push(`<p>${line}</p>`);
+        }
+      }
+
+      // 如果文档以列表结束，确保关闭列表标签
+      if (inList) {
+        processedLines.push('</ul>');
+      }
+
+      html = processedLines.join('');
+
+      // 移除多余的空行生成的<p></p>
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      // 移除可能因为空行导致的空<ul></ul>
+      html = html.replace(/<ul>\s*<\/ul>/g, '');
+
+      this.agreementHtml = html;
+    },
+  },
+};
+</script>
+
+<style lang="scss">
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; // 确保页面占满整个视口高度
+  background-color: #f8f8f8;
+}
+
+.agreement-scroll-view {
+  flex: 1; // 占据剩余空间
+  padding: 0 30rpx; // 左右内边距
+  box-sizing: border-box;
+  /* 动态计算顶部填充，确保内容从导航栏下方开始 */
+  /* var(--status-bar-height) 是 UniApp 提供的状态栏高度变量 */
+  /* 44px 是 uni-nav-bar 的默认高度 */
+  padding-top: calc(var(--status-bar-height) + 44px);
+}
+
+.agreement-content {
+  padding-bottom: 50rpx; // 底部留白，避免内容被返回顶部按钮遮挡
+  line-height: 1.8;
+  font-size: 28rpx;
+  color: #333;
+
+  /* rich-text 内部元素的样式需要通过全局样式或组件内样式穿透来控制 */
+  /* 这里使用 ::v-deep 或 ::v-deep 进行样式穿透 */
+  ::v-deep h1 {
+    font-size: 40rpx;
+    font-weight: bold;
+    text-align: center;
+    margin: 40rpx 0;
+  }
+
+  ::v-deep h2 {
+    font-size: 36rpx;
+    font-weight: bold;
+    margin: 30rpx 0 20rpx;
+  }
+
+  ::v-deep h3 {
+    font-size: 32rpx;
+    font-weight: bold;
+    margin: 25rpx 0 15rpx;
+  }
+
+  ::v-deep strong {
+    font-weight: bold;
+  }
+
+  ::v-deep p {
+    margin-bottom: 1em;
+    text-indent: 2em; // 段落首行缩进
+  }
+
+  ::v-deep ul {
+    margin-left: 1em; // 列表整体缩进
+    padding-left: 0;
+  }
+
+  ::v-deep li {
+    margin-bottom: 0.5em;
+    list-style-type: disc; // 无序列表点
+    margin-left: 1em; // 列表项缩进
+  }
+}
+
+.scroll-to-top-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 100rpx;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.2);
+  z-index: 999;
+}
+</style>

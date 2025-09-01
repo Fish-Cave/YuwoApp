@@ -219,6 +219,13 @@
 			{
 				"navigationBarTitleText" : ""
 			}
+		},
+		{
+			"path" : "pages/privacy/privacy",
+			"style" : 
+			{
+				"navigationBarTitleText" : "隐私政策和用户使用协议"
+			}
 		}
 	],
 	"globalStyle": {

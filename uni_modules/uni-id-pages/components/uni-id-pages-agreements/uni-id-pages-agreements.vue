@@ -92,35 +92,66 @@
 				// #endif
 			},
 			navigateTo({
-				url,
-				title
-			}) {
-				uni.navigateTo({
-					url: '/uni_modules/uni-id-pages/pages/common/webview/webview?url=' + url + '&title=' + title,
-					success: res => {},
-					fail: () => {},
-					complete: () => {}
-				});
-			},
-			hasAnd(agreements, index) {
-				return agreements.length - 1 > index
-			},
-			setAgree(e) {
-				this.isAgree = !this.isAgree
-				this.$emit('setAgree', this.isAgree)
-			}
-		},
-		created() {
-			this.needAgreements = (config?.agreements?.scope || []).includes(this.scope)
-		},
-		data() {
-			return {
-				isAgree: false,
-				needAgreements:true,
-				needPopupAgreements:false
-			};
-		}
-	}
+							url,
+							title
+						}) {
+							if (!url) {
+								uni.showToast({
+									title: '链接地址为空',
+									icon: 'none'
+								});
+								return;
+							}
+			
+							if (url.startsWith('http://') || url.startsWith('https://')) {
+								// 如果是外部链接，使用 webview 页面加载
+								uni.navigateTo({
+									url: '/uni_modules/uni-id-pages/pages/common/webview/webview?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title),
+									success: res => {},
+									fail: (err) => {
+										console.error("navigateTo webview failed:", url, err);
+										uni.showToast({
+											title: '加载外部链接失败',
+											icon: 'none'
+										});
+									},
+									complete: () => {}
+								});
+							} else {
+								// 如果是内部页面路径，直接跳转
+								uni.navigateTo({
+									url: url, // 直接跳转到内部页面路径
+									success: res => {},
+									fail: (err) => {
+										console.error("navigateTo local page failed:", url, err);
+										uni.showToast({
+											title: '页面不存在或路径错误',
+											icon: 'none'
+										});
+									},
+									complete: () => {}
+								});
+							}
+						},
+						hasAnd(agreements, index) {
+							return agreements.length - 1 > index
+						},
+						setAgree(e) {
+							this.isAgree = !this.isAgree
+							this.$emit('setAgree', this.isAgree)
+						}
+					},
+					created() {
+						this.needAgreements = (config?.agreements?.scope || []).includes(this.scope)
+					},
+					data() {
+						return {
+							isAgree: false,
+							needAgreements:true,
+							needPopupAgreements:false
+						};
+					}
+				}
 </script>
 
 <style lang="scss" scoped>

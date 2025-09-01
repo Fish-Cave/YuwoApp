@@ -20,6 +20,8 @@
 		<!-- 带选择框的隐私政策协议组件 -->
 		<uni-id-pages-agreements scope="login" ref="agreements"></uni-id-pages-agreements>
 		<button class="uni-btn" type="primary" @click="pwdLogin">登录</button>
+		<button class="uni-btn" style="color: #000;" type="primary" @click="cancelLogin">取消登录</button>
+
 		<!-- 忘记密码 -->
 		<view class="link-box">
 			<view v-if="!config.isAdmin">
@@ -27,6 +29,7 @@
 				<text class="link" @click="toRetrievePwd">找回密码</text>
 			</view>
 			<text class="link" @click="toRegister">{{config.isAdmin ? '注册管理员账号': '注册账号'}}</text>
+			
 			<!-- <text class="link" @click="toRegister" v-if="!config.isAdmin">注册账号</text> -->
 		</view>
 		<!-- 悬浮登录方式组件 -->
@@ -142,7 +145,29 @@
 						console.error(e);
 					}
 				})
-			}
+			},
+			/**
+			 * 取消登录，返回首页
+			 */
+			cancelLogin() {
+				// 尝试返回上一页
+				uni.navigateBack({
+					delta: 1, // 返回的页面数，如果 delta 大于现有页面数，则返回到首页
+					fail: (err) => {
+						console.error("navigateBack failed:", err);
+						uni.reLaunch({ // 使用 reLaunch 关闭所有页面，打开到应用内的某个页面
+							url: '/pages/index/index', 
+							fail: (err2) => {
+								console.error("reLaunch to index failed:", err2);
+								uni.showToast({
+									title: '无法返回或跳转首页',
+									icon: 'none'
+								});
+							}
+						});
+					}
+				});
+			},
 		}
 	}
 </script>
@@ -172,5 +197,10 @@
 
 	.link {
 		font-size: 12px;
+	}
+
+	.uni-btn-cancel {
+		margin-top: 10px; 
+		color: #000000;
 	}
 </style>
