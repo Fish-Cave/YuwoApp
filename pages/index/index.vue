@@ -21,9 +21,11 @@
 			</view>
 			<view>
 				<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
-				<usage :startTime="selectedStartTime" 
-				:endTime="selectedEndTime" 
-				:isFree="isFree"></usage>
+				<usage :dayStartTime="selectedStartTime" 
+				       :dayEndTime="selectedEndTime" 
+				       :fetchStartTime="fetchStartTime"
+				       :fetchEndTime="fetchEndTime"
+				       :isFree="isFree"></usage>
 				<button v-if="isAdmin" @click="goToConfig()">配置</button>
 			</view>
 		</view>
@@ -37,48 +39,59 @@
 </template>
 
 <script lang="ts" setup>
-	import { ref, onMounted, computed, reactive } from 'vue';
+	import { ref, onMounted, computed, reactive, watch } from 'vue'; // 添加 watch
 	import dayjs from 'dayjs';
 	import usage from './usage';
 	import { useProfileStore } from '../../stores/userProfileStore';
 	import isFreeDay from '@/modules/isFreeDay.ts'
+
 	const userProfile = useProfileStore()
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 	console.log(res)
 	const isAdmin = ref(res.role.includes("admin"))
-	const isFree = ref(isFreeDay())
+	const isFree = ref(isFreeDay()) // 初始判断闲时忙时，基于当前时间
+
 	const todayDate = computed(() => {
 		if (isAdmin.value) {
-			return ''; //  管理员可以查看所有日期，startDate 设置为空字符串
+			return ''; // 管理员可以查看所有日期，startDate 设置为空字符串
 		} else {
 			return dayjs().format('YYYY-MM-DD'); // 其他用户只能查看今天及以后的日期
 		}
 	});
-	// 用于存储选中的日期的开始和结束时间戳
+
+	// 用于存储选中的日期的开始和结束时间戳 (用于usage组件的时间条的视觉范围)
 	const selectedStartTime = ref<number | null>(null);
 	const selectedEndTime = ref<number | null>(null);
 
+	// 新增：用于存储实际向后端请求数据的开始和结束时间戳 (包含跨夜预约的范围)
+	const fetchStartTime = ref<number | null>(null);
+	const fetchEndTime = ref<number | null>(null);
+
 	// calendarChange 事件处理函数
 	function calendarChange(e : any) {
-		console.log('wu-calendar change event e:', e); // 保留打印 e 对象，方便观察
+		console.log('wu-calendar change event e:', e);
 
-		if (e.fulldate) { // 检查 e 对象中是否存在 fulldate 属性
-			const selectedDate = e.fulldate; // 获取日期字符串，例如 "2025-03-21"
+		if (e.fulldate) {
+			const selectedDate = e.fulldate; // 例如 "2025-03-21"
+			const selectedDayMoment = dayjs(selectedDate); // 创建 dayjs 对象
 
-			// 使用 dayjs 计算 startTime (当天 00:00:00) 和 endTime (次日 00:00:00) 的时间戳
-			const startTime = dayjs(selectedDate).startOf('day').valueOf();   // 当天 00:00:00 时间戳
-			const endTime = dayjs(selectedDate).endOf('day').valueOf();     // 当天 23:59:59 时间戳 （或者使用 .add(1, 'day').startOf('day').valueOf() 获取次日 00:00:00）
+			// 1. 计算当前显示日期的 00:00:00 和 23:59:59.999 (用于usage组件的时间条总长度)
+			selectedStartTime.value = selectedDayMoment.startOf('day').valueOf();
+			selectedEndTime.value = selectedDayMoment.endOf('day').valueOf();
 
-			selectedStartTime.value = startTime;
-			selectedEndTime.value = endTime;
-			isFree.value = isFreeDay(startTime)
+			// 2. 计算后端实际需要查询的范围：前一天 22:00:00 到 后一天 08:00:00
+			// 注意：这里使用 clone() 避免修改原始 selectedDayMoment
+			fetchStartTime.value = selectedDayMoment.clone().subtract(1, 'day').hour(22).minute(0).second(0).millisecond(0).valueOf();
+			fetchEndTime.value = selectedDayMoment.clone().add(1, 'day').hour(8).minute(0).second(0).millisecond(0).valueOf();
 
-			console.log('startTime:', startTime, 'endTime:', endTime); // 打印计算出的时间戳
+			isFree.value = isFreeDay(selectedStartTime.value); // 闲时忙时判断基于当天 00:00:00
+
+			console.log('Visual Day Range:', dayjs(selectedStartTime.value).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(selectedEndTime.value).format('YYYY-MM-DD HH:mm:ss'));
+			console.log('Backend Fetch Range:', dayjs(fetchStartTime.value).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(fetchEndTime.value).format('YYYY-MM-DD HH:mm:ss'));
 		} else {
-			console.warn('wu-calendar change event 没有 fulldate 属性', e); // 如果没有 fulldate，打印警告信息
+			console.warn('wu-calendar change event 没有 fulldate 属性', e);
 		}
 	}
-
 
 	function goToConfig() {
 		uni.navigateTo({
@@ -99,12 +112,12 @@
 		}
 		const orderData = {
 			name: "不游玩机台",
-			id: "67e2f4803f1a47470a1a552a",
+			id: "67e2f4803f1a47470a1a552a", // 假设这是一个特殊的机台ID
 			isNoPlay: true,
 			startTime: selectedStartTime.value,
 			endTime: selectedEndTime.value
 		};
-		if (res.role.includes("user") ||res.role.includes("admin")) {
+		if (res.role.includes("user") || res.role.includes("admin")) {
 			uni.setStorageSync('orderData', JSON.stringify(orderData));
 
 			uni.navigateTo({
@@ -113,7 +126,7 @@
 					res.eventChannel.emit('acceptDataFromOpenerPage', orderData);
 				}
 			});
-		}else{
+		} else {
 			uni.showToast({
 				title: "您还没有预约权限,请联系管理员申请权限",
 				icon: 'error'
@@ -121,23 +134,20 @@
 		}
 
 	}
-	
+
 	const goToSettlePage = () => {
-	    console.log("用户点击了 '需要补票？点击这里' 卡片");
-	
-	    // 添加权限检查
-	    if (res.role.includes("user") || res.role.includes("admin")) {
-	        // 用户有权限，执行导航
-	        uni.navigateTo({
-	            url: '/pages/settle/settle' // 假设您的补票页面路径是 /pages/settle/settle
-	        });
-	    } else {
-	        // 用户没有权限，显示提示
-	        uni.showToast({
-	            title: "您还没有预约权限,请联系管理员申请权限",
-	            icon: 'error'
-	        });
-	    }
+		console.log("用户点击了 '需要补票？点击这里' 卡片");
+
+		if (res.role.includes("user") || res.role.includes("admin")) {
+			uni.navigateTo({
+				url: '/pages/settle/settle'
+			});
+		} else {
+			uni.showToast({
+				title: "您还没有预约权限,请联系管理员申请权限",
+				icon: 'error'
+			});
+		}
 	};
 
 	uni.$on("uni-id-pages-login-success", function () {
@@ -148,20 +158,26 @@
 
 	onMounted(() => {
 		// 初始化为当天日期
-		const today = dayjs().format('YYYY-MM-DD');
-		const startTime = dayjs(today).startOf('day').valueOf();
-		const endTime = dayjs(today).endOf('day').valueOf();
+		const today = dayjs(); // 获取当前 dayjs 对象
 
-		selectedStartTime.value = startTime;
-		selectedEndTime.value = endTime;
+		// 1. 初始化当前显示日期的 00:00:00 和 23:59:59.999
+		selectedStartTime.value = today.startOf('day').valueOf();
+		selectedEndTime.value = today.endOf('day').valueOf();
 
-		console.log('初始化时间 - startTime:', startTime, 'endTime:', endTime);
+		// 2. 初始化后端实际需要查询的范围
+		// 注意：这里使用 clone() 避免修改原始 today 对象
+		fetchStartTime.value = today.clone().subtract(1, 'day').hour(22).minute(0).second(0).millisecond(0).valueOf();
+		fetchEndTime.value = today.clone().add(1, 'day').hour(8).minute(0).second(0).millisecond(0).valueOf();
+
+		console.log('初始化时间 - Visual Day Range:', dayjs(selectedStartTime.value).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(selectedEndTime.value).format('YYYY-MM-DD HH:mm:ss'));
+		console.log('初始化时间 - Backend Fetch Range:', dayjs(fetchStartTime.value).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(fetchEndTime.value).format('YYYY-MM-DD HH:mm:ss'));
 
 		// 获取用户信息
 		uniCloud.getCurrentUserInfo('uni_id_token');
 		isAdmin.value = res.role.includes("admin");
 	});
 </script>
+
 
 <style lang="scss">
 	.float-config-btn {

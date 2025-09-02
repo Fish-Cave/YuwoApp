@@ -723,69 +723,69 @@ module.exports = {
 	},
 
 	GetMachineReservationInfo: async function(startTime, endTime) {
-		const dbJQL = uniCloud.databaseForJQL({
-			clientInfo: this.getClientInfo()
-		});
-		const collectionJQL = dbJQL.collection('reservation-log');
-		const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get()
-
-		const reservationData = await collectionJQL.where(`startTime >= ${startTime} && endTime <= ${endTime}`)
-			.field({
-				"_id": true,
-				"machineId": true,
-				"isOvernight": true,
-				"status": true,
-				"startTime": true,
-				"endTime": true,
-				"userId": true
-			}).get()
-
-		const machineMap = new Map();
-		machines.data.forEach(machine => {
-			machineMap.set(machine._id, machine);
-		});
-
-		// 获取所有预约记录的 userId，用于批量查询用户信息
-		const userIds = [...new Set(reservationData.data.map(reservation => reservation.userId))];
-
-		// 批量查询用户信息
-		const users = await dbJQL.collection('uni-id-users')
-			.where({
-				_id: dbJQL.command.in(userIds)
-			})
-			.field({
-				"_id": true,
-				"_id": true,
-				"nickname": true,
-				"avatar": true,
-				"avatar_file": true //  <--  添加 avatar_file 字段的选择
-			})
-			.get();
-		const userMap = new Map();
-		users.data.forEach(user => {
-			userMap.set(user._id, user);
-		});
-
-
-		const result = machines.data.map(machine => {
-			const machineReservations = reservationData.data.filter(reservation => reservation
-				.machineId === machine._id);
-			// 为每个预约记录关联用户信息
-			const reservationsWithUserInfo = machineReservations.map(reservation => {
-				const userInfo = userMap.get(reservation.userId) || {};
-				return {
-					...reservation,
-					username: userInfo.nickname || '未知用户',
-					avatar: userInfo.avatar || '',
-					avatar_file: userInfo.avatar_file //  <--  将 avatar_file 也传递到前端
-				};
-			});
-			return {
-				machineInfo: machine,
-				reservations: reservationsWithUserInfo
-			};
-		});
-		return result;
+	    const dbJQL = uniCloud.databaseForJQL({
+	        clientInfo: this.getClientInfo()
+	    });
+	    const collectionJQL = dbJQL.collection('reservation-log');
+	    const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get()
+	
+	    // 修改这一行，使用函数参数名 startTime 和 endTime 替代未定义的 queryStartTime 和 queryEndTime
+	    const reservationData = await collectionJQL.where(`startTime < ${endTime} && endTime > ${startTime}`)
+	        .field({
+	            "_id": true,
+	            "machineId": true,
+	            "isOvernight": true,
+	            "status": true,
+	            "startTime": true,
+	            "endTime": true,
+	            "userId": true
+	        }).get()
+	
+	    const machineMap = new Map();
+	    machines.data.forEach(machine => {
+	        machineMap.set(machine._id, machine);
+	    });
+	
+	    // 获取所有预约记录的 userId，用于批量查询用户信息
+	    const userIds = [...new Set(reservationData.data.map(reservation => reservation.userId))];
+	
+	    // 批量查询用户信息
+	    const users = await dbJQL.collection('uni-id-users')
+	        .where({
+	            _id: dbJQL.command.in(userIds)
+	        })
+	        .field({
+	            "_id": true,
+	            "nickname": true,
+	            "avatar": true,
+	            "avatar_file": true //  <--  添加 avatar_file 字段的选择
+	        })
+	        .get();
+	    const userMap = new Map();
+	    users.data.forEach(user => {
+	        userMap.set(user._id, user);
+	    });
+	
+	
+	    const result = machines.data.map(machine => {
+	        const machineReservations = reservationData.data.filter(reservation => reservation
+	            .machineId === machine._id);
+	        // 为每个预约记录关联用户信息
+	        const reservationsWithUserInfo = machineReservations.map(reservation => {
+	            const userInfo = userMap.get(reservation.userId) || {};
+	            return {
+	                ...reservation,
+	                username: userInfo.nickname || '未知用户',
+	                avatar: userInfo.avatar || '',
+	                avatar_file: userInfo.avatar_file //  <--  将 avatar_file 也传递到前端
+	            };
+	        });
+	        return {
+	            machineInfo: machine,
+	            reservations: reservationsWithUserInfo
+	        };
+	    });
+	    return result;
 	},
 
 

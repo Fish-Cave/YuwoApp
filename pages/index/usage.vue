@@ -58,13 +58,13 @@
 					<view class="timeline-container">
 						<view class="timeline-bar">
 							<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
-								:key="index" class="timeline-segment"
-								:style="calculateSegmentStyle(reservation, startTime, endTime)">
-								<view class="timeline-segment-pulse"></view>
-								<view v-if="getReservationCount(machineData.reservations, reservation) > 1"
-									class="reservation-count">
-									{{ getReservationCount(machineData.reservations, reservation) }}
-								</view>
+							    :key="index" class="timeline-segment"
+							    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
+							    <view class="timeline-segment-pulse"></view>
+							    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
+							        class="reservation-count">
+							        {{ getReservationCount(machineData.reservations, reservation) }}
+							    </view>
 							</view>
 						</view>
 					</view>
@@ -124,19 +124,20 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch, computed } from 'vue'; // 添加 computed
+	import { onMounted, reactive, ref, watch, computed } from 'vue';
 	import dayjs from 'dayjs';
 	import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 	import isFreeDay from '@/modules/isFreeDay.ts'
 	const uniIdCo = uniCloud.importObject("uni-id-co")
-	const isSuperUser = ref(false)// 管理员也是superuser
+
+	const isSuperUser = ref(false) // 管理员也是superuser
 	const isUser = ref(false)
 	const isPreUser = ref(false)
 	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
-	const isFree = ref(false) //判断闲时忙时
+	const isFree = ref(false) //判断闲时忙时 (这个值现在从父组件传递过来)
 	const activeSignIns = ref([]);
 	const howManyPlayer = ref(0);
-	
+
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
 		if (res.role.includes("admin")) {
@@ -151,8 +152,7 @@
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = true
-		}
-		else { // Other roles or no login
+		} else { // Other roles or no login
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = false
@@ -202,23 +202,33 @@
 	uni.$on('uni-id-pages-login-success', () => {
 		roleJudge();
 	});
-	
+
 	const todo = uniCloud.importObject('todo')
+
 	interface machine {
-		"_id" : string;
-		"name" : string;
-		"capacity" : number;
-		"status" : number;
-		"machinenum" : number;
-		"description" : string;
+		"_id": string;
+		"name": string;
+		"capacity": number;
+		"status": number;
+		"machinenum": number;
+		"description": string;
 	}
 	interface Reservation {
-		"_id" : string;
-		"machineId" : string;
-		"isOvernight" : boolean;
-		"status" : string;
-		"startTime" : number;
-		"endTime" : number;
+		"_id": string;
+		"machineId": string;
+		"isOvernight": boolean;
+		"status": string;
+		"startTime": number;
+		"endTime": number;
+		"userId": string; // 添加 userId 字段，因为后端返回了
+		"username"?: string; // 添加 username 字段
+		"avatar"?: string; // 添加 avatar 字段
+		"avatar_file"?: any; // 添加 avatar_file 字段
+	}
+
+	// 新增：用于在时间条上显示的预约接口，其 startTime/endTime 已经被调整
+	interface DisplayReservation extends Reservation {
+		// 可以添加其他显示相关的属性，如果需要区分不同类型的段
 	}
 
 	// 新增：用于控制收藏状态
@@ -230,6 +240,7 @@
 			title: "机台故障",
 		})
 	}
+
 	function unlogin() {
 		uni.showToast({
 			icon: "error",
@@ -244,8 +255,8 @@
 		// 存储数据到 localStorage
 		const detailData = {
 			GetMachineReservationInfo: machineData,
-			startTime: props.startTime,
-			endTime: props.endTime
+			dayStartTime: props.dayStartTime, // 使用新的 prop 名称
+			dayEndTime: props.dayEndTime // 使用新的 prop 名称
 		};
 		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
 
@@ -262,15 +273,23 @@
 
 	// 接收父组件传递的时间戳 props
 	const props = defineProps({
-		startTime: {
+		dayStartTime: { // 视觉上的当天开始时间 (00:00:00)
 			type: Number,
 			required: true
 		},
-		endTime: {
+		dayEndTime: { // 视觉上的当天结束时间 (23:59:59.999)
 			type: Number,
 			required: true
 		},
-		isFree: {
+		fetchStartTime: { // 实际向后端请求的开始时间 (前一天 22:00:00)
+			type: Number,
+			required: true
+		},
+		fetchEndTime: { // 实际向后端请求的结束时间 (后一天 08:00:00)
+			type: Number,
+			required: true
+		},
+		isFree: { // 闲时忙时状态
 			type: Boolean,
 			required: true
 		}
@@ -280,8 +299,8 @@
 		const orderData = {
 			name: machineName,
 			id: machineID,
-			startTime: props.startTime,
-			endTime: props.endTime
+			startTime: props.dayStartTime, // 预约时使用当天时间
+			endTime: props.dayEndTime // 预约时使用当天时间
 		};
 		uni.setStorageSync('orderData', JSON.stringify(orderData));
 
@@ -291,26 +310,26 @@
 				res.eventChannel.emit('acceptDataFromOpenerPage', {
 					'name': machineName,
 					'id': machineID,
-					'startTime': props.startTime,
-					'endTime': props.endTime
+					'startTime': props.dayStartTime,
+					'endTime': props.dayEndTime
 				})
 			}
 		});
 	}
 
 	const machineReservationData = ref<Array<{
-		machineInfo : machine,
-		reservations : Reservation[]
-	}>>([]) // 初始化为空数组
+		machineInfo: machine,
+		reservations: Reservation[]
+	}>>([]) // 初始化为空数组，存储从后端获取的原始数据
 
 	async function loadMachineReservations() {
 		try {
-			if (!props.startTime || !props.endTime) {
-				console.log("startTime 或 endTime 为空，不加载数据");
+			if (!props.fetchStartTime || !props.fetchEndTime) { // 使用 fetch 时间
+				console.log("fetchStartTime 或 fetchEndTime 为空，不加载数据");
 				return;
 			}
-			console.log("准备调用 GetMachineReservationInfo 云函数");
-			let res = await todo.GetMachineReservationInfo(props.startTime, props.endTime);
+			console.log("准备调用 GetMachineReservationInfo 云函数，范围:", dayjs(props.fetchStartTime).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(props.fetchEndTime).format('YYYY-MM-DD HH:mm:ss'));
+			let res = await todo.GetMachineReservationInfo(props.fetchStartTime, props.fetchEndTime); // 使用 fetch 时间
 			console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
 
 			if (Array.isArray(res)) {
@@ -328,16 +347,72 @@
 		}
 	}
 
-	// 监听 startTime 和 endTime 的变化，重新加载预约数据
-	watch(() => [props.startTime, props.endTime], ([newStartTime, newEndTime]) => {
-		console.log("watch 监听器被触发，startTime:", newStartTime, "endTime:", newEndTime);
-		if (newStartTime && newEndTime) {
+	// 监听 fetchStartTime 和 fetchEndTime 的变化，重新加载预约数据
+	watch(() => [props.fetchStartTime, props.fetchEndTime], ([newFetchStartTime, newFetchEndTime]) => {
+		console.log("watch 监听器被触发，fetchStartTime:", newFetchStartTime, "fetchEndTime:", newFetchEndTime);
+		if (newFetchStartTime && newFetchEndTime) {
 			loadMachineReservations();
 		}
 	})
 
+	// 新增：数据预处理函数，根据 isOvernight 字段和当前显示日期，调整预约的 startTime 和 endTime
+	function processReservationsForDisplay(
+		rawReservations: Reservation[],
+		dayStartTime: number, // 当前显示日期的 00:00:00
+		dayEndTime: number // 当前显示日期的 23:59:59.999
+	): DisplayReservation[] {
+		const displayReservations: DisplayReservation[] = [];
+		const dayStartMoment = dayjs(dayStartTime);
+
+		// 定义当天 08:00 和 22:00 的时间戳
+		const currentDay8h = dayStartMoment.hour(8).minute(0).second(0).millisecond(0).valueOf();
+		const currentDay22h = dayStartMoment.hour(22).minute(0).second(0).millisecond(0).valueOf();
+		// 定义前一天 22:00 的时间戳，用于判断前一天的过夜预约
+		const prevDay22h = dayStartMoment.clone().subtract(1, 'day').hour(22).minute(0).second(0).millisecond(0).valueOf();
+
+
+		for (const res of rawReservations) {
+			if (res.isOvernight) {
+				// 情况1: 前一天的过夜预约，覆盖当前日期的 00:00-08:00 部分
+				// 判断条件：预约开始时间在前一天晚上 22:00 左右，且结束时间在当前日期 00:00 之后
+				if (res.startTime >= prevDay22h && res.startTime < dayStartTime && res.endTime > dayStartTime) {
+					const segmentStart = dayStartTime; // 从当前日期的 00:00 开始
+					const segmentEnd = Math.min(res.endTime, currentDay8h); // 结束于 08:00 或预约实际结束时间
+
+					if (segmentStart < segmentEnd) { // 确保段有效
+						displayReservations.push({ ...res, startTime: segmentStart, endTime: segmentEnd });
+					}
+				}
+
+				// 情况2: 今天的过夜预约，覆盖当前日期的 22:00-24:00 部分
+				// 判断条件：预约开始时间在当前日期 22:00 左右，且结束时间在当前日期 24:00 之后
+				if (res.startTime >= currentDay22h && res.startTime < dayEndTime && res.endTime > dayEndTime) {
+					const segmentStart = Math.max(res.startTime, currentDay22h); // 从 22:00 或预约实际开始时间开始
+					const segmentEnd = dayEndTime; // 结束于当前日期的 23:59:59.999
+
+					if (segmentStart < segmentEnd) { // 确保段有效
+						displayReservations.push({ ...res, startTime: segmentStart, endTime: segmentEnd });
+					}
+				}
+			} else {
+				// 非过夜预约：直接将其时间段限制在当前显示日期内
+				const effectiveStartTime = Math.max(res.startTime, dayStartTime);
+				const effectiveEndTime = Math.min(res.endTime, dayEndTime);
+
+				if (effectiveStartTime < effectiveEndTime) { // 确保段有效
+					displayReservations.push({ ...res, startTime: effectiveStartTime, endTime: effectiveEndTime });
+				}
+			}
+		}
+		return displayReservations;
+	}
+
+
 	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation : Reservation, dayStartTime : number, dayEndTime : number) {
+	function calculateSegmentStyle(reservation : DisplayReservation, dayStartTime : number, dayEndTime : number) {
+		// 注意：这里的 reservation.startTime 和 reservation.endTime 已经是经过 processReservationsForDisplay 调整过的
+		// dayStartTime 和 dayEndTime 仍然是 props.dayStartTime 和 props.dayEndTime (当前显示日期的 00:00-24:00)
+
 		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
 		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
 		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
@@ -352,7 +427,7 @@
 		};
 	}
 
-	function mergeReservations(reservations) {
+	function mergeReservations(reservations: DisplayReservation[]) { // 接收 DisplayReservation 数组
 		if (!reservations || reservations.length === 0) return [];
 
 		// 按开始时间排序
@@ -381,10 +456,10 @@
 		return mergedReservations;
 	}
 
-	function getReservationCount(allReservations, mergedReservation) {
+	function getReservationCount(allReservations: DisplayReservation[], mergedReservation: DisplayReservation) { // 接收 DisplayReservation 数组
 		// 计算有多少预约与当前合并的预约时间段有重叠
 		return allReservations.filter(res =>
-			(res.startTime <= mergedReservation.endTime && res.endTime >= mergedReservation.startTime)
+			(res.startTime < mergedReservation.endTime && res.endTime > mergedReservation.startTime) // 修正重叠判断条件
 		).length;
 	}
 
@@ -393,12 +468,19 @@
 
 	// 添加筛选后的机台数据计算属性
 	const filteredMachineData = computed(() => {
+		// 1. 对原始数据进行预处理，生成适合显示在当前时间条上的预约段
+		const processedData = machineReservationData.value.map(machine => ({
+			...machine,
+			reservations: processReservationsForDisplay(machine.reservations, props.dayStartTime, props.dayEndTime)
+		}));
+
+		// 2. 应用收藏筛选
 		if (!showFavoritesOnly.value) {
-			return machineReservationData.value;
+			return processedData;
 		}
 
 		// 只显示已收藏的机台
-		return machineReservationData.value.filter(machine =>
+		return processedData.filter(machine =>
 			favorites.value.has(machine.machineInfo._id)
 		);
 	});
@@ -486,56 +568,57 @@
 	}
 
 	async function HowManyPlayer() {
-	  try {
-	    const result = await todo.HowManyPlayer();
-	    console.log("当前签到用户数据:", result.data);
-	    if (result && result.data) {
-	      activeSignIns.value = result.data;
-	      howManyPlayer.value = result.data.length;
-	    } else {
-	      activeSignIns.value = [];
-	      howManyPlayer.value = 0;
-	    }
-	  } catch (e) {
-	    console.error("获取签到人数失败:", e);
-	    activeSignIns.value = [];
-	    howManyPlayer.value = 0;
-	  }
+		try {
+			const result = await todo.HowManyPlayer();
+			console.log("当前签到用户数据:", result.data);
+			if (result && result.data) {
+				activeSignIns.value = result.data;
+				howManyPlayer.value = result.data.length;
+			} else {
+				activeSignIns.value = [];
+				howManyPlayer.value = 0;
+			}
+		} catch (e) {
+			console.error("获取签到人数失败:", e);
+			activeSignIns.value = [];
+			howManyPlayer.value = 0;
+		}
 	}
 	// 处理"当前窝内签到数"点击事件
 	function handlePlayerCountClick() {
-	  if (isSuperUser.value) {
-	    showPlayerDetails(); // 如果是管理员，显示详情
-	  }
+		if (isSuperUser.value) {
+			showPlayerDetails(); // 如果是管理员，显示详情
+		}
 	}
 	// 显示签到用户详情的弹窗
 	function showPlayerDetails() {
-	  if (activeSignIns.value.length === 0) {
-	    uni.showToast({
-	      icon: 'none',
-	      title: '当前无用户签到',
-	      duration: 2000
-	    });
-	    return;
-	  }
-	
-	  // 格式化用户列表字符串
-	  const userListText = activeSignIns.value.map(player => {
-	    const startTime = dayjs(player.starttime).format('HH:mm');
-	    const userName = player.nickname || `用户ID: ${player.userid.substring(0, 6)}...`;
-	    return `用户: ${userName} (签到时间: ${startTime})`;
-	  }).join('\n');
-	
-	  uni.showModal({
-	    title: '当前签到用户列表',
-	    content: userListText,
-	    showCancel: false,
-	    confirmText: '知道了'
-	  });
+		if (activeSignIns.value.length === 0) {
+			uni.showToast({
+				icon: 'none',
+				title: '当前无用户签到',
+				duration: 2000
+			});
+			return;
+		}
+
+		// 格式化用户列表字符串
+		const userListText = activeSignIns.value.map(player => {
+			const startTime = dayjs(player.starttime).format('HH:mm');
+			const userName = player.nickname || `用户ID: ${player.userid.substring(0, 6)}...`;
+			return `用户: ${userName} (签到时间: ${startTime})`;
+		}).join('\n');
+
+		uni.showModal({
+			title: '当前签到用户列表',
+			content: userListText,
+			showCancel: false,
+			confirmText: '知道了'
+		});
 	}
 	onMounted(() => {
 		console.log("usage 组件 onMounted");
-		if (props.startTime && props.endTime) {
+		// 初始加载数据，这里会依赖父组件传递的 fetchStartTime 和 fetchEndTime
+		if (props.fetchStartTime && props.fetchEndTime) {
 			loadMachineReservations();
 		}
 		console.log(machineReservationData.value);
@@ -555,8 +638,7 @@
 		loadUserFavorites();
 		// 多少人在签到呀
 		HowManyPlayer()
-		// 是忙时还是闲时呀
-		isFree.value = isFreeDay()
+		// isFree 状态现在从父组件传递，这里不再需要 isFree.value = isFreeDay()
 	})
 
 	// 页面显示时刷新数据和会员状态
