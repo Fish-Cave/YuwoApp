@@ -226,6 +226,13 @@
 			{
 				"navigationBarTitleText" : "隐私政策和用户使用协议"
 			}
+		},
+		{
+			"path" : "pages/machineManagement/machineManagement",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {

@@ -1,125 +1,280 @@
 <template>
 	<view class="container">
 		<view class="filter-container">
-			<!-- 根据是否为管理员，动态绑定点击事件和样式 -->
 			<view class="filter-button" :class="{'filter-clickable': isSuperUser}" @click="handlePlayerCountClick">
 				<uni-icons type="person-filled" size="20"></uni-icons>
-				<text class="filter-text">当前窝内签到数:</text>
+				<text class="filter-text">当前签到数:</text>
 				<text style="color: orange; padding-left: 20rpx; font-size: 30rpx; font-weight: bold;">{{howManyPlayer}}</text>
-				<!-- 管理员显示一个指示箭头 -->
 				<uni-icons v-if="isSuperUser" type="arrow-right" size="16" color="#999" style="margin-left: 10rpx;"></uni-icons>
 			</view>
 			<view class="filter-button" :class="{'filter-active': showFavoritesOnly}" @click="toggleFavoritesFilter">
 				<uni-icons :type="showFavoritesOnly ? 'heart-filled' : 'heart'" size="20" color="#f472b6"></uni-icons>
 				<text class="filter-text">{{ showFavoritesOnly ? '显示全部' : '只看收藏' }}</text>
 			</view>
-		</view>
-		<!-- 这里修改为使用 filteredMachineData -->
-		<view v-for="machineData in filteredMachineData.slice(0,8)" :key="machineData.machineInfo.machinenum"
-			class="machine-item">
-			<view class="glass-card">
-				<!-- 机台信息区域 -->
-				<view class="card-header">
-					<view class="icon-container">
-						<uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
-					</view>
-					<view class="machine-info">
-						<text class="machine-name">{{ machineData.machineInfo.name }}</text>
-						<!-- 会员价格显示逻辑 -->
-						<view class="price-status-container">
-							<view v-if="membershipType === 'weekly_monthly'">
-								<text class="machine-price">周卡月卡会员免费</text>
-							</view>
-							<view v-else>
-								<text v-if="props.isFree" class="machine-price">闲时价 3元/半时</text>
-								<text v-else class="machine-price">忙时价 5元/半时</text>
-							</view>
-
-							<view class="status-label"
-								:class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
-								{{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
-							</view>
-						</view>
-					</view>
-					<view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
-						<uni-icons :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
-							size="24" color="#f472b6"></uni-icons>
-					</view>
-				</view>
-				<!-- 时间轴区域 -->
-				<view class="timeline-section">
-					<view class="timeline-hours">
-						<text class="time-label">0:00</text>
-						<text class="time-label">6:00</text>
-						<text class="time-label">12:00</text>
-						<text class="time-label">18:00</text>
-						<text class="time-label">24:00</text>
-					</view>
-					<view class="timeline-container">
-						<view class="timeline-bar">
-							<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
-							    :key="index" class="timeline-segment"
-							    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
-							    <view class="timeline-segment-pulse"></view>
-							    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
-							        class="reservation-count">
-							        {{ getReservationCount(machineData.reservations, reservation) }}
-							    </view>
-							</view>
-						</view>
-					</view>
-				</view>
-
-				<!-- 按钮区域 -->
-				<view class="button-group">
-					<!-- 优先判断机台故障状态 -->
-					<view v-if="machineData.machineInfo.status == 1" class="error-button" @click="unuseable()">
-						<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-						<text class="button-text error-text">机台故障</text>
-					</view>
-					<!-- 机台非故障时，根据角色判断 -->
-					<template v-else>
-						<!-- 超级管理员或普通用户 -->
-						<template v-if="isSuperUser || isUser">
-							<view v-if="machineData.machineInfo.status != 1" class="action-button view-button"
-								@click="viewReservations(machineData)">
-								<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
-								<text class="button-text">查看预约</text>
-							</view>
-							<view v-if="machineData.machineInfo.status == 0" class="action-button reserve-button"
-								@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
-								<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
-								<text class="button-text reserve-text">预约</text>
-							</view>
-						</template>
-						<!-- 预备用户 -->
-						<template v-else-if="isPreUser">
-							<view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
-								<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
-								<text class="button-text error-text">无权限查看</text>
-							</view>
-							<view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
-								<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-								<text class="button-text error-text">无权限预约</text>
-							</view>
-						</template>
-						<!-- 其他未登录或角色未知用户 -->
-						<template v-else>
-							<view v-if="machineData.machineInfo.status != 1" class="action-button needlog-button"
-								@click="unlogin()">
-								<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
-								<text class="button-text error-text">登陆后查看</text>
-							</view>
-							<view v-if="machineData.machineInfo.status == 0" class="action-button needlog-button"
-								@click="unlogin()">
-								<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
-								<text class="button-text error-text">登陆后预约</text>
-							</view>
-						</template>
-					</template>
-				</view>
+			<!-- 分组显示开关 -->
+			<view class="filter-button" :class="{'filter-active': showGrouped}" @click="toggleGroupDisplay">
+				<!--<uni-icons :type="showGrouped ? 'list' : 'grid'" size="15" color="#3b82f6"></uni-icons>-->
+				<text class="filter-text">{{ showGrouped ? '取消分组' : '分组显示' }}</text>
 			</view>
 		</view>
+
+		<!-- 分组显示模式 -->
+		<template v-if="showGrouped">
+			<!-- 未选择具体分组时，显示分组列表 -->
+			<template v-if="!selectedGroupId">
+				<view v-for="group in availableGroups" :key="group._id" 
+					  class="group-item" @click="selectGroup(group._id)">
+					<view class="group-card">
+						<view class="group-info">
+							<text class="group-name">{{ group.name }}</text>
+							<text class="group-count">{{ getGroupMachineCount(group._id) }} 台机器</text>
+						</view>
+						<uni-icons type="arrow-right" size="20" color="#999"></uni-icons>
+					</view>
+				</view>
+				
+				<!-- 未分组的机台 -->
+				<view v-if="ungroupedMachines.length > 0" 
+					  class="group-item" @click="selectGroup(null)">
+					<view class="group-card">
+						<view class="group-info">
+							<text class="group-name">未分组机台</text>
+							<text class="group-count">{{ ungroupedMachines.length }} 台机器</text>
+						</view>
+						<uni-icons type="arrow-right" size="20" color="#999"></uni-icons>
+					</view>
+				</view>
+			</template>
+
+			<!-- 选择了具体分组时，显示该分组的机台 -->
+			<template v-else>
+				<view class="group-header">
+					<view class="back-button" @click="backToGroupList">
+						<uni-icons type="arrow-left" size="20" color="#3b82f6"></uni-icons>
+						<text class="back-text">返回分组列表</text>
+					</view>
+					<text class="current-group-name">{{ getCurrentGroupName() }}</text>
+				</view>
+
+				<!-- 显示选中分组的机台 -->
+				<view v-for="machineData in getCurrentGroupMachines().slice(0,8)" 
+					  :key="machineData.machineInfo.machinenum" class="machine-item">
+					<!-- 机台卡片内容 -->
+					<view class="glass-card">
+						<!-- 机台信息区域 -->
+						<view class="card-header">
+							<view class="icon-container">
+								<uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
+							</view>
+							<view class="machine-info">
+								<text class="machine-name">{{ machineData.machineInfo.name }}</text>
+								<!-- 会员价格显示逻辑 -->
+								<view class="price-status-container">
+									<view v-if="membershipType === 'weekly_monthly'">
+										<text class="machine-price">周卡月卡会员免费</text>
+									</view>
+									<view v-else>
+										<text v-if="props.isFree" class="machine-price">闲时价 3元/半时</text>
+										<text v-else class="machine-price">忙时价 5元/半时</text>
+									</view>
+
+									<view class="status-label"
+										:class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
+										{{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
+									</view>
+								</view>
+							</view>
+							<view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
+								<uni-icons :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
+									size="24" color="#f472b6"></uni-icons>
+							</view>
+						</view>
+						<!-- 时间轴区域 -->
+						<view class="timeline-section">
+							<view class="timeline-hours">
+								<text class="time-label">0:00</text>
+								<text class="time-label">6:00</text>
+								<text class="time-label">12:00</text>
+								<text class="time-label">18:00</text>
+								<text class="time-label">24:00</text>
+							</view>
+							<view class="timeline-container">
+								<view class="timeline-bar">
+									<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
+									    :key="index" class="timeline-segment"
+									    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
+									    <view class="timeline-segment-pulse"></view>
+									    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
+									        class="reservation-count">
+									        {{ getReservationCount(machineData.reservations, reservation) }}
+									    </view>
+									</view>
+								</view>
+							</view>
+						</view>
+
+						<!-- 按钮区域 -->
+						<view class="button-group">
+							<!-- 优先判断机台故障状态 -->
+							<view v-if="machineData.machineInfo.status == 1" class="error-button" @click="unuseable()">
+								<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+								<text class="button-text error-text">机台故障</text>
+							</view>
+							<!-- 机台非故障时，根据角色判断 -->
+							<template v-else>
+								<!-- 超级管理员或普通用户 -->
+								<template v-if="isSuperUser || isUser">
+									<view v-if="machineData.machineInfo.status != 1" class="action-button view-button"
+										@click="viewReservations(machineData)">
+										<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
+										<text class="button-text">查看预约</text>
+									</view>
+									<view v-if="machineData.machineInfo.status == 0" class="action-button reserve-button"
+										@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
+										<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
+										<text class="button-text reserve-text">预约</text>
+									</view>
+								</template>
+								<!-- 预备用户 -->
+								<template v-else-if="isPreUser">
+									<view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
+										<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+										<text class="button-text error-text">无权限查看</text>
+									</view>
+									<view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
+										<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+										<text class="button-text error-text">无权限预约</text>
+									</view>
+								</template>
+								<!-- 其他未登录或角色未知用户 -->
+								<template v-else>
+									<view v-if="machineData.machineInfo.status != 1" class="action-button needlog-button"
+										@click="unlogin()">
+										<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+										<text class="button-text error-text">登陆后查看</text>
+									</view>
+									<view v-if="machineData.machineInfo.status == 0" class="action-button needlog-button"
+										@click="unlogin()">
+										<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+										<text class="button-text error-text">登陆后预约</text>
+									</view>
+								</template>
+							</template>
+						</view>
+					</view>
+				</view>
+			</template>
+		</template>
+
+		<!-- 非分组显示模式（原来的显示方式） -->
+		<template v-else>
+			<view v-for="machineData in filteredMachineData.slice(0,8)" :key="machineData.machineInfo.machinenum"
+				class="machine-item">
+				<!-- 原来的机台卡片内容保持完全不变 -->
+				<view class="glass-card">
+					<!-- 机台信息区域 -->
+					<view class="card-header">
+						<view class="icon-container">
+							<uni-icons type="headphones" size="30" color="#ffffff"></uni-icons>
+						</view>
+						<view class="machine-info">
+							<text class="machine-name">{{ machineData.machineInfo.name }}</text>
+							<!-- 会员价格显示逻辑 -->
+							<view class="price-status-container">
+								<view v-if="membershipType === 'weekly_monthly'">
+									<text class="machine-price">周卡月卡会员免费</text>
+								</view>
+								<view v-else>
+									<text v-if="props.isFree" class="machine-price">闲时价 3元/半时</text>
+									<text v-else class="machine-price">忙时价 5元/半时</text>
+								</view>
+
+								<view class="status-label"
+									:class="{'status-available': machineData.machineInfo.status === 0, 'status-error': machineData.machineInfo.status !== 0 }">
+									{{ machineData.machineInfo.status === 0 ? '可用' : '故障' }}
+								</view>
+							</view>
+						</view>
+						<view class="heart-icon" @click="toggleFavorite(machineData.machineInfo._id)">
+							<uni-icons :type="favorites.has(machineData.machineInfo._id) ? 'heart-filled' : 'heart'"
+								size="24" color="#f472b6"></uni-icons>
+						</view>
+					</view>
+					<!-- 时间轴区域 -->
+					<view class="timeline-section">
+						<view class="timeline-hours">
+							<text class="time-label">0:00</text>
+							<text class="time-label">6:00</text>
+							<text class="time-label">12:00</text>
+							<text class="time-label">18:00</text>
+							<text class="time-label">24:00</text>
+						</view>
+						<view class="timeline-container">
+							<view class="timeline-bar">
+								<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
+								    :key="index" class="timeline-segment"
+								    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
+								    <view class="timeline-segment-pulse"></view>
+								    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
+								        class="reservation-count">
+								        {{ getReservationCount(machineData.reservations, reservation) }}
+								    </view>
+								</view>
+							</view>
+						</view>
+					</view>
+
+					<!-- 按钮区域 -->
+					<view class="button-group">
+						<!-- 优先判断机台故障状态 -->
+						<view v-if="machineData.machineInfo.status == 1" class="error-button" @click="unuseable()">
+							<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+							<text class="button-text error-text">机台故障</text>
+						</view>
+						<!-- 机台非故障时，根据角色判断 -->
+						<template v-else>
+							<!-- 超级管理员或普通用户 -->
+							<template v-if="isSuperUser || isUser">
+								<view v-if="machineData.machineInfo.status != 1" class="action-button view-button"
+									@click="viewReservations(machineData)">
+									<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
+									<text class="button-text">查看预约</text>
+								</view>
+								<view v-if="machineData.machineInfo.status == 0" class="action-button reserve-button"
+									@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
+									<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
+									<text class="button-text reserve-text">预约</text>
+								</view>
+							</template>
+							<!-- 预备用户 -->
+							<template v-else-if="isPreUser">
+								<view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
+									<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+									<text class="button-text error-text">无权限查看</text>
+								</view>
+								<view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
+									<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+									<text class="button-text error-text">无权限预约</text>
+								</view>
+							</template>
+							<!-- 其他未登录或角色未知用户 -->
+							<template v-else>
+								<view v-if="machineData.machineInfo.status != 1" class="action-button needlog-button"
+									@click="unlogin()">
+									<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
+									<text class="button-text error-text">登陆后查看</text>
+								</view>
+								<view v-if="machineData.machineInfo.status == 0" class="action-button needlog-button"
+									@click="unlogin()">
+									<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+									<text class="button-text error-text">登陆后预约</text>
+								</view>
+							</template>
+						</template>
+					</view>
+				</view>
+			</view>
+		</template>
 	</view>
 </template>
 
@@ -130,13 +285,24 @@
 	import isFreeDay from '@/modules/isFreeDay.ts'
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 
-	const isSuperUser = ref(false) // 管理员也是superuser
+	const isSuperUser = ref(false) 
 	const isUser = ref(false)
 	const isPreUser = ref(false)
-	const membershipType = ref("none"); // "none", "music_game", "weekly_monthly"
-	const isFree = ref(false) //判断闲时忙时 (这个值现在从父组件传递过来)
+	const membershipType = ref("none"); 
+	const isFree = ref(false) 
 	const activeSignIns = ref([]);
 	const howManyPlayer = ref(0);
+
+	// 新增：分组相关的响应式数据
+	const showGrouped = ref(false); // 是否显示分组模式
+	const selectedGroupId = ref<string | null>(null); // 当前选中的分组ID，null表示未分组
+	const allGroups = ref([]); // 所有分组数据
+	
+	// 原有的数据现在需要适配新的数据结构
+	const machineReservationData = ref<Array<{
+		machineInfo: machine & { groupInfo?: any },
+		reservations: Reservation[]
+	}>>([])
 
 	function roleJudge() {
 		const res = uniCloud.getCurrentUserInfo('uni_id_token')
@@ -152,15 +318,14 @@
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = true
-		} else { // Other roles or no login
+		} else { 
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = false
 		}
-		getMembershipStatus(); // 获取会员状态
+		getMembershipStatus(); 
 	}
 
-	// 使用云对象的 getUserMembershipInfo 方法获取会员状态
 	async function getMembershipStatus() {
 		try {
 			const userInfo = uniCloud.getCurrentUserInfo();
@@ -170,21 +335,17 @@
 				return;
 			}
 
-			// 调用云对象方法获取会员信息
 			const result = await todo.getUserMembershipInfo(userInfo.uid);
 			console.log("会员信息查询结果:", result);
 			if (result) {
-				// 检查包周/月会员
 				if (result.subscriptionPackage && result.subscriptionPackage.length > 0) {
 					membershipType.value = "weekly_monthly";
 					console.log('用户拥有包周/月会员');
 				}
-				// 检查音游会员
 				else if (result.membership && result.membership.length > 0) {
 					membershipType.value = "music_game";
 					console.log('用户拥有音游会员');
 				}
-				// 无会员
 				else {
 					membershipType.value = "none";
 					console.log('用户没有会员');
@@ -195,7 +356,7 @@
 			}
 		} catch (error) {
 			console.error("获取会员信息失败:", error);
-			membershipType.value = "none"; // 错误时默认为非会员
+			membershipType.value = "none"; 
 		}
 	}
 
@@ -212,6 +373,8 @@
 		"status": number;
 		"machinenum": number;
 		"description": string;
+		"groupId"?: string;
+		"groupDisplayOrder"?: number;
 	}
 	interface Reservation {
 		"_id": string;
@@ -220,19 +383,99 @@
 		"status": string;
 		"startTime": number;
 		"endTime": number;
-		"userId": string; // 添加 userId 字段，因为后端返回了
-		"username"?: string; // 添加 username 字段
-		"avatar"?: string; // 添加 avatar 字段
-		"avatar_file"?: any; // 添加 avatar_file 字段
+		"userId": string; 
+		"username"?: string; 
+		"avatar"?: string; 
+		"avatar_file"?: any; 
 	}
 
-	// 新增：用于在时间条上显示的预约接口，其 startTime/endTime 已经被调整
 	interface DisplayReservation extends Reservation {
-		// 可以添加其他显示相关的属性，如果需要区分不同类型的段
 	}
 
-	// 新增：用于控制收藏状态
 	const favorites = ref<Set<string>>(new Set());
+
+	// 新增：分组相关的计算属性和方法
+	const availableGroups = computed(() => {
+		// 过滤掉没有机台的分组
+		return allGroups.value.filter(group => 
+			getGroupMachineCount(group._id) > 0
+		);
+	});
+
+	const ungroupedMachines = computed(() => {
+		const processedData = machineReservationData.value.map(machine => ({
+			...machine,
+			reservations: processReservationsForDisplay(machine.reservations, props.dayStartTime, props.dayEndTime)
+		}));
+
+		return processedData.filter(machine => 
+			!machine.machineInfo.groupId &&
+			(!showFavoritesOnly.value || favorites.value.has(machine.machineInfo._id))
+		);
+	});
+
+	function getGroupMachineCount(groupId: string) {
+		return machineReservationData.value.filter(machine => 
+			machine.machineInfo.groupId === groupId &&
+			(!showFavoritesOnly.value || favorites.value.has(machine.machineInfo._id))
+		).length;
+	}
+
+	function toggleGroupDisplay() {
+		showGrouped.value = !showGrouped.value;
+		if (!showGrouped.value) {
+			selectedGroupId.value = null; // 退出分组模式时重置选中的分组
+		}
+		
+		uni.showToast({
+			icon: 'none',
+			title: showGrouped.value ? '已开启分组显示' : '已关闭分组显示',
+			duration: 1500
+		});
+	}
+
+	function selectGroup(groupId: string | null) {
+		selectedGroupId.value = groupId;
+	}
+
+	function backToGroupList() {
+		selectedGroupId.value = null;
+	}
+
+	function getCurrentGroupName() {
+		if (selectedGroupId.value === null) {
+			return '未分组机台';
+		}
+		const group = allGroups.value.find(g => g._id === selectedGroupId.value);
+		return group ? group.name : '未知分组';
+	}
+
+	function getCurrentGroupMachines() {
+		const processedData = machineReservationData.value.map(machine => ({
+			...machine,
+			reservations: processReservationsForDisplay(machine.reservations, props.dayStartTime, props.dayEndTime)
+		}));
+
+		let filteredMachines;
+		if (selectedGroupId.value === null) {
+			// 显示未分组的机台
+			filteredMachines = processedData.filter(machine => !machine.machineInfo.groupId);
+		} else {
+			// 显示指定分组的机台
+			filteredMachines = processedData.filter(machine => 
+				machine.machineInfo.groupId === selectedGroupId.value
+			);
+		}
+
+		// 应用收藏筛选
+		if (showFavoritesOnly.value) {
+			filteredMachines = filteredMachines.filter(machine =>
+				favorites.value.has(machine.machineInfo._id)
+			);
+		}
+
+		return filteredMachines;
+	}
 
 	function unuseable() {
 		uni.showToast({
@@ -252,55 +495,50 @@
 	}
 
 	function viewReservations(machineData) {
-		// 存储数据到 localStorage
 		const detailData = {
 			GetMachineReservationInfo: machineData,
-			dayStartTime: props.dayStartTime, // 使用新的 prop 名称
-			dayEndTime: props.dayEndTime // 使用新的 prop 名称
+			dayStartTime: props.dayStartTime, 
+			dayEndTime: props.dayEndTime 
 		};
-		uni.setStorageSync('detailData', JSON.stringify(detailData)); // 存储为字符串
+		uni.setStorageSync('detailData', JSON.stringify(detailData)); 
 
 		console.log("查看预约信息：", machineData);
 		uni.navigateTo({
 			url: '/pages/usageDetail/usageDetail',
 			success: function (res) {
-				//res.eventChannel.emit('acceptDataFromOpenerPage', {
-				//  GetMachineReservationInfo: machineData  // 传递整个 machineData 对象
-				//});
 			}
 		});
 	}
 
-	// 接收父组件传递的时间戳 props
 	const props = defineProps({
-		dayStartTime: { // 视觉上的当天开始时间 (00:00:00)
+		dayStartTime: { 
 			type: Number,
 			required: true
 		},
-		dayEndTime: { // 视觉上的当天结束时间 (23:59:59.999)
+		dayEndTime: { 
 			type: Number,
 			required: true
 		},
-		fetchStartTime: { // 实际向后端请求的开始时间 (前一天 22:00:00)
+		fetchStartTime: { 
 			type: Number,
 			required: true
 		},
-		fetchEndTime: { // 实际向后端请求的结束时间 (后一天 08:00:00)
+		fetchEndTime: { 
 			type: Number,
 			required: true
 		},
-		isFree: { // 闲时忙时状态
+		isFree: { 
 			type: Boolean,
 			required: true
 		}
 	})
 
-	function goOrder(machineName : String, machineID : String) {
+	function goOrder(machineName: String, machineID: String) {
 		const orderData = {
 			name: machineName,
 			id: machineID,
-			startTime: props.dayStartTime, // 预约时使用当天时间
-			endTime: props.dayEndTime // 预约时使用当天时间
+			startTime: props.dayStartTime,
+			endTime: props.dayEndTime
 		};
 		uni.setStorageSync('orderData', JSON.stringify(orderData));
 
@@ -317,31 +555,35 @@
 		});
 	}
 
-	const machineReservationData = ref<Array<{
-		machineInfo: machine,
-		reservations: Reservation[]
-	}>>([]) // 初始化为空数组，存储从后端获取的原始数据
-
 	async function loadMachineReservations() {
 		try {
-			if (!props.fetchStartTime || !props.fetchEndTime) { // 使用 fetch 时间
+			if (!props.fetchStartTime || !props.fetchEndTime) {
 				console.log("fetchStartTime 或 fetchEndTime 为空，不加载数据");
 				return;
 			}
 			console.log("准备调用 GetMachineReservationInfo 云函数，范围:", dayjs(props.fetchStartTime).format('YYYY-MM-DD HH:mm:ss'), '-', dayjs(props.fetchEndTime).format('YYYY-MM-DD HH:mm:ss'));
-			let res = await todo.GetMachineReservationInfo(props.fetchStartTime, props.fetchEndTime); // 使用 fetch 时间
+			let res = await todo.GetMachineReservationInfo(props.fetchStartTime, props.fetchEndTime);
 			console.log("GetMachineReservationInfo 云函数调用完成，返回结果:", res);
 
-			if (Array.isArray(res)) {
+			// 更新数据结构处理
+			if (res && res.machines && Array.isArray(res.machines)) {
+				machineReservationData.value = res.machines;
+				allGroups.value = res.groups || [];
+			} else if (Array.isArray(res)) {
+				// 兼容旧数据格式 (如果后端没有返回groups或machines字段)
 				machineReservationData.value = res;
-			} else if (res && res.result) {
+				allGroups.value = [];
+			} else if (res && res.result) { // 兼容旧的uniCloud云函数返回格式
 				machineReservationData.value = res.result;
+				allGroups.value = [];
 			} else {
 				console.error("返回的数据格式不正确:", res);
-				machineReservationData.value = []; // 设置为空数组避免渲染错误
+				machineReservationData.value = []; 
+				allGroups.value = [];
 			}
 
 			console.log("machineReservationData.value 赋值后:", machineReservationData.value);
+			console.log("allGroups.value 赋值后:", allGroups.value);
 		} catch (e) {
 			console.error("加载机台预约信息失败:", e);
 		}
@@ -355,42 +597,36 @@
 		}
 	})
 
-	// 新增：数据预处理函数，根据 isOvernight 字段和当前显示日期，调整预约的 startTime 和 endTime
 	function processReservationsForDisplay(
 		rawReservations: Reservation[],
-		dayStartTime: number, // 当前显示日期的 00:00:00
-		dayEndTime: number // 当前显示日期的 23:59:59.999
+		dayStartTime: number,
+		dayEndTime: number
 	): DisplayReservation[] {
 		const displayReservations: DisplayReservation[] = [];
 		const dayStartMoment = dayjs(dayStartTime);
 
-		// 定义当天 08:00 和 22:00 的时间戳
 		const currentDay8h = dayStartMoment.hour(8).minute(0).second(0).millisecond(0).valueOf();
 		const currentDay22h = dayStartMoment.hour(22).minute(0).second(0).millisecond(0).valueOf();
-		// 定义前一天 22:00 的时间戳，用于判断前一天的过夜预约
 		const prevDay22h = dayStartMoment.clone().subtract(1, 'day').hour(22).minute(0).second(0).millisecond(0).valueOf();
-
 
 		for (const res of rawReservations) {
 			if (res.isOvernight) {
 				// 情况1: 前一天的过夜预约，覆盖当前日期的 00:00-08:00 部分
-				// 判断条件：预约开始时间在前一天晚上 22:00 左右，且结束时间在当前日期 00:00 之后
 				if (res.startTime >= prevDay22h && res.startTime < dayStartTime && res.endTime > dayStartTime) {
-					const segmentStart = dayStartTime; // 从当前日期的 00:00 开始
-					const segmentEnd = Math.min(res.endTime, currentDay8h); // 结束于 08:00 或预约实际结束时间
+					const segmentStart = dayStartTime;
+					const segmentEnd = Math.min(res.endTime, currentDay8h);
 
-					if (segmentStart < segmentEnd) { // 确保段有效
+					if (segmentStart < segmentEnd) {
 						displayReservations.push({ ...res, startTime: segmentStart, endTime: segmentEnd });
 					}
 				}
 
 				// 情况2: 今天的过夜预约，覆盖当前日期的 22:00-24:00 部分
-				// 判断条件：预约开始时间在当前日期 22:00 左右，且结束时间在当前日期 24:00 之后
 				if (res.startTime >= currentDay22h && res.startTime < dayEndTime && res.endTime > dayEndTime) {
-					const segmentStart = Math.max(res.startTime, currentDay22h); // 从 22:00 或预约实际开始时间开始
-					const segmentEnd = dayEndTime; // 结束于当前日期的 23:59:59.999
+					const segmentStart = Math.max(res.startTime, currentDay22h);
+					const segmentEnd = dayEndTime;
 
-					if (segmentStart < segmentEnd) { // 确保段有效
+					if (segmentStart < segmentEnd) {
 						displayReservations.push({ ...res, startTime: segmentStart, endTime: segmentEnd });
 					}
 				}
@@ -399,7 +635,7 @@
 				const effectiveStartTime = Math.max(res.startTime, dayStartTime);
 				const effectiveEndTime = Math.min(res.endTime, dayEndTime);
 
-				if (effectiveStartTime < effectiveEndTime) { // 确保段有效
+				if (effectiveStartTime < effectiveEndTime) {
 					displayReservations.push({ ...res, startTime: effectiveStartTime, endTime: effectiveEndTime });
 				}
 			}
@@ -407,15 +643,11 @@
 		return displayReservations;
 	}
 
-
 	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation : DisplayReservation, dayStartTime : number, dayEndTime : number) {
-		// 注意：这里的 reservation.startTime 和 reservation.endTime 已经是经过 processReservationsForDisplay 调整过的
-		// dayStartTime 和 dayEndTime 仍然是 props.dayStartTime 和 props.dayEndTime (当前显示日期的 00:00-24:00)
-
-		const totalDayTime = dayEndTime - dayStartTime; // 一天的总时长（毫秒）
-		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime; // 预约开始时间在一天中的偏移量
-		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime; // 预约结束时间在一天中的偏移量
+	function calculateSegmentStyle(reservation: DisplayReservation, dayStartTime: number, dayEndTime: number) {
+		const totalDayTime = dayEndTime - dayStartTime;
+		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
+		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
 
 		const segmentLeftPercentage = (reservationStartTimeInDay / totalDayTime) * 100;
 		const segmentRightPercentage = 100 - (reservationEndTimeInDay / totalDayTime) * 100;
@@ -427,54 +659,46 @@
 		};
 	}
 
-	function mergeReservations(reservations: DisplayReservation[]) { // 接收 DisplayReservation 数组
+	function mergeReservations(reservations: DisplayReservation[]) {
 		if (!reservations || reservations.length === 0) return [];
 
-		// 按开始时间排序
 		const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
-
 		const mergedReservations = [];
 		let currentMerged = { ...sortedReservations[0] };
 
 		for (let i = 1; i < sortedReservations.length; i++) {
 			const current = sortedReservations[i];
 
-			// 如果当前预约与合并中的预约有重叠，则合并
 			if (current.startTime <= currentMerged.endTime) {
-				// 更新结束时间为较晚的那个
 				currentMerged.endTime = Math.max(currentMerged.endTime, current.endTime);
 			} else {
-				// 没有重叠，将当前合并的添加到结果中，并开始新的合并
 				mergedReservations.push(currentMerged);
 				currentMerged = { ...current };
 			}
 		}
 
-		// 添加最后一个合并的预约
 		mergedReservations.push(currentMerged);
-
 		return mergedReservations;
 	}
 
-	function getReservationCount(allReservations: DisplayReservation[], mergedReservation: DisplayReservation) { // 接收 DisplayReservation 数组
-		// 计算有多少预约与当前合并的预约时间段有重叠
+	function getReservationCount(allReservations: DisplayReservation[], mergedReservation: DisplayReservation) {
 		return allReservations.filter(res =>
-			(res.startTime < mergedReservation.endTime && res.endTime > mergedReservation.startTime) // 修正重叠判断条件
+			(res.startTime < mergedReservation.endTime && res.endTime > mergedReservation.startTime)
 		).length;
 	}
 
 	// 添加收藏筛选的状态
 	const showFavoritesOnly = ref(false);
 
-	// 添加筛选后的机台数据计算属性
+	// 修改原有的计算属性以兼容分组模式
 	const filteredMachineData = computed(() => {
-		// 1. 对原始数据进行预处理，生成适合显示在当前时间条上的预约段
+		// 对原始数据进行预处理，生成适合显示在当前时间条上的预约段
 		const processedData = machineReservationData.value.map(machine => ({
 			...machine,
 			reservations: processReservationsForDisplay(machine.reservations, props.dayStartTime, props.dayEndTime)
 		}));
 
-		// 2. 应用收藏筛选
+		// 应用收藏筛选
 		if (!showFavoritesOnly.value) {
 			return processedData;
 		}
@@ -485,7 +709,7 @@
 		);
 	});
 
-	// 切换筛选状态
+	// 切换收藏筛选状态
 	function toggleFavoritesFilter() {
 		showFavoritesOnly.value = !showFavoritesOnly.value;
 
@@ -505,8 +729,8 @@
 		}
 	}
 
-	// 修改toggleFavorite函数以保存收藏状态
-	async function toggleFavorite(machineId : string) {
+	// 收藏/取消收藏功能
+	async function toggleFavorite(machineId: string) {
 		try {
 			const userInfo = uniCloud.getCurrentUserInfo();
 			if (!userInfo || !userInfo.uid) {
@@ -584,12 +808,14 @@
 			howManyPlayer.value = 0;
 		}
 	}
+
 	// 处理"当前窝内签到数"点击事件
 	function handlePlayerCountClick() {
 		if (isSuperUser.value) {
-			showPlayerDetails(); // 如果是管理员，显示详情
+			showPlayerDetails();
 		}
 	}
+
 	// 显示签到用户详情的弹窗
 	function showPlayerDetails() {
 		if (activeSignIns.value.length === 0) {
@@ -615,14 +841,25 @@
 			confirmText: '知道了'
 		});
 	}
+
+	// 组件挂载时执行
 	onMounted(() => {
 		console.log("usage 组件 onMounted");
-		// 初始加载数据，这里会依赖父组件传递的 fetchStartTime 和 fetchEndTime
 		if (props.fetchStartTime && props.fetchEndTime) {
 			loadMachineReservations();
 		}
 		console.log(machineReservationData.value);
 		roleJudge();
+
+		// 加载用户分组显示偏好
+		try {
+			const storedGroupPreference = uni.getStorageSync('machine_group_preference');
+			if (storedGroupPreference !== '') {
+				showGrouped.value = JSON.parse(storedGroupPreference);
+			}
+		} catch (e) {
+			console.error("读取分组偏好失败:", e);
+		}
 
 		// 先从本地存储加载收藏状态
 		try {
@@ -634,17 +871,25 @@
 			console.error("读取收藏状态失败:", e);
 		}
 
-		// 然后从云端加载收藏数据
+		// 从云端加载收藏数据
 		loadUserFavorites();
-		// 多少人在签到呀
-		HowManyPlayer()
-		// isFree 状态现在从父组件传递，这里不再需要 isFree.value = isFreeDay()
+		// 多少人在签到
+		HowManyPlayer();
 	})
+
+	// 保存分组显示偏好
+	watch(showGrouped, (newValue) => {
+		try {
+			uni.setStorageSync('machine_group_preference', JSON.stringify(newValue));
+		} catch (e) {
+			console.error("保存分组偏好失败:", e);
+		}
+	});
 
 	// 页面显示时刷新数据和会员状态
 	uni.$on('onShow', () => {
-		loadMachineReservations(); // 每次页面显示时刷新
-		getMembershipStatus(); // 刷新会员状态
+		loadMachineReservations();
+		getMembershipStatus();
 	});
 
 	// 预约成功后刷新数据
@@ -1036,20 +1281,26 @@
 		align-items: center;
 	}
 
+	/* 更新 filter-container 样式，使其可以容纳三个按钮 */
 	.filter-container {
 		display: flex;
 		justify-content: space-between;
-		padding: 10rpx 30rpx;
+		flex-wrap: wrap; /* 允许换行 */
+		padding: 10rpx 10rpx;
 		margin-bottom: 10rpx;
+		gap: 15rpx; /* 按钮之间的间距 */
 	}
 
 	.filter-button {
 		display: flex;
 		align-items: center;
 		background-color: rgba(255, 255, 255, 0.7);
-		padding: 10rpx 20rpx;
+		padding: 15rpx 20rpx;
 		border-radius: 30rpx;
 		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+		flex: 1; /* 允许按钮弹性伸缩 */
+		min-width: 200rpx; /* 最小宽度，防止过小 */
+		justify-content: center; /* 内部内容居中 */
 	}
 
 	.filter-active {
@@ -1096,6 +1347,78 @@
 		/* 取消 active 时的位移效果 */
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 		/* 保持默认阴影或略微调整 */
+	}
+
+	/* 新增样式：分组相关 */
+	.group-item {
+		margin-bottom: 30rpx;
+	}
+
+	.group-card {
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		border-radius: 20rpx;
+		box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		padding: 30rpx;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+	}
+
+	.group-card:active {
+		transform: translateY(2rpx);
+		box-shadow: 0 2px 8px rgba(31, 38, 135, 0.08);
+	}
+
+	.group-info {
+		display: flex;
+		flex-direction: column;
+		gap: 10rpx;
+	}
+
+	.group-name {
+		font-weight: bold;
+		font-size: 34rpx;
+		color: #333;
+	}
+
+	.group-count {
+		font-size: 28rpx;
+		color: #6b7280;
+		background: rgba(59, 130, 246, 0.1);
+		padding: 4rpx 16rpx;
+		border-radius: 20rpx;
+		align-self: flex-start;
+	}
+
+	.group-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 30rpx;
+		padding: 0 10rpx;
+	}
+
+	.back-button {
+		display: flex;
+		align-items: center;
+		background: rgba(59, 130, 246, 0.1);
+		padding: 10rpx 20rpx;
+		border-radius: 10rpx;
+	}
+
+	.back-text {
+		margin-left: 10rpx;
+		color: #3b82f6;
+		font-weight: 500;
+	}
+
+	.current-group-name {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
 	}
 
 	@media (prefers-color-scheme: dark) {
@@ -1211,5 +1534,23 @@
 		.filter-clickable:active {
 		    background-color: rgba(255, 255, 255, 0.4);
 	    }
+
+		/* 分组相关 */
+		.group-card {
+			background: rgb(22, 22, 24);
+		}
+		
+		.group-name, .current-group-name {
+			color: white;
+		}
+		
+		.group-count {
+			color: lightgray;
+			background: rgb(59, 59, 61);
+		}
+		
+		.back-text {
+			color: #60a5fa;
+		}
 	}
 </style>

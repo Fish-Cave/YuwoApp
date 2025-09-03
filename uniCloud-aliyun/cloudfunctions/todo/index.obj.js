@@ -727,7 +727,18 @@ module.exports = {
 	        clientInfo: this.getClientInfo()
 	    });
 	    const collectionJQL = dbJQL.collection('reservation-log');
-	    const machines = await dbJQL.collection('machines').field("_id,name,machinenum,status").get()
+	    
+	    // 获取所有机台信息，包括分组相关字段
+	    const machines = await dbJQL.collection('machines')
+	        .field("_id,name,machinenum,status,groupId,groupDisplayOrder")
+	        .orderBy('groupDisplayOrder', 'asc')  // 按组内排序
+	        .get()
+	
+	    // 获取所有分组信息
+	    const groups = await dbJQL.collection('machine-groups')
+	        .field("_id,name,displayOrder")
+	        .orderBy('displayOrder', 'asc') // 按分组排序
+	        .get()
 	
 	    // 修改这一行，使用函数参数名 startTime 和 endTime 替代未定义的 queryStartTime 和 queryEndTime
 	    const reservationData = await collectionJQL.where(`startTime < ${endTime} && endTime > ${startTime}`)
@@ -758,7 +769,7 @@ module.exports = {
 	            "_id": true,
 	            "nickname": true,
 	            "avatar": true,
-	            "avatar_file": true //  <--  添加 avatar_file 字段的选择
+	            "avatar_file": true
 	        })
 	        .get();
 	    const userMap = new Map();
@@ -766,10 +777,16 @@ module.exports = {
 	        userMap.set(user._id, user);
 	    });
 	
+	    // 创建分组映射
+	    const groupMap = new Map();
+	    groups.data.forEach(group => {
+	        groupMap.set(group._id, group);
+	    });
 	
 	    const result = machines.data.map(machine => {
-	        const machineReservations = reservationData.data.filter(reservation => reservation
-	            .machineId === machine._id);
+	        const machineReservations = reservationData.data.filter(reservation => 
+	            reservation.machineId === machine._id);
+	        
 	        // 为每个预约记录关联用户信息
 	        const reservationsWithUserInfo = machineReservations.map(reservation => {
 	            const userInfo = userMap.get(reservation.userId) || {};
@@ -777,17 +794,113 @@ module.exports = {
 	                ...reservation,
 	                username: userInfo.nickname || '未知用户',
 	                avatar: userInfo.avatar || '',
-	                avatar_file: userInfo.avatar_file //  <--  将 avatar_file 也传递到前端
+	                avatar_file: userInfo.avatar_file
 	            };
 	        });
+	
+	        // 获取分组信息
+	        const groupInfo = machine.groupId ? groupMap.get(machine.groupId) : null;
+	        
 	        return {
-	            machineInfo: machine,
+	            machineInfo: {
+	                ...machine,
+	                groupInfo: groupInfo
+	            },
 	            reservations: reservationsWithUserInfo
 	        };
 	    });
-	    return result;
+	
+	    // 返回结构化数据，包含分组信息
+	    return {
+	        machines: result,
+	        groups: groups.data
+	    };
+	},
+	getGroups: async function() {
+	    const db = uniCloud.database()
+	    return await db.collection('machine-groups')
+	        .orderBy('displayOrder', 'asc')
+	        .get()
+	},
+	
+	// 添加分组
+	addGroup: async function(groupData) {
+	    const db = uniCloud.database()
+	    return await db.collection('machine-groups').add(groupData)
+	},
+	
+	// 更新分组
+	updateGroup: async function(groupId, groupData) {
+	    const db = uniCloud.database()
+	    return await db.collection('machine-groups')
+	        .doc(groupId)
+	        .update(groupData)
+	},
+	
+	// 删除分组
+	deleteGroup: async function(groupId) {
+	    const db = uniCloud.database()
+	    const transaction = await db.startTransaction()
+	    try {
+	        // 将属于该分组的机台改为未分组
+	        await transaction.collection('machines')
+	            .where({
+	                groupId: groupId
+	            })
+	            .update({
+	                groupId: null
+	            })
+	        
+	        // 删除分组
+	        await transaction.collection('machine-groups')
+	            .doc(groupId)
+	            .remove()
+	        
+	        // 提交事务
+	        await transaction.commit()
+	        return { success: true }
+	    } catch (e) {
+	        // 回滚事务
+	        await transaction.rollback()
+	        throw e
+	    }
+	},
+	
+	// 获取所有机台
+	getMachines: async function() {
+	    const db = uniCloud.database();
+	    return await db.collection('machines')
+	        .field({
+	            _id: true,
+	            name: true,
+	            machinenum: true,
+	            status: true,
+	            groupId: true, 
+	            groupDisplayOrder: true
+	        })
+	        .get();
 	},
 
+	
+	// 更新机台分组
+	updateMachineGroup: async function(machineId, groupId) {
+	    const db = uniCloud.database()
+	    return await db.collection('machines')
+	        .doc(machineId)
+	        .update({
+	            groupId: groupId
+	        })
+	},
+	
+	// 更新机台排序
+	updateMachineOrder: async function(machineId, order) {
+	    const db = uniCloud.database()
+	    return await db.collection('machines')
+	        .doc(machineId)
+	        .update({
+	            groupDisplayOrder: order
+	        })
+	},
 
 	GetUserInfo: function(content) {
 		const collection = db.collection('uni-id-users');
