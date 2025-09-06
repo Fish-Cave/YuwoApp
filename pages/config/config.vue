@@ -22,6 +22,9 @@
 						<button class="quick-entry-button" @click="navigateTo('/pages/machineManagement/machineManagement')">
 							机台分组、排序管理
 						</button>
+						<button class="quick-entry-button" @click="navigateTo('/pages/report/report')">
+							信息统计页面
+						</button>
 					</view>
 				</view>
 		<!-- Machine Management Section -->

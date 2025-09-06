@@ -1,0 +1,9 @@
+{
+  "name": "reportHandler",
+  "dependencies": {
+    "dayjs": "^1.11.18"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

@@ -233,6 +233,13 @@
 			{
 				"navigationBarTitleText" : ""
 			}
+		},
+		{
+			"path" : "pages/report/report",
+			"style" : 
+			{
+				"navigationBarTitleText" : "统计信息"
+			}
 		}
 	],
 	"globalStyle": {
