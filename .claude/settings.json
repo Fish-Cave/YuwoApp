@@ -1,0 +1,6 @@
+{
+  "env": {
+      "ANTHROPIC_MODEL": "glm-4.5",
+  	  "ANTHROPIC_SMALL_FAST_MODEL": "glm-4.5-air"
+  }
+}

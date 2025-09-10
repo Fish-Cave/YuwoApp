@@ -65,34 +65,55 @@ module.exports = {
    * @returns {Object} 报表数据
    */
   async getReservationReport(params) {
+    // 验证输入参数
+    if (!params.startDate || !params.endDate) {
+      throw new Error('startDate and endDate are required');
+    }
+    
     const { startDate, endDate } = params;
     const startTime = dayjs(startDate).startOf('day').valueOf();
     const endTime = dayjs(endDate).endOf('day').valueOf();
+    
+    // 验证时间范围
+    if (startTime >= endTime) {
+      throw new Error('startDate must be before endDate');
+    }
+    
+    // 限制查询时间范围（最多365天）
+    const daysDiff = dayjs(endTime).diff(dayjs(startTime), 'day');
+    if (daysDiff > 365) {
+      throw new Error('Query time range cannot exceed 365 days');
+    }
     
     const dbJQL = uniCloud.databaseForJQL({
       clientInfo: this.getClientInfo()
     });
     
-    // 查询时间范围内的所有预约记录
+    // 查询时间范围内的所有实际游玩记录（基于reservation-log表）
+    // 使用已完成的预约数据，这是更准确的数据源
     const reservations = await dbJQL.collection('reservation-log')
       .where({
-        startTime: dbJQL.command.gte(startTime),
-        endTime: dbJQL.command.lte(endTime),
-        // 只统计已确认、已签到、使用中、已结算的预约
-        status: dbJQL.command.in([1, 2, 4, 5])
+        startTime: dbJQL.command.gte(startTime).and(dbJQL.command.lte(endTime)),
+        // 只统计实际游玩的记录
+        isPlay: true,
+        // 排除异常状态，只统计已完成的预约
+        status: dbJQL.command.in([2, 5]) // 2: 已结算, 5: 使用完成
       })
       .field({
+        _id: true,
+        userId: true,
         machineId: true,
         machineName: true,
         startTime: true,
         endTime: true,
         isOvernight: true,
         isPlay: true,
-        status: true,
-        userId: true
+        price: true,
+        status: true
       })
+      .limit(1000) // 增加限制以获取更多数据
       .get();
-      
+    
     // 查询所有机台信息
     const machines = await dbJQL.collection('machines')
       .field({
@@ -102,9 +123,18 @@ module.exports = {
       })
       .get();
       
-    // 分析数据 - 使用 .call(this) 确保上下文
+    // 添加调试信息
+    console.log('Reservations count:', reservations.data.length);
+    console.log('Machines count:', machines.data.length);
+    console.log('Sample reservation:', reservations.data[0]);
+    
+    // 分析数据 - 使用 .call(this) 确保上下文，直接分析预约数据
     const result = module.exports._analyzeReservationData.call(this, reservations.data, machines.data, startTime, endTime);
     
+    console.log('Analysis result:', result);
+    console.log('Final result fields:', Object.keys(result));
+    console.log('Final hourly distribution:', result.hourlyDistribution);
+      
     return {
       errCode: 0,
       errMsg: '',
@@ -131,8 +161,7 @@ module.exports = {
     // 查询时间范围内的所有已支付订单
     const orders = await dbJQL.collection('fishcave-orders')
       .where({
-        create_date: dbJQL.command.gte(startTime),
-        create_date: dbJQL.command.lte(endTime),
+        create_date: dbJQL.command.gte(startTime).and(dbJQL.command.lte(endTime)),
         status: 1 // 已支付
       })
       .field({
@@ -147,26 +176,32 @@ module.exports = {
         type: true,
         create_date: true
       })
+      .limit(1000) // 增加限制以获取更多数据
       .get();
       
-    // 查询与这些订单关联的签到记录
+    // 查询与这些订单关联的预约记录来获取游玩信息
     const reservationIds = orders.data.map(order => order.reservation_id).filter(id => id); // 过滤掉空的 reservation_id
-    const signins = await dbJQL.collection('signin')
-      .where({
-        reservationid: dbJQL.command.in(reservationIds)
-      })
-      .field({
-        reservationid: true,
-        isPlay: true,
-        isOvernight: true,
-        starttime: true,
-        endtime: true,
-        status: true
-      })
-      .get();
+    let relatedReservations = [];
+    
+    if (reservationIds.length > 0) {
+      const reservationData = await dbJQL.collection('reservation-log')
+        .where({
+          _id: dbJQL.command.in(reservationIds)
+        })
+        .field({
+          _id: true,
+          isPlay: true,
+          isOvernight: true,
+          startTime: true,
+          endTime: true,
+          status: true
+        })
+        .get();
+      relatedReservations = reservationData.data;
+    }
       
-    // 分析数据 - 使用 .call(this) 确保上下文
-    const result = module.exports._analyzePaymentData.call(this, orders.data, signins.data);
+    // 分析数据 - 使用 .call(this) 确保上下文，使用预约记录替代签到记录
+    const result = module.exports._analyzePaymentData.call(this, orders.data, relatedReservations);
     
     return {
       errCode: 0,
@@ -234,7 +269,7 @@ module.exports = {
       totalReservations: reservations.length,
       totalPlayTime: 0, // 总游玩时长(分钟)
       machineStats: {}, // 按机台分组的统计
-      hourlyDistribution: Array(24).fill(0), // 按小时分布
+      hourlyDistribution: Array(24).fill(0), // 按开始时间统计的分布
       overnightCount: 0, // 过夜人数
     };
     
@@ -252,7 +287,7 @@ module.exports = {
         totalPlayTime: 0, // 总游玩时长(分钟)
         avgPlayTime: 0, // 平均游玩时长
         overnightCount: 0, // 过夜次数
-        hourlyDistribution: Array(24).fill(0) // 按小时分布
+        hourlyDistribution: Array(24).fill(0), // 按开始时间统计的分布
       };
     });
     
@@ -282,23 +317,12 @@ module.exports = {
         result.overnightCount++;
       }
       
-      // 按小时统计分布
-      // 将预约时间划分为小时块
+      // 按小时统计分布 - 统计每个小时开始游玩的人数
       const startHour = dayjs(reservation.startTime).hour();
-      const endHour = dayjs(reservation.endTime).hour();
       
-      // 如果开始和结束是同一小时
-      if (startHour === endHour) {
-        machineStats.hourlyDistribution[startHour]++;
-        result.hourlyDistribution[startHour]++;
-      } else {
-        // 跨多个小时的情况
-        for (let hour = startHour; hour <= endHour; hour++) {
-          const actualHour = hour % 24; // 处理跨天的情况
-          machineStats.hourlyDistribution[actualHour]++;
-          result.hourlyDistribution[actualHour]++;
-        }
-      }
+      // 直接在开始游玩的小时计数 +1
+      machineStats.hourlyDistribution[startHour] += 1;
+      result.hourlyDistribution[startHour] += 1;
     });
     
     // 计算每台机器的平均游玩时长
@@ -313,6 +337,7 @@ module.exports = {
       ? Math.round(result.totalPlayTime / result.totalReservations) 
       : 0;
     
+      
     return result;
   },
   
@@ -320,7 +345,7 @@ module.exports = {
    * 分析付费数据
    * @private
    */
-  _analyzePaymentData(orders, signins) {
+  _analyzePaymentData(orders, reservations) {
     // 初始化结果对象
     const result = {
       totalOrders: orders.length,
@@ -332,10 +357,10 @@ module.exports = {
         other: 0 // 其他类型
       },
       dailyRevenue: {}, // 按日期分组的收入
-      signinStats: { // 签到相关统计
-        withPlay: 0, // 游玩机台的签到数
-        withoutPlay: 0, // 不游玩机台的签到数
-        overnight: 0 // 过夜签到数
+      signinStats: { // 预约相关统计
+        withPlay: 0, // 游玩机台的预约数
+        withoutPlay: 0, // 不游玩机台的预约数
+        overnight: 0 // 过夜预约数
       }
     };
     
@@ -361,15 +386,15 @@ module.exports = {
       result.dailyRevenue[orderDate] += order.total_fee || 0;
     });
     
-    // 分析签到记录
-    signins.forEach(signin => {
-      if (signin.isPlay) {
+    // 分析预约记录
+    reservations.forEach(reservation => {
+      if (reservation.isPlay) {
         result.signinStats.withPlay++;
       } else {
         result.signinStats.withoutPlay++;
       }
       
-      if (signin.isOvernight) {
+      if (reservation.isOvernight) {
         result.signinStats.overnight++;
       }
     });
@@ -423,6 +448,11 @@ module.exports = {
    * @returns {Object} 热力图数据
    */
   async getMachineHeatmapData(params) {
+    // 验证输入参数
+    if (!params.startDate || !params.endDate) {
+      throw new Error('startDate and endDate are required');
+    }
+    
     const { startDate, endDate } = params;
     const startTime = dayjs(startDate).startOf('day').valueOf();
     const endTime = dayjs(endDate).endOf('day').valueOf();
@@ -431,21 +461,37 @@ module.exports = {
       clientInfo: this.getClientInfo()
     });
     
-    // 查询时间范围内的所有预约记录
-    const reservations = await dbJQL.collection('reservation-log')
+    // 查询时间范围内的所有实际游玩记录（基于signin表）
+    const signins = await dbJQL.collection('signin')
       .where({
-        startTime: dbJQL.command.gte(startTime),
-        endTime: dbJQL.command.lte(endTime),
-        status: dbJQL.command.in([1, 2, 4, 5]),
-        isPlay: true // 只统计游玩的预约
+        starttime: dbJQL.command.gte(startTime),
+        endtime: dbJQL.command.lte(endTime),
+        isPlay: true, // 只统计游玩的记录
+        status: dbJQL.command.in([0, 1, 3]) // 使用中、已完成已支付、已完成免支付
       })
       .field({
-        machineId: true,
-        machineName: true,
-        startTime: true,
-        endTime: true
+        reservationid: true,
+        starttime: true,
+        endtime: true
       })
       .get();
+      
+    // 获取关联的预约记录以获取机台信息
+    const reservationIds = signins.data.map(signin => signin.reservationid).filter(id => id);
+    let reservations = [];
+    
+    if (reservationIds.length > 0) {
+      const reservationData = await dbJQL.collection('reservation-log')
+        .where({
+          _id: dbJQL.command.in(reservationIds)
+        })
+        .field({
+          _id: true,
+          machineId: true
+        })
+        .get();
+      reservations = reservationData.data;
+    }
       
     // 查询所有机台
     const machines = await dbJQL.collection('machines')
@@ -454,6 +500,12 @@ module.exports = {
         name: true
       })
       .get();
+    
+    // 创建预约映射
+    const reservationMap = {};
+    reservations.forEach(reservation => {
+      reservationMap[reservation._id] = reservation;
+    });
     
     // 创建热力图数据
     // 热力图是一个二维表格，行是机台，列是小时
@@ -470,22 +522,38 @@ module.exports = {
     });
     
     // 填充数据
-    reservations.data.forEach(reservation => {
-      const startHour = dayjs(reservation.startTime).hour();
-      const endHour = dayjs(reservation.endTime).hour();
+    signins.data.forEach(signin => {
+      const reservation = reservationMap[signin.reservationid];
+      if (!reservation) return;
+      
+      const startHour = dayjs(signin.starttime).hour();
+      const endHour = dayjs(signin.endtime).hour();
+      const startMinute = dayjs(signin.starttime).minute();
+      const endMinute = dayjs(signin.endtime).minute();
       const machineId = reservation.machineId;
       
       if (!dataMatrix[machineId]) return;
       
       // 如果开始和结束是同一小时
       if (startHour === endHour) {
-        dataMatrix[machineId][startHour]++;
+        const hourFraction = (endMinute - startMinute) / 60;
+        dataMatrix[machineId][startHour] += hourFraction;
       } else {
         // 跨多个小时的情况
-        for (let hour = startHour; hour <= endHour; hour++) {
+        // 第一个小时
+        const firstHourFraction = (60 - startMinute) / 60;
+        dataMatrix[machineId][startHour] += firstHourFraction;
+        
+        // 中间的小时（如果有）
+        for (let hour = startHour + 1; hour < endHour; hour++) {
           const actualHour = hour % 24; // 处理跨天的情况
-          dataMatrix[machineId][actualHour]++;
+          dataMatrix[machineId][actualHour] += 1;
         }
+        
+        // 最后一个小时
+        const lastHourFraction = endMinute / 60;
+        const actualEndHour = endHour % 24; // 处理跨天的情况
+        dataMatrix[machineId][actualEndHour] += lastHourFraction;
       }
     });
     

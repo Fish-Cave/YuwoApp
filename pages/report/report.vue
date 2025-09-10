@@ -109,11 +109,13 @@
         <view class="chart-title">游玩时段分布</view>
         <view class="chart-container">
           <qiun-data-charts 
+            key="hourly-chart"
             type="column"
             :chartData="hourlyDistributionChart"
             :opts="hourlyChartOpts"
             :canvas2d="true"
             :ontouch="true"
+            :reload="true"
           />
         </view>
       </view>
@@ -121,14 +123,15 @@
       <!-- 机台游玩人次占比 (环形图) -->
       <view class="chart-card">
         <view class="chart-title">机台游玩人次占比</view>
-        <view class="chart-content-wrapper"> <!-- 新增一个wrapper来包含标题和图表 -->
-          
+        <view class="chart-content-wrapper">
           <view class="chart-container">
             <qiun-data-charts 
+              key="usage-ring-chart"
               type="ring"
               :chartData="machineUsageRingChart"
               :opts="machineRingOpts"
               :canvas2d="true"
+              :reload="true"
             />
           </view>
         </view>
@@ -137,13 +140,15 @@
       <!-- 机台游玩时长占比 (环形图) -->
       <view class="chart-card">
         <view class="chart-title">机台游玩时长占比</view>
-        <view class="chart-content-wrapper"> <!-- 新增一个wrapper来包含标题和图表 -->
+        <view class="chart-content-wrapper">
           <view class="chart-container">
             <qiun-data-charts 
+              key="playtime-ring-chart"
               type="ring"
               :chartData="machinePlayTimeRingChart"
               :opts="machineRingOpts"
               :canvas2d="true"
+              :reload="true"
             />
           </view>
         </view>
@@ -183,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 dayjs.extend(isoWeek);
@@ -205,40 +210,75 @@ const yearOptions = computed(() => {
 });
 
 const weekOptions = computed(() => {
-  // 获取选中年份的总周数
-  const weeksInYear = dayjs().year(selectedYear.value).endOf('year').isoWeek();
-  return Array.from({ length: weeksInYear }, (_, i) => i + 1);
+  // 获取选中年份的总周数 - 使用正确的方法计算ISO周数
+  const yearStart = dayjs().year(selectedYear.value).startOf('year');
+  const yearEnd = dayjs().year(selectedYear.value).endOf('year');
+  
+  // 计算该年份的ISO周数
+  let weeksInYear = yearEnd.isoWeek();
+  // 如果年末属于下一年的第一周，则调整
+  if (yearEnd.isoWeek() === 1 && yearEnd.month() === 11) {
+    weeksInYear = yearEnd.subtract(1, 'week').isoWeek();
+  }
+  
+  // 确保至少有52周
+  weeksInYear = Math.max(weeksInYear, 52);
+  
+  return Array.from({ length: weeksInYear }, (_, i) => `第${i + 1}周`);
 });
 
-// 图表数据 - 游玩时段分布 (只显示8点到22点，并添加过夜数据)
+// 图表数据 - 同时游玩人数分布 (只显示8点到22点)
 const hourlyDistributionChart = computed(() => {
-  if (!reportData.value) return { categories: [], series: [] };
+  // 首先尝试使用新的同时游玩人数数据
+  if (reportData.value?.reservationStats?.hourlyActiveCount) {
+    const hourlyData = reportData.value.reservationStats.hourlyActiveCount;
+    console.log('使用hourlyActiveCount数据:', hourlyData);
+    
+    // 8点到22点 (共15个时段)
+    const categories = Array.from({ length: 15 }, (_, i) => `${i + 8}点`);
+    const data = hourlyData.slice(8, 23); // 从索引8(8点)到22(22点)
+    
+    return {
+      categories: categories,
+      series: [{
+        name: '同时游玩人数',
+        data: data
+      }]
+    };
+  }
   
-  const hourlyData = reportData.value.reservationStats.hourlyDistribution || Array(24).fill(0);
-  const overnightCount = reportData.value.reservationStats.overnightCount || 0;
-
-  // 8点到22点 (共15个时段)
-  const categories = Array.from({ length: 15 }, (_, i) => `${i + 8}点`);
-  const data = hourlyData.slice(8, 23); // 从索引8(8点)到22(22点)
-
-  // 添加“过夜”作为最后一个柱子
-  categories.push('过夜');
-  data.push(overnightCount);
+  // 如果没有新数据，则使用原来的开始时间分布数据
+  if (reportData.value?.reservationStats?.hourlyDistribution) {
+    const hourlyData = reportData.value.reservationStats.hourlyDistribution;
+    console.log('使用hourlyDistribution备选数据:', hourlyData);
+    
+    // 8点到22点 (共15个时段)
+    const categories = Array.from({ length: 15 }, (_, i) => `${i + 8}点`);
+    const data = hourlyData.slice(8, 23); // 从索引8(8点)到22(22点)
+    
+    // 将小数四舍五入为整数，更符合显示需求
+    const roundedData = data.map(value => Math.round(value));
+    
+    return {
+      categories: categories,
+      series: [{
+        name: '游玩人次',
+        data: roundedData
+      }]
+    };
+  }
   
-  return {
-    categories: categories,
-    series: [{
-      name: '预约人次',
-      data: data
-    }]
-  };
+  console.log('没有可用的小时分布数据');
+  return { categories: [], series: [] };
 });
 
 // 机台游玩人次环形图
 const machineUsageRingChart = computed(() => {
-  if (!reportData.value) return { series: [{ data: [] }] };
+  if (!reportData.value?.reservationStats?.machineStats) {
+    return { series: [{ data: [] }] };
+  }
   
-  const machineStats = reportData.value.reservationStats.machineStats || {};
+  const machineStats = reportData.value.reservationStats.machineStats;
   // 取前5台使用最多的机台，其余归为"其他"
   const machines = Object.values(machineStats)
     .sort((a, b) => b.reservationCount - a.reservationCount);
@@ -255,27 +295,32 @@ const machineUsageRingChart = computed(() => {
     // 如果有"其他"项，添加到图表数据中
     if (otherCount > 0) {
       topMachines.push({
-        name: '其他机台', 
-        value: otherCount
+        machineName: '其他机台', 
+        reservationCount: otherCount
       });
     }
   }
   
+  // 确保数据格式正确
+  const chartData = topMachines.map(m => ({
+    name: m.machineName || '未知机台',
+    value: m.reservationCount || 0
+  }));
+  
   return {
     series: [{
-      data: topMachines.map(m => ({
-        name: m.machineName || m.name, 
-        value: m.reservationCount || m.value
-      }))
+      data: chartData
     }]
   };
 });
 
 // 机台游玩时长环形图
 const machinePlayTimeRingChart = computed(() => {
-  if (!reportData.value) return { series: [{ data: [] }] };
+  if (!reportData.value?.reservationStats?.machineStats) {
+    return { series: [{ data: [] }] };
+  }
   
-  const machineStats = reportData.value.reservationStats.machineStats || {};
+  const machineStats = reportData.value.reservationStats.machineStats;
   // 取前5台使用时长最长的机台，其余归为"其他"
   const machines = Object.values(machineStats)
     .sort((a, b) => b.totalPlayTime - a.totalPlayTime);
@@ -292,27 +337,32 @@ const machinePlayTimeRingChart = computed(() => {
     // 如果有"其他"项，添加到图表数据中
     if (otherPlayTime > 0) {
       topMachines.push({
-        name: '其他机台', 
-        value: otherPlayTime
+        machineName: '其他机台', 
+        totalPlayTime: otherPlayTime
       });
     }
   }
   
+  // 确保数据格式正确
+  const chartData = topMachines.map(m => ({
+    name: m.machineName || '未知机台',
+    value: m.totalPlayTime || 0
+  }));
+  
   return {
     series: [{
-      data: topMachines.map(m => ({
-        name: m.machineName || m.name, 
-        value: m.totalPlayTime || m.value
-      }))
+      data: chartData
     }]
   };
 });
 
 // 机台详情列表
 const machineDetailsList = computed(() => {
-  if (!reportData.value) return [];
+  if (!reportData.value?.reservationStats?.machineStats) {
+    return [];
+  }
   
-  const machineStats = reportData.value.reservationStats.machineStats || {};
+  const machineStats = reportData.value.reservationStats.machineStats;
   return Object.values(machineStats)
     .sort((a, b) => b.reservationCount - a.reservationCount);
 });
@@ -335,7 +385,8 @@ const hourlyChartOpts = {
   yAxis: {
     data: [
       {
-        min: 0
+        min: 0,
+        format: 'number' // 确保显示为数字格式
       }
     ]
   },
@@ -344,7 +395,11 @@ const hourlyChartOpts = {
       type: 'group',
       width: 30,
       activeBgColor: "#000000",
-      activeBgOpacity: 0.08
+      activeBgOpacity: 0.08,
+      linearType: 'opacity',
+      seriesGap: 2,
+      linearOpacity: 0.5,
+      barBorderCircle: true
     }
   }
 };
@@ -379,8 +434,10 @@ const machineRingOpts = {
 // 事件处理
 function switchTab(tab) {
   activeTab.value = tab;
-  // 切换标签时重置报表数据
-  reportData.value = null;
+  // 切换标签时重置报表数据，避免图表残留
+  setTimeout(() => {
+    reportData.value = null;
+  }, 100);
 }
 
 function onYearChange(e) {
@@ -388,7 +445,10 @@ function onYearChange(e) {
 }
 
 function onWeekChange(e) {
-  selectedWeek.value = weekOptions.value[e.detail.value];
+  // 从字符串"第X周"中提取数字
+  const weekString = weekOptions.value[e.detail.value];
+  const weekNumber = parseInt(weekString.replace(/第|周/g, ''));
+  selectedWeek.value = weekNumber;
 }
 
 function onStartDateChange(e) {
@@ -479,6 +539,10 @@ async function loadReportData() {
     if (result.errCode === 0 && result.data) {
       reportData.value = result.data;
       console.log("报表数据加载成功:", reportData.value);
+      console.log("预约统计数据:", reportData.value.reservationStats);
+      console.log("机台统计数据:", reportData.value.reservationStats?.machineStats);
+      console.log("小时分布数据:", reportData.value.reservationStats?.hourlyDistribution);
+      console.log("同时游玩人数数据:", reportData.value.reservationStats?.hourlyActiveCount);
     } else {
       uni.showToast({
         title: '获取报表失败: ' + (result.errMsg || '未知错误'),
@@ -501,6 +565,12 @@ async function loadReportData() {
 // 组件挂载时自动加载当前周的报表
 onMounted(() => {
   loadReportData();
+});
+
+// 页面卸载时清理图表数据
+onUnmounted(() => {
+  // 清理报表数据，避免图表残留
+  reportData.value = null;
 });
 </script>
 

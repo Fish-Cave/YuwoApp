@@ -1,0 +1,245 @@
+@startuml
+skinparam activity {
+  StartColor #000000
+  EndColor #000000
+  BackgroundColor #FFFFFF
+  BorderColor #19191a
+  FontColor #19191a
+  ArrowColor #19191a
+}
+
+title 机台预约与结算流程
+
+start
+
+partition "用户" {
+  :浏览机台信息;
+  :预约机台;
+}
+
+partition "前端" {
+  -left-> (是否欠费?);
+}
+
+partition "云端后台" {
+  if (是否存在COMPLETE预约记录?) then (是)
+    -right->
+    partition "前端" {
+      :提醒用户缴费;
+      :拒绝生成订单;
+    }
+    stop
+  else (否)
+    partition "前端" {
+      :生成预约订单;
+      :储存预计费用;
+    }
+    -right->
+    :储存预约订单状态为CONFIRMED;
+  endif
+}
+
+' --- 预约确认后的并行路径 ---
+fork
+
+  partition "用户" {
+    :到店签到;
+  }
+
+  partition "前端" {
+    -left-> :查看预约列表;
+    :选择订单;
+    :生成签到订单;
+  }
+
+  partition "云端后台" {
+    -right->
+    :预约订单状态设置为CHECKED_IN;
+    :签到订单状态变为ACTIVE;
+  }
+
+  partition "用户" {
+    :使用中;
+  }
+
+  partition "前端" {
+    -left-> :根据云端签到订单生成签到界面;
+    :根据签到页面回传到云端;
+  }
+
+  partition "云端后台" {
+    -right->
+    :云端生成对应订单 (手动结束);
+    :第一次储存费用;
+    :预约订单状态设置为COMPLETED;
+    :签到订单变为ENDED_PENDING_PAYMENT;
+    :计费订单设为PENDING_PAYMENT;
+  }
+
+  partition "用户" {
+    :结算;
+  }
+
+  partition "前端" {
+    -left-> :回传云端结束信息;
+  }
+
+  partition "云端后台" {
+    -right->
+    :计费订单状态为PENDING_PAYMENT;
+    -down-> (当用户手动查看订单时);
+  }
+
+  partition "支付服务" {
+    :调用uni-pay支付服务;
+    :通过ID对应云端订单;
+    :从云端接受订单费用;
+  }
+
+  partition "前端" {
+    -left-> :付费完成后，后端进行回调处理;
+  }
+
+  partition "云端后台" {
+    if (当前支付金额是否与云端订单金额一致?) then (不一致)
+      partition "前端" {
+        :前端处理错误;
+      }
+      -right->
+      :计费订单设置为PAYMENT_FAILED;
+    else (一致)
+      if (当前支付金额是否为0元?) then (否)
+        :预约订单状态设置为SETTLED;
+        :签到订单变为COMPLETED_PAID;
+        :计费订单设为PAID;
+      else (是)
+        :预约订单状态设置为SETTLED;
+        :签到订单变为COMPLETED_FREE;
+        :计费订单设为CLOSED;
+      endif
+    endif
+  }
+
+  partition "用户" {
+    -left-> :完成支付结账下机;
+  }
+
+fork again
+
+  partition "系统定时任务" {
+    :每小时更新过期订单;
+  }
+
+  partition "云端后台" {
+    -right->
+    :储存预约订单状态为NO_SHOW;
+  }
+
+fork again
+
+  partition "系统定时任务" {
+    :每天早上8点停止签到订单;
+  }
+
+  partition "云端后台" {
+    -right->
+    :云端生成对应订单 (自动结束);
+    :第一次储存费用;
+    :预约订单状态设置为COMPLETED;
+    :签到订单变为ENDED_PENDING_PAYMENT;
+    :计费订单设为PENDING_PAYMENT;
+  }
+
+fork again
+
+  partition "用户" {
+    :取消预约;
+  }
+
+  partition "云端后台" {
+    -right->
+    :储存预约订单状态为CANCELLED_USER;
+  }
+
+fork again
+
+  partition "用户" {
+    :用户退款;
+  }
+
+  partition "云端后台" {
+    -right->
+    if (计费订单是否为PAID?) then (是)
+      :计费订单设置为REFUND_PENDING;
+      -right->
+      partition "人工审核" {
+        if (经审核后是否同意退款?) then (是)
+          -right->
+          partition "云端后台" {
+            :计费订单设置为REFUNDED;
+          }
+        else (否)
+          -right->
+          partition "云端后台" {
+            :计费订单设置为PAID;
+          }
+        endif
+      }
+    else (否)
+      partition "前端" {
+        :前端不显示退款按钮;
+      }
+    endif
+  }
+
+fork again
+
+  partition "支付服务" {
+    :调用uni-pay支付服务;
+    :通过ID对应云端订单;
+    :从云端接受订单费用;
+    -down-> [支付失败]
+  }
+
+  partition "云端后台" {
+    :计费订单设置为PAYMENT_FAILED;
+  }
+
+fork again
+
+  partition "支付服务" {
+    :调用uni-pay支付服务;
+    :通过ID对应云端订单;
+    :从云端接受订单费用;
+    -down-> [支付取消/超时未付]
+  }
+
+  partition "云端后台" {
+    :计费订单设置为PAYMENT_FAILED;
+  }
+
+fork again
+
+  partition "用户" {
+    :选择其他支付方式（如二维码）;
+    :点击已支付按钮;
+  }
+
+  partition "人工审核" {
+    -right->
+    if (经审核后) then (通过)
+      -right->
+      partition "云端后台" {
+        :预约订单状态设置为SETTLED;
+        :签到订单变为COMPLETED_PAID;
+        :计费订单设为PAID;
+      }
+    else (不通过)
+      ' 原始流程图未明确不通过的后续步骤，通常会回到待支付或失败状态
+    endif
+  }
+
+end fork
+
+stop
+@enduml
