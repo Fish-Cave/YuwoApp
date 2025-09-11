@@ -240,6 +240,12 @@
 			{
 				"navigationBarTitleText" : "统计信息"
 			}
+		},
+		{
+			"path": "pages/reservationManagement/reservationManagement",
+			"style": {
+				"navigationBarTitleText": "预约管理"
+			}
 		}
 	],
 	"globalStyle": {

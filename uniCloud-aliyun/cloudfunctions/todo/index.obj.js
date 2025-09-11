@@ -2906,5 +2906,569 @@ async UpdateOrder(updateData) {
 	  if (!timestamp) return '--';
 	  const date = new Date(timestamp);
 	  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+	},
+
+	/**
+	 * 获取筛选后的预约列表
+	 * @param {Object} params 筛选参数
+	 * @returns {Object} 预约列表和分页信息
+	 */
+	async Get_FilteredReservations(params = {}) {
+	  try {
+	    console.log('Get_FilteredReservations 开始执行，参数:', params);
+	    
+	    // 内部辅助函数：获取状态文本
+	    const getStatusText = (status) => {
+	      switch (parseInt(status)) {
+	        case 0: return '待确认';
+	        case 1: return '已完成';
+	        case 2: return '未完成';
+	        case 3: return '已退款';
+	        default: return '未知状态';
+	      }
+	    };
+	    
+    // 内部辅助函数：格式化日期时间
+    const formatDateTime = (timestamp) => {
+      if (!timestamp) return '--';
+      const date = new Date(timestamp);
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    console.log("权限检查 - 用户信息:", JSON.stringify(clientInfo));
+	
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      console.log("权限检查失败: 未找到身份令牌");
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      console.log("权限检查失败: 令牌格式无效");
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	      console.log("解析后的令牌信息:", JSON.stringify(payload));
+	    } catch (e) {
+	      console.error("解析令牌失败:", e);
+	      return { code: -1, errMsg: '无法解析身份令牌: ' + e.message };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    console.log('Get_FilteredReservations: 权限检查通过');
+	
+	    const {
+	      pageSize = 10,
+	      pageNumber = 1,
+	      keyword = '',
+	      status = null,
+	      isOvernight = null,
+	      startDate = null,
+	      endDate = null,
+	      sortField = 'createTime',
+	      sortOrder = 'desc'
+	    } = params;
+	
+	    console.log('Get_FilteredReservations 处理后的参数:', {
+	      pageSize, pageNumber, keyword, status, 
+	      isOvernight, startDate, endDate, sortField, sortOrder
+	    });
+	
+	    // 构建查询条件
+	    const db = uniCloud.database();
+	    let query = db.collection('reservation-log');
+	
+	    // 构建where条件
+	    const whereConditions = {};
+	
+	    // 关键词搜索
+	    if (keyword && keyword.trim()) {
+	      const keywordTrim = keyword.trim();
+	      console.log('添加关键词搜索条件:', keywordTrim);
+	      
+	      whereConditions.$or = [
+	        { userId: new RegExp(keywordTrim, 'i') },
+	        { _id: new RegExp(keywordTrim, 'i') }
+	      ];
+	    }
+	
+	    // 状态筛选
+	    if (status !== null && status !== undefined && status !== '') {
+	      const statusInt = parseInt(status);
+	      console.log('添加状态筛选条件:', statusInt);
+	      whereConditions.status = statusInt;
+	    }
+	
+	    // 是否过夜筛选
+	    if (isOvernight !== null && isOvernight !== undefined) {
+	      console.log('添加过夜筛选条件:', isOvernight);
+	      whereConditions.isOvernight = isOvernight;
+	    }
+	
+	    // 日期范围筛选
+	    if (startDate && endDate) {
+	      const startDateInt = parseInt(startDate);
+	      const endDateInt = parseInt(endDate);
+	      console.log('添加日期范围筛选:', startDateInt, 'to', endDateInt);
+	      
+	      whereConditions.createTime = {
+	        $gte: startDateInt,
+	        $lte: endDateInt
+	      };
+	    }
+	
+	    console.log('最终查询条件:', JSON.stringify(whereConditions, null, 2));
+	
+	    // 应用查询条件
+	    if (Object.keys(whereConditions).length > 0) {
+	      query = query.where(whereConditions);
+	    }
+	
+	    // 计算总数
+	    console.log('开始计算总数...');
+	    const countResult = await query.count();
+	    const total = countResult.total;
+	    const totalPages = Math.ceil(total / pageSize);
+	    
+	    console.log('查询统计结果:', { total, totalPages });
+	
+	    // 分页查询
+	    const skip = (pageNumber - 1) * pageSize;
+	    console.log('开始分页查询，skip:', skip, 'limit:', pageSize);
+	    
+	    const reservationsResult = await query
+	      .orderBy(sortField, sortOrder)
+	      .skip(skip)
+	      .limit(pageSize)
+	      .get();
+	
+	    console.log('预约查询结果:', {
+	      total,
+	      currentPage: pageNumber,
+	      pageSize,
+	      dataLength: reservationsResult.data?.length || 0,
+	      actualData: reservationsResult.data?.length > 0 ? '有数据' : '无数据'
+	    });
+	
+	    // 获取所有预约的machineId和userId
+	    const machineIds = [];
+	    const userIds = [];
+	    reservationsResult.data.forEach(reservation => {
+	      if (reservation.machineId && !machineIds.includes(reservation.machineId)) {
+	        machineIds.push(reservation.machineId);
+	      }
+	      if (reservation.userId && !userIds.includes(reservation.userId)) {
+	        userIds.push(reservation.userId);
+	      }
+	    });
+	
+	    // 批量获取机台信息
+	    const machinesResult = machineIds.length > 0 
+	      ? await db.collection('machines')
+	          .where({_id: db.command.in(machineIds)})
+	          .field({_id: true, name: true})
+	          .get()
+	      : {data: []};
+	
+	    // 创建机台信息映射
+	    const machineMap = {};
+	    machinesResult.data.forEach(machine => {
+	      machineMap[machine._id] = machine;
+	    });
+	
+	    // 批量获取用户信息
+	    const usersResult = userIds.length > 0 
+	      ? await db.collection('uni-id-users')
+	          .where({_id: db.command.in(userIds)})
+	          .field({_id: true, nickname: true, username: true})
+	          .get()
+	      : {data: []};
+	
+	    // 创建用户信息映射
+	    const userMap = {};
+	    usersResult.data.forEach(user => {
+	      userMap[user._id] = {
+	        nickname: user.nickname || user.username || '未知用户',
+	        username: user.username || '未知用户'
+	      };
+	    });
+	
+	    // 处理预约数据
+	    const reservations = (reservationsResult.data || []).map(reservation => {
+	      // 获取机台信息
+	      const machine = machineMap[reservation.machineId] || {};
+	      
+	      // 获取用户信息
+	      const userInfo = userMap[reservation.userId] || {};
+	      
+	      // 计算时长
+	      let duration = 0;
+	      if (reservation.startTime && reservation.endTime) {
+	        duration = Math.round((reservation.endTime - reservation.startTime) / (1000 * 60));
+	      }
+	
+	      return {
+	        _id: reservation._id,
+	        userId: reservation.userId,
+	        username: userInfo.nickname || userInfo.username || '未知用户',
+	        machineId: reservation.machineId,
+	        machineName: machine.name || '未知机台',
+	        status: reservation.status || 0,
+	        isOvernight: reservation.isOvernight || false,
+	        startTime: reservation.startTime,
+	        endTime: reservation.endTime,
+	        duration: duration,
+	        price: reservation.price || 0,
+	        createTime: reservation.createTime || Date.now(),
+	        isPlay: reservation.isPlay || false,
+	        // 添加一些计算字段
+	        formattedPrice: reservation.price ? (reservation.price / 100).toFixed(2) : '0.00',
+	        statusText: getStatusText(reservation.status),
+	        formattedStartTime: formatDateTime(reservation.startTime),
+	        formattedEndTime: formatDateTime(reservation.endTime),
+	        formattedCreateTime: formatDateTime(reservation.createTime)
+	      };
+	    });
+	
+	    console.log('处理后的预约数据条数:', reservations.length);
+	
+	    return {
+	      code: 0,
+	      data: reservations,
+	      pagination: {
+	        current: pageNumber,
+	        pageSize: pageSize,
+	        total: total,
+	        totalPages: totalPages,
+	        hasNext: pageNumber < totalPages,
+	        hasPrev: pageNumber > 1
+	      }
+	    };
+	
+	  } catch (error) {
+	    console.error('Get_FilteredReservations 执行错误:', error);
+	    console.error('错误堆栈:', error.stack);
+	    
+	    return {
+	      code: -1,
+	      errMsg: `获取预约数据失败: ${error.message}`
+	    };
+	  }
+	},
+	
+	/**
+	 * 获取预约详情
+	 * @param {string} reservationId 预约ID
+	 * @returns {Object} 预约详情
+	 */
+	async GetReservationDetail(reservationId) {
+	  try {
+	    // 内部辅助函数：获取状态文本
+	    const getStatusText = (status) => {
+	      switch (parseInt(status)) {
+	        case 0: return '待确认';
+	        case 1: return '已完成';
+	        case 2: return '未完成';
+	        case 3: return '已退款';
+	        default: return '未知状态';
+	      }
+	    };
+	    
+    // 内部辅助函数：格式化日期时间
+    const formatDateTime = (timestamp) => {
+      if (!timestamp) return '--';
+      const date = new Date(timestamp);
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌' };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    // 验证 reservationId 参数
+	    if (!reservationId || (typeof reservationId !== 'string' && typeof reservationId !== 'number')) {
+	      return { code: -1, errMsg: '预约ID无效' };
+	    }
+	
+	    const db = uniCloud.database();
+	    const reservationResult = await db.collection('reservation-log')
+	      .doc(reservationId)
+	      .get();
+	
+	    if (!reservationResult.data || reservationResult.data.length === 0) {
+	      return { code: -1, errMsg: '预约不存在' };
+	    }
+	
+	    const reservation = reservationResult.data[0];
+	    
+	    // 获取机台信息
+	    let machineName = '未知机台';
+	    if (reservation.machineId) {
+	      const machineResult = await db.collection('machines')
+	        .doc(reservation.machineId)
+	        .get();
+	      if (machineResult.data && machineResult.data.length > 0) {
+	        machineName = machineResult.data[0].name || '未知机台';
+	      }
+	    }
+	    
+	    // 计算时长
+	    let duration = 0;
+	    if (reservation.startTime && reservation.endTime) {
+	      duration = Math.round((reservation.endTime - reservation.startTime) / (1000 * 60));
+	    }
+	
+	    // 格式化预约详情
+	    const reservationDetail = {
+	      _id: reservation._id,
+	      userId: reservation.userId,
+	      machineId: reservation.machineId,
+	      machineName: machineName,
+	      status: reservation.status || 0,
+	      isOvernight: reservation.isOvernight || false,
+	      startTime: reservation.startTime,
+	      endTime: reservation.endTime,
+	      duration: duration,
+	      price: reservation.price || 0,
+	      createTime: reservation.createTime,
+	      isPlay: reservation.isPlay || false,
+	      formattedPrice: reservation.price ? (reservation.price / 100).toFixed(2) : '0.00',
+	      statusText: getStatusText(reservation.status),
+	      formattedStartTime: formatDateTime(reservation.startTime),
+	      formattedEndTime: formatDateTime(reservation.endTime),
+	      formattedCreateTime: formatDateTime(reservation.createTime)
+	    };
+	
+	    return {
+	      code: 0,
+	      data: reservationDetail
+	    };
+	
+	  } catch (error) {
+	    console.error('GetReservationDetail error:', error);
+	    return {
+	      code: -1,
+	      errMsg: `获取预约详情失败: ${error.message}`
+	    };
+	  }
+	},
+	
+	/**
+	 * 更新预约信息
+	 * @param {Object} updateData 更新数据
+	 * @returns {Object} 操作结果
+	 */
+	async UpdateReservation(updateData) {
+	  try {
+	    // 内部辅助函数：获取状态文本
+	    const getStatusText = (status) => {
+	      switch (parseInt(status)) {
+	        case 0: return '待确认';
+	        case 1: return '已完成';
+	        case 2: return '未完成';
+	        case 3: return '已退款';
+	        default: return '未知状态';
+	      }
+	    };
+	    
+    // 内部辅助函数：格式化日期时间
+    const formatDateTime = (timestamp) => {
+      if (!timestamp) return '--';
+      const date = new Date(timestamp);
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+	
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+	
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌' };
+	    }
+	
+	    const role = payload.role;
+	    let hasAdminRole = false;
+	
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+	
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+	
+	    const { reservationId, status, reason } = updateData;
+	
+	    // 验证必要参数
+	    if (!reservationId || (typeof reservationId !== 'string' && typeof reservationId !== 'number')) {
+	      return { code: -1, errMsg: '预约ID无效' };
+	    }
+	
+	    if (!reason || reason.trim() === '') {
+	      return { code: -1, errMsg: '请输入修改原因' };
+	    }
+	
+	    const db = uniCloud.database();
+	    
+	    // 先获取原预约数据用于日志记录
+	    const originalReservation = await db.collection('reservation-log')
+	      .doc(reservationId)
+	      .get();
+	      
+	    if (!originalReservation.data || originalReservation.data.length === 0) {
+	      return { code: -1, errMsg: '预约不存在' };
+	    }
+	    
+	    const oldData = originalReservation.data[0];
+	    
+	    // 构建更新数据
+	    const updateFields = {
+	      updateTime: Date.now()
+	    };
+	
+	    if (status !== undefined && status !== null) {
+	      updateFields.status = parseInt(status);
+	    }
+	
+	    console.log('Updating reservation:', reservationId, 'with data:', updateFields);
+	
+	    // 更新预约
+	    const updateResult = await db.collection('reservation-log')
+	      .doc(reservationId)
+	      .update(updateFields);
+	
+	    if (updateResult.updated === 0) {
+	      return { code: -1, errMsg: '预约不存在或更新失败' };
+	    }
+	
+	    // 记录编辑日志（可选）
+	    try {
+	      await this._logReservationEdit({
+	        reservationId: reservationId,
+	        operatorId: payload.uid,
+	        editType: 'update',
+	        changes: {
+	          old: {
+	            status: oldData.status
+	          },
+	          new: updateFields
+	        },
+	        reason: reason.trim(),
+	        editTime: Date.now()
+	      });
+	    } catch (logError) {
+	      console.error('记录预约编辑日志失败:', logError);
+	      // 日志记录失败不影响预约更新
+	    }
+	
+	    return {
+	      code: 0,
+	      message: '预约更新成功'
+	    };
+	
+	  } catch (error) {
+	    console.error('UpdateReservation error:', error);
+	    return {
+	      code: -1,
+	      errMsg: `更新预约失败: ${error.message}`
+	    };
+	  }
+	},
+	
+	/**
+	 * 记录预约编辑日志
+	 * @param {Object} logData 日志数据
+	 */
+	async _logReservationEdit(logData) {
+	  const db = uniCloud.database();
+	  try {
+	    // 获取操作人信息
+	    const operatorResult = await db.collection('uni-id-users')
+	      .doc(logData.operatorId)
+	      .field("nickname,username")
+	      .get();
+	    
+	    const operatorName = operatorResult.data.length > 0 
+	      ? (operatorResult.data[0].nickname || operatorResult.data[0].username) 
+	      : '未知用户';
+	    
+	    // 添加日志记录
+	    await db.collection('reservation-edit-logs').add({
+	      reservationId: logData.reservationId,
+	      operatorId: logData.operatorId,
+	      operatorName: operatorName,
+	      editType: logData.editType,
+	      changes: logData.changes,
+	      reason: logData.reason,
+	      editTime: logData.editTime
+	    });
+	  } catch (e) {
+	    console.error("Log reservation edit error:", e);
+	    // 日志记录失败不影响主要业务逻辑
+	  }
 	}
 }

@@ -4,15 +4,15 @@
     <view class="header-card glass-card">
       <view class="header-content">
         <view class="header-text">
-          <view class="header-title">订单管理中心</view>
+          <view class="header-title">订单管理中心</view><br>
           <view class="header-subtitle">智能管理订单状态、价格和详细信息</view>
         </view>
-        <view class="header-icon">
+        <!-- <view class="header-icon">
           <uni-icons type="list" size="32" color="rgba(255,255,255,0.8)"></uni-icons>
-        </view>
+        </view>-->
       </view>
       
-      <!-- 订单统计信息 -->
+  <!-- 订单统计信息
       <view class="stats-container">
         <view class="stats-bar">
           <view class="stat-item" @click="quickFilter('all')">
@@ -51,9 +51,9 @@
             </view>
           </view>
         </view>
-      </view>
-    </view>
-    
+      </view>-->
+    </view> 
+     
     <!-- 快捷操作栏 -->
     <view class="quick-actions glass-card">
       <view class="quick-action-item" @click="refreshData">
@@ -331,7 +331,7 @@
   
 				<view class="info-item">
 				  <view class="info-icon">
-					<uni-icons type="clock" size="14" color="#6B7280"></uni-icons>
+					<uni-icons type="smallcircle" size="14" color="#6B7280"></uni-icons>
 				  </view>
 				  <view class="info-content">
 					<text class="info-label">时长</text>
@@ -2144,6 +2144,15 @@
   margin-bottom: 12px;
 }
 
+/* 移动端订单信息网格优化 */
+@media (max-width: 768px) {
+  .order-info-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
+
 .info-item {
   display: flex;
   align-items: center;
@@ -2408,6 +2417,8 @@
   background: rgba(107, 114, 128, 0.1);
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 15;
 }
 
 .close-btn:active {
@@ -2665,6 +2676,8 @@
   padding: 20px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background: rgba(249, 250, 251, 0.8);
+  position: relative;
+  z-index: 10;
 }
 
 .cancel-btn {
@@ -2953,19 +2966,21 @@
   
   .stats-bar {
     padding: 8px 6px;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 4px;
   }
   
   .stat-item {
-    flex: 1;
-    min-width: calc(50% - 4px);
-    padding: 6px;
+    width: 100%;
+    padding: 8px 6px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
   
   .stat-number {
     font-size: 18px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
   }
   
   .stat-label {
@@ -3202,7 +3217,9 @@
     
     .modal-content {
       padding: 12px;
-      max-height: 65vh;
+      max-height: calc(85vh - 120px);
+      overflow-y: auto;
+      padding-bottom: 20px;
     }
     
     .edit-section {
@@ -3302,12 +3319,23 @@
     .modal-footer {
       flex-direction: column;
       gap: 8px;
+      padding: 16px 12px;
+      position: sticky;
+      bottom: 0;
+      background: rgba(249, 250, 251, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      z-index: 20;
     }
     
     .cancel-btn, .confirm-btn {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       font-size: 14px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .detail-grid {

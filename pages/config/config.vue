@@ -13,6 +13,9 @@
 						<button class="quick-entry-button" @click="navigateTo('/pages/orderManagement/orderManagement')">
 							订单管理
 						</button>
+						<button class="quick-entry-button" @click="navigateTo('/pages/reservationManagement/reservationManagement')">
+							预约管理
+						</button>
 						<!--<button class="quick-entry-button" @click="navigateTo('/pages/userManagement/userManagement')">
 							用户管理
 						</button>-->
