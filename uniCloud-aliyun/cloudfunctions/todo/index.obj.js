@@ -354,6 +354,73 @@ module.exports = {
 	},
 
 	// 提交订单
+	/**
+	 * 查询用户当天的所有有效预约
+	 * @param {string} userId - 用户ID
+	 * @param {number} targetDate - 目标日期时间戳
+	 * @returns {Promise<Array>} 当天预约列表
+	 */
+	async getUserDayReservations(userId, targetDate) {
+		const db = uniCloud.database();
+		const startOfDay = new Date(targetDate);
+		startOfDay.setHours(0, 0, 0, 0);
+		
+		const endOfDay = new Date(targetDate);
+		endOfDay.setHours(23, 59, 59, 999);
+		
+		const result = await db.collection('reservation-log')
+			.where({
+				userId: userId,
+				status: 1, // 有效预约
+				startTime: db.command.gte(startOfDay.getTime()),
+				endTime: db.command.lte(endOfDay.getTime())
+			})
+			.field({
+				startTime: true,
+				endTime: true,
+				isOvernight: true
+			})
+			.get();
+		
+		return result.data;
+	},
+
+	/**
+	 * 合并重叠的时间段并计算总时长
+	 * @param {Array} reservations - 预约列表
+	 * @returns {number} 总小时数
+	 */
+	mergeTimeRangesAndCalculateDuration(reservations) {
+		if (reservations.length === 0) return 0;
+		
+		// 按开始时间排序
+		const sorted = reservations.sort((a, b) => a.startTime - b.startTime);
+		const merged = [];
+		
+		for (const range of sorted) {
+			if (merged.length === 0) {
+				merged.push(range);
+				continue;
+			}
+			
+			const last = merged[merged.length - 1];
+			if (range.startTime <= last.endTime) {
+				// 重叠或连续，合并
+				last.endTime = Math.max(last.endTime, range.endTime);
+			} else {
+				merged.push(range);
+			}
+		}
+		
+		// 计算总时长（小时）
+		let totalMinutes = 0;
+		merged.forEach(range => {
+			totalMinutes += (range.endTime - range.startTime) / (1000 * 60);
+		});
+		
+		return totalMinutes / 60;
+	},
+
 	async Reservation_Add(content) {
 		const db = uniCloud.database();
 		const startTime = content.startTime;
@@ -453,38 +520,58 @@ module.exports = {
 			}
 			console.log("Membership Info:", membershipInfo);
 
-			// 3. 根据会员信息修改价格
-			// 获取基础价格信息
+			// 3. 智能计费 - 考虑当日累计时长
 			let price;
 			if (isOvernight) {
-				// 获取过夜预约价格
+				// 过夜预约保持原价
 				const priceInfo = await db.collection('prices')
 					.where({
 						type: 'overnight'
 					})
 					.get();
 				price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 50; // 默认50
+				console.log("Overnight reservation, price:", price);
 			} else {
-				// 获取普通预约价格
+				// 普通预约 - 实现当日累计计费
+				// 获取基础价格
 				const priceInfo = await db.collection('prices')
 					.where({
 						type: 'normal'
 					})
 					.get();
-				price = priceInfo.data.length > 0 ? priceInfo.data[0].price : 5; // 默认5
-			}
-
-			// 应用会员折扣
-			if (membershipInfo.subscriptionPackage.length > 0) {
-				// 包周/月卡会员，100% off
-				price = 0;
-				console.log("User has subscription package, price set to 0");
-			} else if (membershipInfo.membership.length > 0 && !isOvernight) {
-				// 音游会员，每半小时4元，当日封顶40元
-				const diffHours = (endTime - startTime) / (1000 * 60 * 60);
-				const halfHourUnits = Math.ceil(diffHours / 0.5);
-				price = Math.min(halfHourUnits * 4, 40); // 日常上限40元
-				console.log("User has membership, price calculated as:", price);
+				const basePrice = priceInfo.data.length > 0 ? priceInfo.data[0].price : 5; // 默认5
+				
+				// 应用会员折扣
+				if (membershipInfo.subscriptionPackage.length > 0) {
+					// 包周/月卡会员免费
+					price = 0;
+					console.log("User has subscription package, price set to 0");
+				} else if (membershipInfo.membership.length > 0) {
+					// 音游会员 - 当日累计计费
+					// 查询当日已有预约
+					const existingReservations = await this.getUserDayReservations(userId, startTime);
+					console.log("Existing day reservations:", existingReservations);
+					
+					// 创建包含当前预约的完整列表
+					const allReservations = [
+						...existingReservations,
+						{ startTime, endTime, isOvernight: false }
+					];
+					
+					// 计算当日累计总时长
+					const totalHours = this.mergeTimeRangesAndCalculateDuration(allReservations);
+					console.log("Total hours for the day:", totalHours);
+					
+					// 音游会员计费：每半小时4元，当日封顶40元
+					const halfHourUnits = Math.ceil(totalHours / 0.5);
+					price = Math.min(halfHourUnits * 4, 40); // 封顶40元
+					console.log("Music member cumulative pricing - total hours:", totalHours, "price:", price);
+				} else {
+					// 普通用户 - 按单次预约计费（保持原有逻辑）
+					const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+					price = basePrice * diffHours;
+					console.log("Normal user pricing - hours:", diffHours, "price:", price);
+				}
 			}
 
 			// 将价格放入content
