@@ -23,7 +23,7 @@
 							用户数据管理
 						</button>
 						<button class="quick-entry-button" @click="navigateTo('/pages/machineManagement/machineManagement')">
-							机台分组、排序管理
+							机台管理
 						</button>
 						<button class="quick-entry-button" @click="navigateTo('/pages/report/report')">
 							信息统计页面
@@ -33,10 +33,15 @@
 		<!-- Machine Management Section -->
 		<view class="section-card glass-card">
 			<view class="card-header">
-				<text class="card-title">机台管理</text>
-				<text class="card-action" @click="toggleSection('machine')">
-					{{ sections.machine ? '收起' : '展开' }}
-				</text>
+				<view class="card-title-row">
+					<text class="card-title">机台管理</text>
+					<text class="card-action" @click="toggleSection('machine')">
+						{{ sections.machine ? '收起' : '展开' }}
+					</text>
+				</view>
+				<view class="section-description">
+					<text>此部分已弃用，请使用快捷入口的机台管理功能</text>
+				</view>
 			</view>
 			
 			<view v-if="sections.machine" class="section-content">
@@ -135,10 +140,12 @@
 		<!-- Price Management Section -->
 		<view class="section-card glass-card">
 			<view class="card-header">
-				<text class="card-title">价格管理</text>
-				<text class="card-action" @click="toggleSection('price')">
-					{{ sections.price ? '收起' : '展开' }}
-				</text>
+				<view class="card-title-row">
+					<text class="card-title">价格管理</text>
+					<text class="card-action" @click="toggleSection('price')">
+						{{ sections.price ? '收起' : '展开' }}
+					</text>
+				</view>
 			</view>
 			
 			<view v-if="sections.price" class="section-content">
@@ -311,10 +318,12 @@
 		<!-- Customer Service Section -->
 		<view class="section-card glass-card">
 			<view class="card-header">
-				<text class="card-title">客服电话管理</text>
-				<text class="card-action" @click="toggleSection('customerService')">
-					{{ sections.customerService ? '收起' : '展开' }}
-				</text>
+				<view class="card-title-row">
+					<text class="card-title">客服电话管理</text>
+					<text class="card-action" @click="toggleSection('customerService')">
+						{{ sections.customerService ? '收起' : '展开' }}
+					</text>
+				</view>
 			</view>
 			
 			<view v-if="sections.customerService" class="section-content">
@@ -368,10 +377,12 @@
 		<!-- System Operations Section -->
 		<view class="section-card glass-card">
 			<view class="card-header">
-				<text class="card-title">系统操作</text>
-				<text class="card-action" @click="toggleSection('systemOps')">
-					{{ sections.systemOps ? '收起' : '展开' }}
-				</text>
+				<view class="card-title-row">
+					<text class="card-title">系统操作</text>
+					<text class="card-action" @click="toggleSection('systemOps')">
+						{{ sections.systemOps ? '收起' : '展开' }}
+					</text>
+				</view>
 			</view>
 			
 			<view v-if="sections.systemOps" class="section-content">
@@ -1309,11 +1320,15 @@ onMounted(() => {
 
 /* 卡片头部 */
 .card-header {
+	padding: 4px 0;
+	margin-bottom: 12px;
+}
+
+.card-title-row {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 4px 0;
-	margin-bottom: 12px;
+	margin-bottom: 8px;
 }
 
 .card-title {
@@ -1712,7 +1727,14 @@ onMounted(() => {
 	padding-top: 0; 
 	padding-bottom: 16px; 
 }
-
+.section-description {
+	margin-top: 30rpx;
+  margin-bottom: 30rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 12rpx;
+  border-left: 4rpx solid #3b82f6;
+}
 /* 动画 */
 @keyframes fade-in {
 	from {
