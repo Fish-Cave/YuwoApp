@@ -22,6 +22,51 @@
       <button class="btn btn-add" @click="showAddGroupModal">添加分组</button>
     </view>
     
+    <!-- 统一排序视图 -->
+    <view class="section">
+      <view class="section-title">机台统一排序</view>
+      <view class="section-description">
+        <text>所有机台按分组统一显示，可通过上下按钮进行排序，支持跨分组移动</text>
+      </view>
+      <view class="unified-sort-container">
+        <!-- 未分组机台 -->
+        <view class="group-section" v-if="ungroupedMachines.length > 0">
+          <view class="group-header">
+            <text class="group-title">未分组</text>
+          </view>
+          <view class="machines-in-group">
+            <view v-for="(machine, index) in ungroupedMachines" :key="machine._id" class="unified-machine-item">
+              <view class="machine-info">
+                <text class="machine-name">{{machine.name}}</text>
+              </view>
+              <view class="machine-sort-actions">
+                <button class="sort-btn sort-up" @click="moveMachineUp('ungrouped', index)" :disabled="index === 0 && sortedGroups.length === 0">上移</button>
+                <button class="sort-btn sort-down" @click="moveMachineDown('ungrouped', index)" :disabled="index === ungroupedMachines.length - 1 && sortedGroups.length === 0">下移</button>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 各分组机台 -->
+        <view v-for="group in sortedGroups" :key="group._id" class="group-section">
+          <view class="group-header">
+            <text class="group-title">{{group.name}}</text>
+          </view>
+          <view class="machines-in-group">
+            <view v-for="(machine, index) in getMachinesInGroup(group._id)" :key="machine._id" class="unified-machine-item">
+              <view class="machine-info">
+                <text class="machine-name">{{machine.name}}</text>
+              </view>
+              <view class="machine-sort-actions">
+                <button class="sort-btn sort-up" @click="moveMachineUp(group._id, index)" :disabled="index === 0 && group.displayOrder === 0">上移</button>
+                <button class="sort-btn sort-down" @click="moveMachineDown(group._id, index)" :disabled="index === getMachinesInGroup(group._id).length - 1 && group.displayOrder === sortedGroups.length - 1">下移</button>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
     <!-- 机台分组设置 -->
     <view class="section">
       <view class="section-title">机台分组设置</view>
@@ -35,11 +80,7 @@
                 <view class="picker">{{getGroupName(machine.groupId) || '未分组'}}</view>
               </picker>
             </view>
-            <view class="machine-order">
-              <text>组内排序：</text>
-              <input type="number" v-model="machine.groupDisplayOrder" @blur="updateMachineOrder(machine._id, machine.groupDisplayOrder)" />
             </view>
-          </view>
         </view>
       </view>
     </view>
@@ -91,6 +132,16 @@ const groupNames = computed(() => {
   return ['未分组'].concat(groups.value.map(group => group.name));
 });
 
+// 排序后的分组列表
+const sortedGroups = computed(() => {
+  return [...groups.value].sort((a, b) => a.displayOrder - b.displayOrder);
+});
+
+// 未分组的机台
+const ungroupedMachines = computed(() => {
+  return machines.value.filter(machine => !machine.groupId).sort((a, b) => a.groupDisplayOrder - b.groupDisplayOrder);
+});
+
 // 获取分组名称
 function getGroupName(groupId) {
   const group = groups.value.find(g => g._id === groupId);
@@ -102,6 +153,25 @@ function getGroupIndex(groupId) {
   if (!groupId) return 0; // 未分组
   const index = groups.value.findIndex(g => g._id === groupId);
   return index >= 0 ? index + 1 : 0; // +1 是因为第一项是"未分组"
+}
+
+// 获取分组内的机台
+function getMachinesInGroup(groupId) {
+  return machines.value
+    .filter(machine => machine.groupId === groupId)
+    .sort((a, b) => a.groupDisplayOrder - b.groupDisplayOrder);
+}
+
+// 检查是否可以从分组向上移动（跨组）
+function canMoveUpFromGroup(groupId) {
+  const groupIndex = sortedGroups.value.findIndex(g => g._id === groupId);
+  return groupIndex > 0 || ungroupedMachines.value.length > 0;
+}
+
+// 检查是否可以从分组向下移动（跨组）
+function canMoveDownFromGroup(groupId) {
+  const groupIndex = sortedGroups.value.findIndex(g => g._id === groupId);
+  return groupIndex < sortedGroups.value.length - 1;
 }
 
 // 加载数据
@@ -284,6 +354,161 @@ async function updateMachineOrder(machineId, order) {
   }
 }
 
+// 移动机台向上
+async function moveMachineUp(groupId, machineIndex) {
+  if (machineIndex === 0) {
+    // 检查是否可以跨组移动（移动到上一个分组的最后一个位置）
+    await moveToPreviousGroup(groupId, machineIndex);
+    return;
+  }
+  
+  const machinesInGroup = groupId === 'ungrouped' 
+    ? ungroupedMachines.value 
+    : getMachinesInGroup(groupId);
+  
+  const currentMachine = machinesInGroup[machineIndex];
+  const previousMachine = machinesInGroup[machineIndex - 1];
+  
+  // 交换排序值
+  const tempOrder = currentMachine.groupDisplayOrder;
+  currentMachine.groupDisplayOrder = previousMachine.groupDisplayOrder;
+  previousMachine.groupDisplayOrder = tempOrder;
+  
+  // 更新数据库
+  await Promise.all([
+    updateMachineOrder(currentMachine._id, currentMachine.groupDisplayOrder),
+    updateMachineOrder(previousMachine._id, previousMachine.groupDisplayOrder)
+  ]);
+  
+  // 重新加载数据
+  await loadData();
+}
+
+// 移动机台向下
+async function moveMachineDown(groupId, machineIndex) {
+  const machinesInGroup = groupId === 'ungrouped' 
+    ? ungroupedMachines.value 
+    : getMachinesInGroup(groupId);
+  
+  // 检查是否可以跨组移动（移动到下一个分组的第一个位置）
+  if (machineIndex === machinesInGroup.length - 1) {
+    await moveToNextGroup(groupId, machineIndex);
+    return;
+  }
+  
+  const currentMachine = machinesInGroup[machineIndex];
+  const nextMachine = machinesInGroup[machineIndex + 1];
+  
+  // 交换排序值
+  const tempOrder = currentMachine.groupDisplayOrder;
+  currentMachine.groupDisplayOrder = nextMachine.groupDisplayOrder;
+  nextMachine.groupDisplayOrder = tempOrder;
+  
+  // 更新数据库
+  await Promise.all([
+    updateMachineOrder(currentMachine._id, currentMachine.groupDisplayOrder),
+    updateMachineOrder(nextMachine._id, nextMachine.groupDisplayOrder)
+  ]);
+  
+  // 重新加载数据
+  await loadData();
+}
+
+// 移动到下一个分组
+async function moveToNextGroup(currentGroupId, machineIndex) {
+  const machinesInGroup = currentGroupId === 'ungrouped' 
+    ? ungroupedMachines.value 
+    : getMachinesInGroup(currentGroupId);
+  
+  const currentMachine = machinesInGroup[machineIndex];
+  
+  // 获取当前分组在排序列表中的位置
+  let currentGroupOrder = -1;
+  if (currentGroupId === 'ungrouped') {
+    currentGroupOrder = -1; // 未分组在最前面
+  } else {
+    const currentGroup = groups.value.find(g => g._id === currentGroupId);
+    currentGroupOrder = currentGroup ? currentGroup.displayOrder : -1;
+  }
+  
+  // 获取下一个分组（按displayOrder排序）
+  let nextGroup = null;
+  if (currentGroupId === 'ungrouped') {
+    nextGroup = sortedGroups.value.find(g => g.displayOrder === 0);
+  } else {
+    nextGroup = sortedGroups.value.find(g => g.displayOrder === currentGroupOrder + 1);
+  }
+  
+  if (!nextGroup) return;
+  
+  // 获取目标分组的机台数量
+  const targetMachines = getMachinesInGroup(nextGroup._id);
+  const newOrder = targetMachines.length > 0 ? Math.max(...targetMachines.map(m => m.groupDisplayOrder)) + 1 : 0;
+  
+  // 更改机台分组和排序
+  await todo.updateMachineGroup(currentMachine._id, nextGroup._id);
+  await updateMachineOrder(currentMachine._id, newOrder);
+  
+  // 重新加载数据
+  await loadData();
+  
+  uni.showToast({
+    icon: 'success',
+    title: `已移动到${nextGroup.name}`,
+    duration: 2000
+  });
+}
+
+// 移动到上一个分组
+async function moveToPreviousGroup(currentGroupId, machineIndex) {
+  const machinesInGroup = currentGroupId === 'ungrouped' 
+    ? ungroupedMachines.value 
+    : getMachinesInGroup(currentGroupId);
+  
+  const currentMachine = machinesInGroup[machineIndex];
+  
+  // 获取当前分组的displayOrder
+  let currentGroupOrder = -1;
+  if (currentGroupId === 'ungrouped') {
+    return; // 未分组在最前面，不能向上移动
+  } else {
+    const currentGroup = groups.value.find(g => g._id === currentGroupId);
+    currentGroupOrder = currentGroup ? currentGroup.displayOrder : -1;
+  }
+  
+  // 获取上一个分组（按displayOrder排序）
+  let previousGroup = null;
+  if (currentGroupOrder === 0) {
+    previousGroup = null; // 移动到未分组
+  } else {
+    previousGroup = sortedGroups.value.find(g => g.displayOrder === currentGroupOrder - 1);
+  }
+  
+  // 获取目标分组的机台数量
+  let targetMachines = [];
+  if (previousGroup) {
+    targetMachines = getMachinesInGroup(previousGroup._id);
+  } else {
+    targetMachines = ungroupedMachines.value;
+  }
+  const newOrder = targetMachines.length > 0 ? Math.max(...targetMachines.map(m => m.groupDisplayOrder)) + 1 : 0;
+  
+  // 更改机台分组和排序
+  const newGroupId = previousGroup ? previousGroup._id : null;
+  await todo.updateMachineGroup(currentMachine._id, newGroupId);
+  await updateMachineOrder(currentMachine._id, newOrder);
+  
+  // 重新加载数据
+  await loadData();
+  
+  const targetGroupName = previousGroup ? previousGroup.name : '未分组';
+  uni.showToast({
+    icon: 'success',
+    title: `已移动到${targetGroupName}`,
+    duration: 2000
+  });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -306,16 +531,18 @@ onMounted(() => {
 
 .section {
   margin-bottom: 60rpx;
-  background: #fff;
-  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20rpx;
   padding: 30rpx;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .section-title {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: bold;
-  margin-bottom: 30rpx;
+  margin-bottom: 20rpx;
   color: #333;
   border-left: 8rpx solid #3b82f6;
   padding-left: 20rpx;
@@ -412,6 +639,125 @@ textarea {
   min-width: 200rpx;
 }
 
+/* 统一排序样式 */
+.section-description {
+  margin-bottom: 30rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 12rpx;
+  border-left: 4rpx solid #3b82f6;
+}
+
+.section-description text {
+  font-size: 28rpx;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.unified-sort-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+}
+
+.group-section {
+  background: rgba(248, 249, 250, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16rpx;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.group-header {
+  background: rgba(233, 236, 239, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 24rpx 30rpx;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.group-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #495057;
+}
+
+.machines-in-group {
+  padding: 20rpx;
+}
+
+.unified-machine-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 12rpx;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unified-machine-item:last-child {
+  margin-bottom: 0;
+}
+
+.unified-machine-item:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.machine-info {
+  flex: 1;
+}
+
+.machine-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.machine-sort-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.sort-btn {
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  border: none;
+  color: white;
+  min-width: 80rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sort-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.sort-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.sort-up {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.sort-down {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
 /* 深色模式适配 */
 @media (prefers-color-scheme: dark) {
   .container {
@@ -419,8 +765,10 @@ textarea {
   }
   
   .section {
-    background: #1e1e1e;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .title, .section-title {
@@ -443,6 +791,54 @@ textarea {
     background: #333;
     color: #e0e0e0;
     border-color: #555;
+  }
+  
+  /* 深色模式统一排序样式 */
+  .section-description {
+    background: rgba(59, 130, 246, 0.2);
+    border-left-color: #60a5fa;
+  }
+
+  .section-description text {
+    color: #d1d5db;
+  }
+
+  .group-section {
+    background: rgba(42, 42, 42, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .group-header {
+    background: rgba(51, 51, 51, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #555;
+  }
+  
+  .group-title {
+    color: #e0e0e0;
+    font-size: 40rpx;
+  }
+  
+  .unified-machine-item {
+    background: rgba(30, 30, 30, 0.9);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .machine-name {
+    color: #e0e0e0;
+  }
+
+  .sort-up {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  }
+
+  .sort-down {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
   }
 }
 </style>
