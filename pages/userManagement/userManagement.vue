@@ -33,20 +33,18 @@
     <view class="search-card glass-card">
       <view class="search-header">
         <view class="search-title">用户搜索与筛选</view>
-        <view class="toggle-filter" @click="toggleAdvancedFilters">
-          {{ showAdvancedFilters ? '隐藏高级筛选' : '显示高级筛选' }}
-        </view>
       </view>
       
       <!-- 基础搜索 -->
       <view class="basic-search">
         <view class="search-input-container">
           <uni-icons type="search" size="18" color="#6b7280"></uni-icons>
-          <input 
-            class="search-input" 
-            v-model="searchForm.keyword" 
-            placeholder="搜索用户ID、用户名或手机号" 
+          <input
+            class="search-input"
+            v-model="searchForm.keyword"
+            placeholder="搜索用户ID、用户名或手机号"
             @confirm="searchUsers"
+            @input="onSearchInput"
           />
           <view v-if="searchForm.keyword" class="clear-button" @click="clearSearch">
             <uni-icons type="clear" size="14" color="#6b7280"></uni-icons>
@@ -57,7 +55,7 @@
       </view>
       
       <!-- 高级筛选选项 -->
-      <view v-if="showAdvancedFilters" class="advanced-filters">
+      <view class="advanced-filters">
         <view class="filter-row">
           <view class="filter-group">
             <text class="filter-label">用户类型</text>
@@ -154,46 +152,37 @@
             />
           </view>
           
-          <view class="user-avatar-wrapper" @click="viewUserDetail(user)">
-            <image 
-              class="user-avatar" 
-              :src="user.avatar || '/static/default-avatar.png'" 
-              mode="aspectFill"
-            ></image>
-            <view v-if="getUserRoleBadge(user)" :class="['user-role-badge', getRoleBadgeClass(user)]">
-              {{ getUserRoleBadge(user) }}
-            </view>
-          </view>
-          
           <view class="user-info" @click="viewUserDetail(user)">
             <view class="user-name-row">
               <text class="user-name">{{ user.nickname || user.username || '匿名用户' }}</text>
-              <view v-if="user.vip_type" class="vip-tag">
-                {{ getVipTypeText(user.vip_type) }}
+              <view v-if="isUserVip(user)" class="vip-tag">
+                VIP
               </view>
             </view>
-            
+
             <view class="user-details">
+              <view class="user-detail-item">
+                <uni-icons type="person" size="14" color="#6b7280"></uni-icons>
+                <text>{{ user.role_display || '普通用户' }}</text>
+              </view>
+
               <view class="user-detail-item">
                 <uni-icons type="phone" size="14" color="#6b7280"></uni-icons>
                 <text>{{ formatPhone(user.mobile) || '未绑定手机' }}</text>
               </view>
-              
+
               <view class="user-detail-item">
                 <uni-icons type="calendar" size="14" color="#6b7280"></uni-icons>
                 <text>{{ formatDate(user.register_date) || '未知注册日期' }}</text>
               </view>
             </view>
-            
+
             <view class="user-activity">
               <view class="activity-item">
-                <text class="activity-label">订单</text>
-                <text class="activity-value">{{ user.orderCount || 0 }}</text>
-              </view>
-              <view class="activity-divider"></view>
-              <view class="activity-item">
-                <text class="activity-label">消费</text>
-                <text class="activity-value">{{ formatAmount(user.totalSpent || 0) }}</text>
+                <text class="activity-label">账号状态</text>
+                <text class="activity-value" :class="getUserStatusClass(user)">
+                  {{ getUserStatusText(user) }}
+                </text>
               </view>
               <view class="activity-divider"></view>
               <view class="activity-item">
@@ -204,31 +193,58 @@
           </view>
           
           <view class="user-actions">
-            <button class="action-button" @click="editUser(user)">编辑</button>
-            <button class="action-button primary" @click="viewUserDetail(user)">详情</button>
+            <view class="action-buttons-row">
+              <button class="action-button" @click="editUser(user)">编辑</button>
+              <button class="action-button primary" @click="viewUserDetail(user)">详情</button>
+            </view>
+            <view class="role-management-buttons" v-if="hasAdminPermission">
+              <button
+                v-if="canPromoteUser(user)"
+                class="role-button promote"
+                @click="promoteUser(user)"
+                title="提升用户权限"
+              >
+                提权
+              </button>
+              <button
+                v-if="canDemoteUser(user)"
+                class="role-button demote"
+                @click="demoteUser(user)"
+                title="降低用户权限"
+              >
+                降权
+              </button>
+            </view>
           </view>
         </view>
       </scroll-view>
       
       <!-- 分页控件 -->
       <view class="pagination">
-        <button 
-          class="page-button" 
-          :disabled="currentPage <= 1"
-          @click="goToPreviousPage"
-        >
-          <uni-icons type="left" size="14" :color="currentPage <= 1 ? '#d1d5db' : '#3b82f6'"></uni-icons>
-        </button>
-        
-        <text class="page-info">{{ currentPage }} / {{ totalPages || 1 }}</text>
-        
-        <button 
-          class="page-button" 
-          :disabled="currentPage >= totalPages"
-          @click="goToNextPage"
-        >
-          <uni-icons type="right" size="14" :color="currentPage >= totalPages ? '#d1d5db' : '#3b82f6'"></uni-icons>
-        </button>
+        <view class="pagination-info">
+          <text class="page-count">第 {{ currentPage }} 页 / 共 {{ totalPages || 1 }} 页</text>
+          <text class="total-count">共 {{ totalRecords }} 条记录</text>
+        </view>
+
+        <view class="pagination-controls">
+          <button
+            class="page-button"
+            :disabled="currentPage <= 1"
+            @click="goToPreviousPage"
+          >
+            <uni-icons type="left" size="14" :color="currentPage <= 1 ? '#d1d5db' : '#3b82f6'"></uni-icons>
+            上一页
+          </button>
+
+          <button
+            class="page-button"
+            :disabled="currentPage >= totalPages"
+            @click="goToNextPage"
+          >
+            下一页
+            <uni-icons type="right" size="14" :color="currentPage >= totalPages ? '#d1d5db' : '#3b82f6'"></uni-icons>
+          </button>
+        </view>
       </view>
     </view>
     
@@ -270,7 +286,7 @@
               <view v-if="currentUser.isMember" class="vip-info">
                 <!-- 会员信息 -->
                 <view class="vip-header">
-                  <text class="vip-title">{{ getVipTypeText(currentUser.memberType) }}</text>
+                  <text class="vip-title">{{ getVipTypeText(currentUser.vip_type) }}</text>
                   <text class="vip-status">{{ isVipActive(currentUser) ? '生效中' : '已过期' }}</text>
                 </view>
                 
@@ -282,12 +298,12 @@
                   
                   <view class="vip-detail-item">
                     <text class="vip-detail-label">到期时间</text>
-                    <text class="vip-detail-value">{{ formatDateTime(currentUser.memberExpireDate) }}</text>
+                    <text class="vip-detail-value">{{ formatDateTime(currentUser.vip_expire_date) }}</text>
                   </view>
                   
                   <view class="vip-detail-item">
                     <text class="vip-detail-label">剩余天数</text>
-                    <text class="vip-detail-value">{{ calculateRemainingDays(currentUser.memberExpireDate) }}</text>
+                    <text class="vip-detail-value">{{ calculateRemainingDays(currentUser.vip_expire_date) }}</text>
                   </view>
                 </view>
               </view>
@@ -850,7 +866,7 @@ export default {
       },
       
       // 搜索和筛选
-      showAdvancedFilters: false,
+      showAdvancedFilters: true, // 默认展开高级筛选，减少压缩感
       searchForm: {
         keyword: '',
         userType: null,
@@ -859,6 +875,10 @@ export default {
         sortField: 'register_date',
         sortOrder: 'desc'
       },
+
+      // 搜索状态管理
+      searchTimeout: null,
+      searchLoading: false,
       
       // 筛选选项
       userTypeFilterIndex: 0,
@@ -876,6 +896,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       totalPages: 1,
+      totalRecords: 0,
       
       // 用户详情
       currentUser: {},
@@ -974,50 +995,80 @@ export default {
     
     // 用户加载与刷新
     async loadUsers() {
+      if (this.searchLoading) return;
+
       try {
+        this.searchLoading = true;
         uni.showLoading({ title: '加载中...' });
         
-        // 构建查询参数
+        // 调用云函数获取用户列表
+        const todo = uniCloud.importObject('todo');
+
+        // 构建搜索参数（参考 orderManagement 和 reservationManagement 的正确模式）
         const params = {
-          pageSize: this.pageSize,
           pageNumber: this.currentPage,
+          pageSize: this.pageSize,
           sortField: this.searchForm.sortField,
           sortOrder: this.searchForm.sortOrder
         };
-        
-        // 添加关键字
+
+        // 只添加非空的筛选条件（与其他工作页面保持一致）
         if (this.searchForm.keyword) {
           params.keyword = this.searchForm.keyword;
         }
-        
-        // 添加用户类型筛选
+
         if (this.searchForm.userType !== null) {
           params.userType = this.searchForm.userType;
         }
-        
-        // 添加注册时间筛选
-        if (this.searchForm.registerTimeRange) {
-          params.registerStartDate = this.searchForm.registerTimeRange.start;
-          params.registerEndDate = this.searchForm.registerTimeRange.end;
-        }
-        
-        // 添加活跃状态筛选
+
         if (this.searchForm.activeStatus !== null) {
           params.activeStatus = this.searchForm.activeStatus;
         }
-        
-        // 调用云函数获取用户列表
-        // 在实际应用中替换为您的云函数名称
-        const todo = uniCloud.importObject('todo');
+
+        // 处理时间范围
+        if (this.searchForm.registerTimeRange) {
+          if (this.searchForm.registerTimeRange.start) {
+            params.registerStartDate = this.searchForm.registerTimeRange.start;
+          }
+          if (this.searchForm.registerTimeRange.end) {
+            params.registerEndDate = this.searchForm.registerTimeRange.end;
+          }
+        }
+
+        console.log('发送给后端的参数:', params);
+
         const result = await todo.Get_FilteredUsers(params);
+
+        console.log('后端返回的分页数据:', {
+          code: result.code,
+          dataLength: result.data?.length,
+          pagination: result.pagination,
+          total: result.pagination?.total,
+          totalPages: result.pagination?.totalPages,
+          currentPage: result.pagination?.currentPage
+        });
         
         if (result && result.code === 0) {
-          this.users = result.data;
-          this.totalPages = result.pagination.totalPages;
+          this.users = result.data || [];
+          this.totalPages = result.pagination ? result.pagination.totalPages : 1;
+          this.totalRecords = result.pagination ? result.pagination.total : 0;
+
+          console.log('前端更新后的状态:', {
+            usersLength: this.users.length,
+            totalPages: this.totalPages,
+            totalRecords: this.totalRecords,
+            currentPage: this.currentPage
+          });
+
+          // 检查分页是否合理
+          if (this.totalPages > 1 && this.users.length > 0) {
+            console.log('应该有多页数据，检查翻页按钮是否可点击');
+          }
         } else {
           uni.showToast({
             title: result.errMsg || '加载用户失败',
-            icon: 'none'
+            icon: 'none',
+            duration: 3000
           });
         }
         
@@ -1030,6 +1081,8 @@ export default {
         });
         console.error('加载用户列表失败:', e);
       }
+
+      this.searchLoading = false;
     },
     
     // 加载用户统计数据
@@ -1048,15 +1101,23 @@ export default {
     },
     
     // 搜索与筛选
-    toggleAdvancedFilters() {
-      this.showAdvancedFilters = !this.showAdvancedFilters;
-    },
-    
+        
     clearSearch() {
       this.searchForm.keyword = '';
       this.searchUsers();
     },
-    
+
+    // 搜索输入防抖
+    onSearchInput() {
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout);
+      }
+
+      this.searchTimeout = setTimeout(() => {
+        this.searchUsers();
+      }, 500);
+    },
+
     searchUsers() {
       this.currentPage = 1; // 重置到第一页
       this.loadUsers();
@@ -1065,15 +1126,17 @@ export default {
     onUserTypeFilterChange(e) {
       this.userTypeFilterIndex = e.detail.value;
       this.searchForm.userType = this.userTypeFilterIndex === 0 ? null : this.userTypeFilterIndex - 1;
+      // 自动触发搜索
+      this.searchUsers();
     },
-    
+
     onRegisterTimeFilterChange(e) {
       this.registerTimeFilterIndex = e.detail.value;
       const now = new Date();
-      
+
       // 重置时间范围
       this.searchForm.registerTimeRange = null;
-      
+
       // 根据选择设置时间范围
       switch (parseInt(this.registerTimeFilterIndex)) {
         case 1: // 今天
@@ -1119,16 +1182,21 @@ export default {
           };
           break;
       }
+
+      // 自动触发搜索
+      this.searchUsers();
     },
     
     onActiveStatusFilterChange(e) {
       this.activeStatusFilterIndex = e.detail.value;
       this.searchForm.activeStatus = this.activeStatusFilterIndex === 0 ? null : this.activeStatusFilterIndex - 1;
+      // 自动触发搜索
+      this.searchUsers();
     },
     
     onSortChange(e) {
       this.sortIndex = e.detail.value;
-      
+
       // 设置排序字段和顺序
       switch (parseInt(this.sortIndex)) {
         case 0:
@@ -1156,6 +1224,9 @@ export default {
           this.searchForm.sortOrder = 'asc';
           break;
       }
+
+      // 自动触发搜索
+      this.searchUsers();
     },
     
     resetFilters() {
@@ -1172,12 +1243,14 @@ export default {
       this.registerTimeFilterIndex = 0;
       this.activeStatusFilterIndex = 0;
       this.sortIndex = 0;
+
+      // 触发搜索以加载重置后的数据
+      this.searchUsers();
     },
     
     applyFilters() {
       this.currentPage = 1; // 重置到第一页
       this.loadUsers();
-      this.showAdvancedFilters = false; // 应用后隐藏高级筛选
     },
     
     getStartOfDay(date) {
@@ -1190,16 +1263,34 @@ export default {
     
     // 分页控制
     goToPreviousPage() {
+      console.log('点击上一页，当前页码:', this.currentPage);
       if (this.currentPage > 1) {
         this.currentPage--;
+        console.log('页码更新为:', this.currentPage);
         this.loadUsers();
+      } else {
+        console.log('已经是第一页，无法继续翻页');
       }
     },
     
     goToNextPage() {
+      console.log('点击下一页，当前页码:', this.currentPage, '总页数:', this.totalPages);
+      console.log('下一页按钮状态检查:', {
+        currentPage: this.currentPage,
+        totalPages: this.totalPages,
+        canGoNext: this.currentPage < this.totalPages,
+        condition: `${this.currentPage} < ${this.totalPages}`
+      });
+
       if (this.currentPage < this.totalPages) {
         this.currentPage++;
+        console.log('页码更新为:', this.currentPage);
         this.loadUsers();
+      } else {
+        console.log('无法翻页 - 可能原因:');
+        console.log('1. totalPages 值不正确:', this.totalPages);
+        console.log('2. 后端返回的分页数据有问题');
+        console.log('3. currentPage 和 totalPages 比较有问题');
       }
     },
     
@@ -1339,34 +1430,19 @@ export default {
     async viewUserDetail(user) {
       try {
         uni.showLoading({ title: '加载中...' });
-        
-        // 获取用户详细信息
-        const todo = uniCloud.importObject('todo');
-        const result = await todo.GetUserDetail(user._id);
-        
-        if (result && result.code === 0) {
-          this.currentUser = result.data;
-          this.currentTabIndex = 0; // 重置为第一个选项卡
-          
-          // 加载用户订单
-          this.loadUserOrders();
-          
-          // 加载会员历史
-          this.loadUserVipHistory();
-          
-          // 加载活动记录
-          this.loadUserActivities();
-          
-          uni.hideLoading();
-          // 打开详情弹窗
-          this.$refs.userDetailPopup.open();
-        } else {
-          uni.hideLoading();
-          uni.showToast({
-            title: '获取用户详情失败',
-            icon: 'none'
-          });
-        }
+
+        // 暂时直接使用用户数据，不调用后端（避免500错误）
+        this.currentUser = user;
+        this.currentTabIndex = 0; // 重置为第一个选项卡
+
+        // 暂时禁用详细数据加载（避免500错误）
+        // await this.loadUserOrders();
+        // await this.loadUserVipHistory();
+        // await this.loadUserActivities();
+
+        uni.hideLoading();
+        // 打开详情弹窗
+        this.$refs.userDetailPopup.open();
       } catch (e) {
         uni.hideLoading();
         console.error('加载用户详情失败:', e);
@@ -1395,90 +1471,26 @@ export default {
     },
     
     async loadUserOrders() {
-      if (!this.currentUser || !this.currentUser._id) return;
-      
-      try {
-        uni.showLoading({ title: '加载订单...' });
-        
-        // 获取用户订单历史
-        const todo = uniCloud.importObject('todo');
-        const result = await todo.GetUserOrders(this.currentUser._id);
-        
-        if (result && result.code === 0) {
-          this.userOrders = result.data || [];
-        } else {
-          this.userOrders = [];
-        }
-        
-        uni.hideLoading();
-      } catch (e) {
-        uni.hideLoading();
-        console.error('加载用户订单失败:', e);
-        this.userOrders = [];
-      }
+      // 暂时禁用，避免调用不存在的后端方法
+      console.log('loadUserOrders 暂时禁用');
+      this.userOrders = [];
     },
     
     async loadUserVipHistory() {
-      if (!this.currentUser || !this.currentUser._id) return;
-      
-      try {
-        uni.showLoading({ title: '加载会员历史...' });
-        
-        // 获取用户会员购买历史
-        const todo = uniCloud.importObject('todo');
-        const result = await todo.GetUserVipHistory(this.currentUser._id);
-        
-        if (result && result.code === 0) {
-          this.vipHistory = result.data || [];
-        } else {
-          this.vipHistory = [];
-        }
-        
-        uni.hideLoading();
-      } catch (e) {
-        uni.hideLoading();
-        console.error('加载会员历史失败:', e);
-        this.vipHistory = [];
-      }
+      // 暂时禁用，避免调用不存在的后端方法
+      console.log('loadUserVipHistory 暂时禁用');
+      this.vipHistory = [];
     },
     
     async loadUserActivities() {
-      if (!this.currentUser || !this.currentUser._id) return;
-      
-      try {
-        uni.showLoading({ title: '加载活动记录...' });
-        
-        // 获取用户活动记录
-        const todo = uniCloud.importObject('todo');
-        const result = await todo.GetUserActivities(this.currentUser._id);
-        
-        if (result && result.code === 0) {
-          this.userActivities = result.data || {
-            logins: 0,
-            reservations: 0,
-            totalUsageTime: 0,
-            timeline: []
-          };
-        } else {
-          this.userActivities = {
-            logins: 0,
-            reservations: 0,
-            totalUsageTime: 0,
-            timeline: []
-          };
-        }
-        
-        uni.hideLoading();
-      } catch (e) {
-        uni.hideLoading();
-        console.error('加载活动记录失败:', e);
-        this.userActivities = {
-          logins: 0,
-          reservations: 0,
-          totalUsageTime: 0,
-          timeline: []
-        };
-      }
+      // 暂时禁用，避免调用不存在的后端方法
+      console.log('loadUserActivities 暂时禁用');
+      this.userActivities = {
+        logins: 0,
+        reservations: 0,
+        totalUsageTime: 0,
+        timeline: []
+      };
     },
     
     calculateTotalSpent() {
@@ -1538,15 +1550,15 @@ export default {
         email: user.email || '',
         status: user.status || 'normal',
         role: user.role || 'user',
-        memberType: user.memberType || '',
-        memberExpireDate: user.memberExpireDate || null,
+        vip_type: user.vip_type || '',
+        vip_expire_date: user.vip_expire_date || null,
         admin_remark: user.admin_remark || ''
       };
       
       // 设置表单初始值
       this.roleIndex = this.getRoleIndex(user.role);
       this.statusIndex = this.getStatusIndex(user.status);
-      this.vipTypeIndex = this.getVipTypeIndex(user.memberType);
+      this.vipTypeIndex = this.getVipTypeIndex(user.vip_type);
       
       // 重置错误信息
       this.editError = '';
@@ -1617,13 +1629,13 @@ export default {
       this.vipTypeIndex = e.detail.value;
       
       const vipTypes = ['', 'weekly', 'monthly', 'quarterly', 'yearly'];
-      this.editUserForm.memberType = vipTypes[this.vipTypeIndex];
+      this.editUserForm.vip_type = vipTypes[this.vipTypeIndex];
       
       // 如果选择了会员类型，默认设置30天有效期
-      if (this.vipTypeIndex > 0 && !this.editUserForm.memberExpireDate) {
+      if (this.vipTypeIndex > 0 && !this.editUserForm.vip_expire_date) {
         const expireDate = new Date();
         expireDate.setDate(expireDate.getDate() + 30);
-        this.editUserForm.memberExpireDate = expireDate.getTime();
+        this.editUserForm.vip_expire_date = expireDate.getTime();
       }
     },
     
@@ -2083,16 +2095,27 @@ export default {
     
     getRoleBadgeClass(user) {
       if (!user) return '';
-      
+
       if (user.role === 'admin' || user.role === 'super-admin') {
         return 'admin-badge';
       } else if (user.role === 'staff') {
         return 'staff-badge';
       }
-      
+
       return '';
     },
-    
+
+    getAccountStatusClass(user) {
+      if (!user) return '';
+
+      switch (user.status) {
+        case 'normal': return 'status-normal';
+        case 'disabled': return 'status-disabled';
+        case 'limited': return 'status-limited';
+        default: return '';
+      }
+    },
+
     getVipTypeText(type) {
       switch (type) {
         case 'weekly': return '周卡';
@@ -2113,17 +2136,7 @@ export default {
         default: return '未知状态';
       }
     },
-    
-    getVipTypeText(type) {
-      switch (type) {
-        case 'weekly': return '周卡';
-        case 'monthly': return '月卡';
-        case 'quarterly': return '季卡';
-        case 'yearly': return '年卡';
-        default: return type;
-      }
-    },
-    
+
     isVipActive(user) {
       return user && user.isMember;
     },
@@ -2243,6 +2256,161 @@ export default {
       const amountInYuan = (amountInCents / 100).toFixed(2);
       return `¥${amountInYuan}`;
     },
+
+    // 新增方法
+    isUserVip(user) {
+      return user && (user.membership_expiry > Date.now() || user.subscription_package_expiry > Date.now());
+    },
+
+    getUserStatusClass(user) {
+      if (!user) return '';
+      switch (user.status) {
+        case 0: return 'status-normal';
+        case 1: return 'status-disabled';
+        case 2: return 'status-limited';
+        default: return 'status-normal';
+      }
+    },
+
+    getUserStatusText(user) {
+      if (!user) return '未知';
+      switch (user.status) {
+        case 0: return '正常';
+        case 1: return '禁用';
+        case 2: return '限制';
+        default: return '正常';
+      }
+    },
+
+  
+    // 权限管理方法
+    canPromoteUser(user) {
+      if (!user || !this.hasAdminPermission) return false;
+      // 管理员不能提权，普通用户可以提升为员工，员工可以提升为管理员
+      if (user.role === 'admin' || user.role === 'super-admin') return false;
+      return true;
+    },
+
+    canDemoteUser(user) {
+      if (!user || !this.hasAdminPermission) return false;
+      // 不能降权比自己权限高或同级的用户
+      if (user.role === 'super-admin') return false;
+      // 可以降权管理员、员工和普通用户（设置为禁用状态）
+      if (user.role === 'admin' || user.role === 'staff' || user.role === 'user') return true;
+      return false;
+    },
+
+    async promoteUser(user) {
+      if (!user) return;
+
+      const newRole = user.role === 'user' ? 'staff' : 'admin';
+      const roleText = newRole === 'staff' ? '员工' : '管理员';
+
+      uni.showModal({
+        title: '权限提升确认',
+        content: `确定要将 ${user.nickname || user.username || '此用户'} 提升为${roleText}吗？`,
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              uni.showLoading({ title: '处理中...' });
+
+              // 调用云函数更新用户权限
+              const todo = uniCloud.importObject('todo');
+              const result = await todo.UpdateUserRole({
+                userId: user._id,
+                newRole: newRole
+              });
+
+              if (result && result.code === 0) {
+                uni.showToast({
+                  title: '权限提升成功',
+                  icon: 'success'
+                });
+
+                // 更新本地数据
+                user.role = newRole;
+                user.role_display = newRole === 'staff' ? '员工' : '管理员';
+
+                // 如果是当前查看的用户，也更新详情
+                if (this.currentUser && this.currentUser._id === user._id) {
+                  this.currentUser.role = newRole;
+                  this.currentUser.role_display = user.role_display;
+                }
+              } else {
+                uni.showToast({
+                  title: result.errMsg || '权限提升失败',
+                  icon: 'none'
+                });
+              }
+            } catch (e) {
+              uni.showToast({
+                title: '系统错误，请稍后再试',
+                icon: 'none'
+              });
+              console.error('权限提升失败:', e);
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        }
+      });
+    },
+
+    async demoteUser(user) {
+      if (!user) return;
+
+      const newRole = user.role === 'admin' ? 'staff' : 'user';
+      const roleText = newRole === 'staff' ? '员工' : '普通用户';
+
+      uni.showModal({
+        title: '权限降低确认',
+        content: `确定要将 ${user.nickname || user.username || '此用户'} 降级为${roleText}吗？`,
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              uni.showLoading({ title: '处理中...' });
+
+              // 调用云函数更新用户权限
+              const todo = uniCloud.importObject('todo');
+              const result = await todo.UpdateUserRole({
+                userId: user._id,
+                newRole: newRole
+              });
+
+              if (result && result.code === 0) {
+                uni.showToast({
+                  title: '权限降低成功',
+                  icon: 'success'
+                });
+
+                // 更新本地数据
+                user.role = newRole;
+                user.role_display = newRole === 'staff' ? '员工' : '普通用户';
+
+                // 如果是当前查看的用户，也更新详情
+                if (this.currentUser && this.currentUser._id === user._id) {
+                  this.currentUser.role = newRole;
+                  this.currentUser.role_display = user.role_display;
+                }
+              } else {
+                uni.showToast({
+                  title: result.errMsg || '权限降低失败',
+                  icon: 'none'
+                });
+              }
+            } catch (e) {
+              uni.showToast({
+                title: '系统错误，请稍后再试',
+                icon: 'none'
+              });
+              console.error('权限降低失败:', e);
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        }
+      });
+    },
     
     formatDate(timestamp) {
       if (!timestamp) return '--';
@@ -2337,10 +2505,13 @@ export default {
   transition: all 0.2s ease;
 }
 
-.glass-item:active,
-.selected-user {
+.glass-item:active {
   background: rgba(59, 130, 246, 0.1);
   border-color: rgba(59, 130, 246, 0.3);
+}
+
+.selected-user {
+  background-color: rgba(59, 130, 246, 0.08);
 }
 
 /* 头部样式 */
@@ -2582,12 +2753,17 @@ export default {
   border: none;
 }
 
-/* 用户列表样式 */
+/* 用户列表容器 */
 .users-list {
   max-height: 600px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   margin-bottom: 16px;
 }
 
+/* 空列表状态 */
 .empty-list {
   padding: 40px 0;
   display: flex;
@@ -2599,41 +2775,38 @@ export default {
 
 .empty-list text {
   margin-top: 12px;
-  font-size: 16px;
+  font-size: 14px;
 }
 
+/* 用户列表项 */
 .user-item {
   display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.user-select {
-  padding: 4px;
-}
-
-.user-avatar-wrapper {
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
   position: relative;
 }
 
-.user-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #e5e7eb;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+.user-item:last-child {
+  border-bottom: none;
 }
 
-.user-role-badge {
+.user-item:active {
+  background-color: #f9fafb;
+}
+
+/* 用户选择框 */
+.user-select {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  color: white;
-  background-color: #3B82F6;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* 确保选择框在正确位置 */
+.user-select checkbox {
+  transform: scale(0.9);
 }
 
 .admin-badge {
@@ -2644,21 +2817,28 @@ export default {
   background-color: #10B981;
 }
 
+/* 用户信息布局 */
 .user-info {
   flex: 1;
+  min-width: 0;
+  margin-left: 45px;
+  margin-right: 120px;
 }
 
 .user-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .user-name {
   font-size: 16px;
   font-weight: 500;
   color: #1F2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vip-tag {
@@ -2666,106 +2846,168 @@ export default {
   padding: 1px 6px;
   border-radius: 10px;
   color: white;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  background: #F59E0B;
+  font-weight: 500;
 }
 
+/* 用户详细信息 */
 .user-details {
   display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 4px;
 }
 
 .user-detail-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 12px;
   color: #6B7280;
 }
 
+/* 用户活动状态 */
 .user-activity {
   display: flex;
-  background: rgba(249, 250, 251, 0.8);
-  border-radius: 6px;
-  padding: 6px 10px;
+  gap: 16px;
+  font-size: 12px;
 }
 
 .activity-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  flex: 1;
+  gap: 4px;
 }
 
 .activity-label {
-  font-size: 10px;
   color: #6B7280;
-  margin-bottom: 2px;
 }
 
 .activity-value {
-  font-size: 12px;
-  color: #374151;
   font-weight: 500;
+  color: #374151;
+}
+
+.activity-value.status-normal {
+  color: #10B981;
+}
+
+.activity-value.status-disabled {
+  color: #EF4444;
+}
+
+.activity-value.status-limited {
+  color: #F59E0B;
 }
 
 .activity-divider {
-  width: 1px;
-  background: rgba(209, 213, 219, 0.5);
-  margin: 0 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #d1d5db;
+  margin: 0 4px;
 }
 
+/* 文字按钮 */
 .user-actions {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: flex-end;
 }
 
 .action-button {
-  font-size: 12px;
-  padding: 4px 12px;
+  font-size: 13px;
+  padding: 4px 10px;
   border-radius: 4px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   color: #4B5563;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #e5e7eb;
   white-space: nowrap;
+  text-align: center;
 }
 
 .action-button.primary {
   background: rgba(59, 130, 246, 0.1);
   color: #3B82F6;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
-/* 分页控件 */
+/* 优化列表布局 */
+.action-buttons-row {
+  display: flex;
+  gap: 8px;
+}
+
+.role-management-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.role-button {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: none;
+  color: white;
+  text-align: center;
+}
+
+.role-button.promote {
+  background: #10B981;
+}
+
+.role-button.demote {
+  background: #F59E0B;
+}
+
+/* 分页控件优化 */
 .pagination {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.pagination-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-count, .total-count {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
 }
 
 .page-button {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 0;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  color: #374151;
 }
 
-.page-button[disabled] {
+.page-button:disabled {
   opacity: 0.5;
-  background: #F3F4F6;
-}
-
-.page-info {
-  margin: 0 12px;
-  font-size: 14px;
-  color: #4B5563;
 }
 
 /* 弹窗样式 */
@@ -3601,175 +3843,139 @@ export default {
   font-size: 14px;
 }
 
-/* 深色模式 */
+/* 响应式布局优化 */
+@media screen and (max-width: 768px) {
+  .user-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .user-info {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .user-actions {
+    width: 100%;
+    align-items: center;
+  }
+
+  .user-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .user-activity {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .activity-divider {
+    width: 80%;
+    height: 1px;
+    margin: 4px 0;
+  }
+}
+
+/* 深色模式适配 */
 @media (prefers-color-scheme: dark) {
-  .container {
-    background: linear-gradient(135deg, #111827 0%, #1F2937 100%);
+  .users-list {
+    background: #1F2937;
+    border-color: #374151;
   }
-  
-  .glass-card {
-    background: rgba(31, 41, 55, 0.7);
-    border-color: rgba(255, 255, 255, 0.08);
+
+  .user-item {
+    border-bottom-color: #374151;
   }
-  
-  .glass-item {
-    background: rgba(31, 41, 55, 0.6);
-    border-color: rgba(255, 255, 255, 0.08);
+
+  .user-item:active {
+    background-color: #374151;
   }
-  
-  .search-title,
-  .card-title {
-    color: #F3F4F6;
+
+  .selected-user {
+    background-color: rgba(59, 130, 246, 0.2);
   }
-  
-  .toggle-filter {
-    background: rgba(96, 165, 250, 0.2);
-  }
-  
-  .search-input-container {
-    background: rgba(17, 24, 39, 0.6);
-    border-color: rgba(75, 85, 99, 0.4);
-  }
-  
-  .search-input {
-    color: #E5E7EB;
-  }
-  
-  .advanced-filters, 
-  .user-profile, 
-  .vip-info, 
-  .info-group, 
-  .order-summary, 
-  .activity-summary, 
-  .vip-summary {
-    background: rgba(31, 41, 55, 0.7);
-  }
-  
-  .filter-label {
-    color: #D1D5DB;
-  }
-  
-  .picker-input,
-  .form-input,
-  .admin-remark-textarea,
-  .message-textarea,
-  .vip-remark-textarea {
-    background: rgba(17, 24, 39, 0.6);
-    border-color: rgba(75, 85, 99, 0.4);
-    color: #E5E7EB;
-  }
-  
-  .batch-toolbar {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.4);
-  }
-  
+
   .user-name {
     color: #F3F4F6;
   }
-  
+
   .user-detail-item {
     color: #9CA3AF;
   }
-  
-  .user-activity, 
-  .vip-details, 
-  .vip-history, 
-  .order-history, 
-  .timeline-content {
-    background: rgba(17, 24, 39, 0.6);
-  }
-  
+
   .activity-label {
     color: #9CA3AF;
   }
-  
-  .activity-value, 
-  .info-value, 
-  .vip-detail-value, 
-  .timeline-title, 
-  .order-history-machine, 
-  .profile-name {
-    color: #E5E7EB;
+
+  .activity-value {
+    color: #D1D5DB;
   }
-  
+
+  .activity-divider {
+    background-color: #4B5563;
+  }
+
   .action-button {
-    background: rgba(55, 65, 81, 0.7);
+    background: #374151;
     color: #D1D5DB;
-    border-color: rgba(75, 85, 99, 0.4);
   }
-  
-  .action-button.primary, 
-  .mini-action-button {
+
+  .action-button.primary {
     background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.3);
+    color: #60A5FA;
   }
-  
-  .quick-action-button {
-    background: rgba(31, 41, 55, 0.8);
-    border-color: rgba(75, 85, 99, 0.4);
-  }
-  
-  .detail-popup,
-  .edit-popup,
-  .message-popup,
-  .vip-popup {
+
+  .role-management-buttons {
     background: #1F2937;
-    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
-  .detail-popup-title,
-  .edit-popup-title,
-  .message-popup-title,
-  .vip-popup-title {
-    color: #F3F4F6;
+
+  .pagination {
+    background: #111827;
+    border-color: #374151;
   }
-  
-  .edit-section-title,
-  .vip-history-header,
-  .list-header,
-  .activity-timeline-header {
-    color: #F3F4F6;
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .close-button {
-    background: rgba(75, 85, 99, 0.5);
-  }
-  
-  .detail-action-button,
-  .edit-cancel-button,
-  .message-cancel-button,
-  .vip-cancel-button,
-  .vip-admin-button {
-    background: rgba(55, 65, 81, 0.7);
-    color: #D1D5DB;
-    border-color: rgba(75, 85, 99, 0.4);
-  }
-  
-  .user-detail-tabs {
-    border-color: rgba(75, 85, 99, 0.4);
-  }
-  
-  .tab-item {
-    color: #9CA3AF;
-  }
-  
-  .active-tab {
-    color: #60A5FA;
-    border-bottom-color: #60A5FA;
-  }
-  
-  .vip-duration-option {
-    background: rgba(31, 41, 55, 0.7);
-    border-color: rgba(75, 85, 99, 0.4);
+
+  .page-button {
+    background: #1F2937;
+    border-color: #374151;
     color: #D1D5DB;
   }
-  
-  .selected-duration {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #60A5FA;
+}
+
+/* 响应式优化 */
+@media screen and (max-width: 480px) {
+  .user-actions {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .user-detail-item {
+    max-width: 150px;
+  }
+
+  .user-activity {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .activity-divider {
+    display: none;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pagination-info {
+    align-items: center;
   }
 }
 </style>

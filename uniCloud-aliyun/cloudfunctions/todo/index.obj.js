@@ -2473,7 +2473,7 @@ module.exports = {
 	    const total = countResult.total;
 	    const totalPages = Math.ceil(total / pageSize);
 	    
-	    console.log('查询统计结果:', { total, totalPages });
+	    console.log('查询统计结果:', { total, totalPages, whereConditions });
 	
 	    // 分页查询
 	    const skip = (pageNumber - 1) * pageSize;
@@ -3136,7 +3136,7 @@ async UpdateOrder(updateData) {
 	    const total = countResult.total;
 	    const totalPages = Math.ceil(total / pageSize);
 	    
-	    console.log('查询统计结果:', { total, totalPages });
+	    console.log('查询统计结果:', { total, totalPages, whereConditions });
 	
 	    // 分页查询
 	    const skip = (pageNumber - 1) * pageSize;
@@ -3556,6 +3556,893 @@ async UpdateOrder(updateData) {
 	  } catch (e) {
 	    console.error("Log reservation edit error:", e);
 	    // 日志记录失败不影响主要业务逻辑
+	  }
+	},
+
+	/**
+	 * 获取用户统计数据
+	 * @returns {Object} 统计结果
+	 */
+	async Get_UserStats() {
+	  try {
+	    console.log('Get_UserStats 开始执行');
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌: ' + e.message };
+	    }
+
+	    const role = payload.role;
+	    let hasAdminRole = false;
+
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+
+	    console.log('Get_UserStats: 权限检查通过');
+
+	    const db = uniCloud.database();
+	    const dbCmd = db.command;
+	    const stats = {
+	      total: 0,
+	      active: 0,
+	      vip: 0,
+	      new: 0
+	    };
+
+	    // 获取总用户数
+	    const totalResult = await db.collection('uni-id-users').count();
+	    stats.total = totalResult.total;
+
+	    // 获取活跃用户数（最近30天有登录）
+	    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+	    const activeResult = await db.collection('uni-id-users')
+	      .where({
+	        last_login_date: {
+	          $gte: thirtyDaysAgo
+	        }
+	      })
+	      .count();
+	    stats.active = activeResult.total;
+
+	    // 获取VIP用户数
+	    const vipResult = await db.collection('uni-id-users')
+	      .where({
+	        'membership.vip_level': dbCmd.exists(true)
+	      })
+	      .count();
+	    stats.vip = vipResult.total;
+
+	    // 获取本周新增用户数
+	    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+	    const newResult = await db.collection('uni-id-users')
+	      .where({
+	        register_date: {
+	          $gte: oneWeekAgo
+	        }
+	      })
+	      .count();
+	    stats.new = newResult.total;
+
+	    console.log('用户统计数据:', stats);
+
+	    return {
+	      code: 0,
+	      message: '获取用户统计成功',
+	      data: stats
+	    };
+
+	  } catch (error) {
+	    console.error('Get_UserStats 执行错误:', error);
+	    return {
+	      code: -1,
+	      errMsg: `获取用户统计失败: ${error.message}`
+	    };
+	  }
+	},
+
+	/**
+	 * 测试方法：检查数据库连接
+	 * @returns {Object} 测试结果
+	 */
+	async Test_DatabaseConnection() {
+	  try {
+	    console.log('Test_DatabaseConnection 开始执行');
+
+	    const db = uniCloud.database();
+
+	    // 1. 检查数据库连接 - 简化测试
+	    console.log('步骤1: 检查数据库连接...');
+	    try {
+	      const testResult = await db.collection('uni-id-users').doc('connection_test').get();
+	      console.log('数据库连接测试结果:', testResult);
+	    } catch (connectionError) {
+	      console.log('数据库连接测试失败（这是正常的，如果没有connection_test文档）:', connectionError.message);
+	    }
+
+	    // 2. 列出所有集合
+	    console.log('步骤2: 获取集合列表...');
+	    // 注意：uniCloud可能没有直接列出集合的方法，我们尝试访问已知集合
+
+	    // 3. 检查uni-id-users集合是否存在
+	    console.log('步骤3: 检查uni-id-users集合...');
+	    try {
+	      const usersCount = await db.collection('uni-id-users').count();
+	      console.log('uni-id-users集合存在，用户数量:', usersCount.total);
+	    } catch (collectionError) {
+	      console.error('访问uni-id-users集合失败:', collectionError);
+	      return {
+        code: -1,
+        message: 'uni-id-users集合访问失败',
+        error: collectionError.message
+      };
+    }
+
+    // 4. 检查其他相关集合
+    console.log('步骤4: 检查其他集合...');
+    const collectionsToCheck = ['fishcave-orders', 'reservation-log', 'machines'];
+    const collectionStatus = {};
+
+    for (const collectionName of collectionsToCheck) {
+      try {
+        const countResult = await db.collection(collectionName).count();
+        collectionStatus[collectionName] = {
+          exists: true,
+          count: countResult.total
+        };
+        console.log(`${collectionName}: ${countResult.total} 条记录`);
+      } catch (e) {
+        collectionStatus[collectionName] = {
+          exists: false,
+          error: e.message
+        };
+        console.log(`${collectionName}: 访问失败 - ${e.message}`);
+      }
+    }
+
+    return {
+      code: 0,
+      message: '数据库连接测试完成',
+      collections: collectionStatus
+    };
+
+  } catch (error) {
+    console.error('Test_DatabaseConnection 执行错误:', error);
+    return {
+      code: -1,
+      errMsg: `数据库连接测试失败: ${error.message}`,
+      error: error.toString()
+    };
+  }
+},
+
+	/**
+	 * 测试方法：获取所有用户（不筛选）
+	 * @returns {Object} 查询结果
+	 */
+	async Test_GetAllUsers() {
+	  try {
+	    console.log('Test_GetAllUsers 开始执行');
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	    } catch (e) {
+	      return { code: -1, errMsg: '无法解析身份令牌: ' + e.message };
+    }
+
+    const role = payload.role;
+    let hasAdminRole = false;
+
+    if (Array.isArray(role)) {
+      hasAdminRole = role.includes('admin');
+    } else if (typeof role === 'string') {
+      hasAdminRole = role === 'admin';
+    }
+
+    if (!hasAdminRole) {
+      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+    }
+
+    console.log('Test_GetAllUsers: 权限检查通过');
+    console.log('用户权限信息:', payload);
+
+    const db = uniCloud.database();
+
+    // 直接获取所有用户，不添加任何筛选条件
+    console.log('开始获取所有用户...');
+    const usersResult = await db.collection('uni-id-users')
+      .limit(10)  // 限制前10条
+      .get();
+
+    console.log('测试查询结果:', {
+      total: usersResult.data?.length || 0,
+      users: usersResult.data?.map(u => ({ id: u._id, nickname: u.nickname, username: u.username })) || []
+    });
+
+    // 如果没有用户，尝试创建一个测试用户
+    if (!usersResult.data || usersResult.data.length === 0) {
+      console.log('没有找到用户，尝试创建测试用户...');
+      try {
+        const testUser = {
+          username: 'test_user',
+          nickname: '测试用户',
+          role: 'user',
+          register_date: Date.now(),
+          status: 0
+        };
+        const addResult = await db.collection('uni-id-users').add(testUser);
+        console.log('测试用户创建结果:', addResult);
+      } catch (createError) {
+        console.error('创建测试用户失败:', createError);
+      }
+    }
+
+    return {
+      code: 0,
+      message: '测试获取用户成功',
+      data: usersResult.data || [],
+      total: usersResult.data?.length || 0
+    };
+
+  } catch (error) {
+    console.error('Test_GetAllUsers 执行错误:', error);
+    return {
+      code: -1,
+      errMsg: `测试获取用户失败: ${error.message}`,
+      error: error.toString()
+    };
+  }
+},
+
+	/**
+	 * 获取筛选后的用户列表
+	 * @param {Object} params 查询参数
+	 * @returns {Object} 查询结果
+	 */
+	async Get_FilteredUsers(params = {}) {
+	  try {
+	    console.log('Get_FilteredUsers 开始执行，参数:', params);
+
+	    // 权限检查
+	    const clientInfo = this.getClientInfo();
+	    console.log("权限检查 - 用户信息:", JSON.stringify(clientInfo));
+
+	    if (!clientInfo || !clientInfo.uniIdToken) {
+	      console.log("权限检查失败: 未找到身份令牌");
+	      return { code: -1, errMsg: '用户未登录或无权访问' };
+	    }
+
+	    const tokenParts = clientInfo.uniIdToken.split('.');
+	    if (tokenParts.length !== 3) {
+	      console.log("权限检查失败: 令牌格式无效");
+	      return { code: -1, errMsg: '令牌格式无效' };
+	    }
+
+	    let payload;
+	    try {
+	      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+	      const jsonStr = Buffer.from(base64, 'base64').toString();
+	      payload = JSON.parse(jsonStr);
+	      console.log("解析后的令牌信息:", JSON.stringify(payload));
+	    } catch (e) {
+	      console.error("解析令牌失败:", e);
+	      return { code: -1, errMsg: '无法解析身份令牌: ' + e.message };
+	    }
+
+	    const role = payload.role;
+	    let hasAdminRole = false;
+
+	    if (Array.isArray(role)) {
+	      hasAdminRole = role.includes('admin');
+	    } else if (typeof role === 'string') {
+	      hasAdminRole = role === 'admin';
+	    }
+
+	    if (!hasAdminRole) {
+	      return { code: -1, errMsg: '只有管理员才能执行此操作' };
+	    }
+
+	    console.log('Get_FilteredUsers: 权限检查通过');
+
+	    const {
+	      pageSize = 10,
+	      pageNumber = 1,
+	      keyword = '',
+	      userType = null,
+	      registerStartDate = null,
+	      registerEndDate = null,
+	      activeStatus = null,
+	      hasMembership = null,
+	      hasSubscription = null,
+	      sortField = 'register_date',
+	      sortOrder = 'desc'
+	    } = params;
+
+	    console.log('Get_FilteredUsers 处理后的参数:', {
+	      pageSize, pageNumber, keyword, userType,
+	      registerStartDate, registerEndDate, activeStatus,
+	      hasMembership, hasSubscription,
+	      sortField, sortOrder
+	    });
+
+	    // 构建查询条件
+	    const db = uniCloud.database();
+	    const dbCmd = db.command;
+	    let query = db.collection('uni-id-users');
+	    const whereConditions = {};
+
+	    // 关键词搜索 - 简化版本
+	    if (keyword && keyword.trim()) {
+	      const keywordTrim = keyword.trim();
+	      console.log('添加关键词搜索条件:', keywordTrim);
+
+	      whereConditions.$or = [
+	        { nickname: { $regex: keywordTrim, $options: 'i' } },
+	        { username: { $regex: keywordTrim, $options: 'i' } }
+	      ];
+	    }
+
+	    // 用户类型筛选 - 简化版本
+	    if (userType !== null && userType !== undefined && userType !== '') {
+	      console.log('添加用户类型筛选条件:', userType);
+
+	      if (userType === 'admin') {
+	        // 管理员
+	        whereConditions.role = 'admin';
+	      } else if (userType === 'user') {
+	        // 正式用户
+	        whereConditions.role = 'user';
+	      } else if (userType === 'preUser') {
+	        // 预备用户
+	        whereConditions.role = 'preUser';
+	      }
+	    }
+
+	    // 会员状态筛选
+	    if (hasMembership && hasSubscription) {
+	      console.log('添加会员状态筛选条件: 有任意会员');
+
+	      // 有任意会员类型
+	        whereConditions.$or = [
+	        { membership_expiry: dbCmd.gt(Date.now()) },
+	        { subscription_package_expiry: dbCmd.gt(Date.now()) }
+	      ];
+	    } else if (hasMembership) {
+	      // 只看歇脚卡用户
+	      console.log('添加歇脚卡筛选条件');
+	      whereConditions.membership_expiry = dbCmd.gt(Date.now());
+	    } else if (hasSubscription) {
+	      // 只看月卡用户
+	      console.log('添加月卡筛选条件');
+	      whereConditions.subscription_package_expiry = dbCmd.gt(Date.now());
+	    }
+	    // 如果 hasMembership 和 hasSubscription 都为 false 或 null，则不添加任何会员筛选条件
+
+	    // 注册时间范围筛选
+	    if (registerStartDate && registerEndDate) {
+	      const startDateInt = parseInt(registerStartDate);
+	      const endDateInt = parseInt(registerEndDate);
+	      console.log('添加注册时间范围筛选:', startDateInt, 'to', endDateInt);
+
+	      whereConditions.register_date = {
+	        $gte: startDateInt,
+	        $lte: endDateInt
+	      };
+	    }
+
+	    // 活跃状态筛选 - 暂时注释掉，确保能获取到数据
+	    /* if (activeStatus !== null && activeStatus !== undefined && activeStatus !== '') {
+	      console.log('添加活跃状态筛选条件:', activeStatus);
+
+	      if (activeStatus === 0) {
+	        // 活跃用户 - 最近30天有登录
+	        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+	        whereConditions.last_login_date = {
+	          $gte: thirtyDaysAgo
+	        };
+	      } else if (activeStatus === 1) {
+	        // 非活跃用户 - 超过30天未登录
+	        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+	        whereConditions.$or = [
+	          { last_login_date: { $lt: thirtyDaysAgo } },
+	          { last_login_date: dbCmd.exists(false) }
+	        ];
+	      } else if (activeStatus === 2) {
+	        // 从未登录用户
+	        whereConditions.last_login_date = dbCmd.exists(false);
+	      }
+	    } */
+
+	    console.log('最终查询条件:', JSON.stringify(whereConditions, null, 2));
+
+	    // 计算总数 - 使用更可靠的计数方法
+	    console.log('开始计算总数...');
+	    let total = 0;
+
+	    try {
+	      if (Object.keys(whereConditions).length === 0) {
+	        // 没有筛选条件时，直接计算整个集合的总数
+	        const countResult = await db.collection('uni-id-users').count();
+	        total = countResult.total || 0;
+	      } else {
+	        // 有筛选条件时，使用聚合查询计数
+	        let countPipeline = [
+	          {
+	            $match: whereConditions
+	          },
+	          {
+	            $count: 'total'
+	          }
+	        ];
+
+	        const countResult = await db.collection('uni-id-users')
+	          .aggregate(countPipeline)
+	          .end();
+
+	        if (countResult.data && countResult.data.length > 0) {
+	          total = countResult.data[0].total;
+	        } else {
+	          // 如果聚合计数返回空，尝试使用简单查询计数作为备选方案
+	          console.log('聚合计数返回空，尝试简单查询计数...');
+	          const simpleCount = await db.collection('uni-id-users').where(whereConditions).count();
+	          total = simpleCount.total || 0;
+	        }
+	      }
+	    } catch (countError) {
+	      console.error('计数查询出错:', countError);
+	      // 发生错误时，尝试最基本的计数
+	      const fallbackCount = await db.collection('uni-id-users').count();
+	      total = fallbackCount.total || 0;
+	    }
+
+	    const totalPages = Math.ceil(total / pageSize);
+
+	    console.log('查询统计结果:', { total, totalPages, whereConditions });
+
+	    if (total === 0) {
+	      console.log('警告：没有找到任何用户数据，尝试无条件查询...');
+	      // 尝试无条件查询，看看数据库中是否有数据
+	      const allUsersCount = await db.collection('uni-id-users').count();
+	      console.log('数据库中总用户数:', allUsersCount.total);
+	    }
+
+	    // 计算分页参数
+	    const skip = (pageNumber - 1) * pageSize;
+	    console.log('开始聚合查询用户数据，skip:', skip, 'limit:', pageSize);
+    console.log('分页参数检查:', {
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      calculatedSkip: skip,
+      totalRecordsExpected: (pageNumber - 1) * pageSize + pageSize
+    });
+
+	    // 使用聚合管道获取用户数据并关联会员信息
+
+	    // 构建聚合管道
+	    const aggregationPipeline = [
+      // 第一阶段：匹配条件
+      {
+        $match: whereConditions
+      },
+      // 第二阶段：关联歇脚卡会员信息
+      {
+        $lookup: {
+          from: 'membership',
+          localField: '_id',
+          foreignField: 'userID',
+          as: 'membershipInfo'
+        }
+      },
+      // 第三阶段：关联月卡会员信息
+      {
+        $lookup: {
+          from: 'subscription-package',
+          localField: '_id',
+          foreignField: 'userID',
+          as: 'subscriptionPackageInfo'
+        }
+      },
+      // 第四阶段：投影字段，提取会员信息
+      {
+        $project: {
+          _id: true,
+          nickname: true,
+          username: true,
+          role: true,
+          register_date: true,
+          last_login_date: true,
+          avatar: true,
+          avatar_file: true,
+          mobile: true,
+          email: true,
+          status: true,
+          // 提取歇脚卡会员信息 - 使用条件判断避免空数组问题
+          membership_expiry: {
+            $cond: {
+              if: { $gt: [{ $size: '$membershipInfo' }, 0] },
+              then: { $arrayElemAt: ['$membershipInfo.validthru', 0] },
+              else: null
+            }
+          },
+          membership_status: {
+            $cond: {
+              if: { $gt: [{ $size: '$membershipInfo' }, 0] },
+              then: { $arrayElemAt: ['$membershipInfo.status', 0] },
+              else: null
+            }
+          },
+          // 提取月卡会员信息 - 使用条件判断避免空数组问题
+          subscription_package_expiry: {
+            $cond: {
+              if: { $gt: [{ $size: '$subscriptionPackageInfo' }, 0] },
+              then: { $arrayElemAt: ['$subscriptionPackageInfo.validthru', 0] },
+              else: null
+            }
+          },
+          subscription_package_status: {
+            $cond: {
+              if: { $gt: [{ $size: '$subscriptionPackageInfo' }, 0] },
+              then: { $arrayElemAt: ['$subscriptionPackageInfo.status', 0] },
+              else: null
+            }
+          }
+        }
+      },
+      // 第五阶段：排序
+      {
+        $sort: {
+          [sortField]: sortOrder === 'desc' ? -1 : 1
+        }
+      },
+      // 第六阶段：分页
+      {
+        $skip: skip
+      },
+      {
+        $limit: pageSize
+      }
+    ];
+
+    console.log('原始聚合管道构建完成:', {
+      totalStages: aggregationPipeline.length,
+      stageNames: aggregationPipeline.map(stage => Object.keys(stage)[0]),
+      hasSkip: aggregationPipeline.some(stage => stage.$skip !== undefined),
+      hasLimit: aggregationPipeline.some(stage => stage.$limit !== undefined),
+      skipValue: aggregationPipeline.find(stage => stage.$skip)?.$skip,
+      limitValue: aggregationPipeline.find(stage => stage.$limit)?.$limit
+    });
+
+    // 条件性构建管道 - 避免使用 shift() 导致的数组索引问题
+    // 注释掉原来的逻辑，改用条件性构建
+    // if (Object.keys(whereConditions).length === 0) {
+    //   aggregationPipeline.shift();
+    // }
+
+      console.log('开始查询用户数据，使用简单查询方式...');
+    console.log('查询条件:', JSON.stringify(whereConditions, null, 2));
+
+    // 应用查询条件
+    if (Object.keys(whereConditions).length > 0) {
+      query = query.where(whereConditions);
+    }
+
+    const usersResult = await query
+      .orderBy(sortField, sortOrder)
+      .skip(skip)
+      .limit(pageSize)
+      .get();
+
+    console.log('用户查询结果:', {
+      total,
+      currentPage: pageNumber,
+      pageSize,
+      dataLength: usersResult.data?.length || 0,
+      actualData: usersResult.data?.length > 0 ? '有数据' : '无数据',
+      paginationWorking: usersResult.data?.length === pageSize || (pageNumber === 1 && usersResult.data?.length < pageSize),
+      firstUserSample: usersResult.data?.[0] || null
+    });
+
+	    // 处理用户数据，添加额外信息
+	    const processedUsers = usersResult.data || [];
+	    processedUsers.forEach(user => {
+	      // 处理用户角色显示
+	      if (Array.isArray(user.role)) {
+	        user.role_display = user.role.join(', ');
+	      } else if (user.role) {
+	        user.role_display = user.role;
+	      } else {
+	        user.role_display = 'user';
+	      }
+
+	      // 设置会员字段默认值（现在通过额外的查询来获取）
+      user.membership_expiry = 0;
+      user.membership_status = 0;
+      user.subscription_package_expiry = 0;
+      user.subscription_package_status = 0;
+
+	      user.is_vip = false;
+	      user.vip_level = null;
+
+	      // 处理活跃状态
+	      const now = Date.now();
+	      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+	      if (user.last_login_date) {
+	        user.active_status = user.last_login_date >= thirtyDaysAgo ? 'active' : 'inactive';
+	      } else {
+	        user.active_status = 'never';
+	      }
+
+	      // 格式化注册日期
+	      user.register_date_formatted = user.register_date ? new Date(user.register_date).toLocaleDateString() : '未知';
+	      user.last_login_formatted = user.last_login_date ? new Date(user.last_login_date).toLocaleDateString() : '从未登录';
+	    });
+
+	    return {
+	      code: 0,
+	      message: '获取用户列表成功',
+	      data: processedUsers,
+	      pagination: {
+	        total,
+	        currentPage: pageNumber,
+	        pageSize,
+	        totalPages,
+	        hasNext: pageNumber < totalPages,
+	        hasPrev: pageNumber > 1
+	      }
+	    };
+
+	  } catch (error) {
+	    console.error('Get_FilteredUsers 执行错误:', error);
+	    console.error('错误堆栈:', error.stack);
+
+	    return {
+	      code: -1,
+	      errMsg: `获取用户数据失败: ${error.message}`
+	    };
+	  }
+	},
+
+	/**
+	 * 批量授权会员
+	 * @param {object} params
+	 * @param {array} params.userIds 用户ID数组
+	 * @param {string} params.membershipType 会员类型 ('membership' 或 'subscription-package')
+	 * @param {number} params.durationInDays 增加天数
+	 * @returns {object}
+	 */
+	async batchGrantMembership(params) {
+	  try {
+	    console.log('batchGrantMembership 开始执行，参数:', params);
+
+	    // 权限检查
+	    const authError = checkAdminPermission(this.getClientInfo());
+	    if (authError) {
+	      return authError;
+	    }
+
+	    const { userIds, membershipType, durationInDays } = params;
+
+	    if (!Array.isArray(userIds) || userIds.length === 0) {
+	      return { code: -1, errMsg: '请提供有效的用户ID列表' };
+	    }
+
+	    if (!membershipType || !durationInDays || durationInDays <= 0) {
+	      return { code: -1, errMsg: '请提供有效的会员类型和天数' };
+	    }
+
+	    const db = uniCloud.database();
+	    const dbCmd = db.command;
+
+	    // 计算新的到期时间
+	    // 计算到当天结束的时间戳
+    function getEndOfDayTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      date.setHours(23, 59, 59, 999);
+      return date.getTime();
+    }
+
+    // 计算新的到期时间 - 按整天计算，到当天结束
+    const currentTime = Date.now();
+    const currentEndOfDay = getEndOfDayTimestamp(currentTime);
+
+    // 增加1天 = 今天结束，增加2天 = 明天结束，以此类推
+    const baseAdditionalTime = (durationInDays - 1) * 24 * 60 * 60 * 1000;
+    const calculatedExpiryTime = currentEndOfDay + baseAdditionalTime;
+	    // newExpiryTime 现在在条件逻辑中动态计算
+
+	    // 构建更新数据
+	    const updateData = {};
+	    if (membershipType === 'membership') {
+	      // 智能累加逻辑：如果已有会员且未过期，在原基础上累加；否则从当前时间开始
+      // 简化逻辑：统一使用计算好的到期时间
+      // 如果需要更复杂的累加逻辑，可以后续优化
+      updateData.membership_expiry = calculatedExpiryTime;
+	      updateData.membership_status = 1;
+	    } else if (membershipType === 'subscription-package') {
+	      // 简化逻辑：统一使用计算好的到期时间
+      updateData.subscription_package_expiry = calculatedExpiryTime;
+	      updateData.subscription_package_status = 1;
+	    }
+
+	    // 批量更新用户
+	    const result = await db.collection('uni-id-users')
+	      .where({ _id: dbCmd.in(userIds) })
+	      .update(updateData);
+
+	    console.log('批量授权结果:', result);
+
+	    return {
+	      code: 0,
+	      errMsg: `成功为 ${result.updated} 个用户增加会员时长`,
+	      updated: result.updated
+	    };
+
+	  } catch (error) {
+	    console.error('batchGrantMembership 错误:', error);
+	    return { code: -1, errMsg: '批量授权失败: ' + error.message };
+	  }
+	},
+
+	/**
+	 * 批量更新会员状态
+	 * @param {object} params
+	 * @param {array} params.userIds 用户ID数组
+	 * @param {string} params.membershipType 会员类型
+	 * @param {string} params.action 操作类型 ('cancel' 或 'setExpiry')
+	 * @param {number} params.expiryTimestamp 新的到期时间戳
+	 * @returns {object}
+	 */
+	async batchUpdateMembership(params) {
+	  try {
+	    console.log('batchUpdateMembership 开始执行，参数:', params);
+
+	    // 权限检查
+	    const authError = checkAdminPermission(this.getClientInfo());
+	    if (authError) {
+	      return authError;
+	    }
+
+	    const { userIds, membershipType, action, expiryTimestamp } = params;
+
+	    if (!Array.isArray(userIds) || userIds.length === 0) {
+	      return { code: -1, errMsg: '请提供有效的用户ID列表' };
+	    }
+
+	    const db = uniCloud.database();
+	    const dbCmd = db.command;
+
+	    let updateData = {};
+
+	    if (action === 'cancel') {
+	      // 取消会员
+	      if (membershipType === 'membership') {
+		updateData.membership_expiry = 0;
+		updateData.membership_status = 0;
+	      } else if (membershipType === 'subscription-package') {
+		updateData.subscription_package_expiry = 0;
+		updateData.subscription_package_status = 0;
+	      }
+	    } else if (action === 'setExpiry') {
+	      // 设置新的到期时间
+	      if (!expiryTimestamp) {
+		return { code: -1, errMsg: '请提供新的到期时间' };
+	      }
+
+	      if (membershipType === 'membership') {
+		updateData.membership_expiry = expiryTimestamp;
+		updateData.membership_status = 1;
+	      } else if (membershipType === 'subscription-package') {
+		updateData.subscription_package_expiry = expiryTimestamp;
+		updateData.subscription_package_status = 1;
+	      }
+	    }
+
+	    // 批量更新用户
+	    const result = await db.collection('uni-id-users')
+	      .where({ _id: dbCmd.in(userIds) })
+	      .update(updateData);
+
+	    console.log('批量更新结果:', result);
+
+	    return {
+	      code: 0,
+	      errMsg: `成功更新 ${result.updated} 个用户的会员状态`,
+	      updated: result.updated
+	    };
+
+	  } catch (error) {
+	    console.error('batchUpdateMembership 错误:', error);
+	    return { code: -1, errMsg: '批量更新失败: ' + error.message };
+	  }
+	},
+
+	/**
+	 * 提升用户权限（别名方法，保持向前兼容）
+	 * @param {object} params
+	 * @param {string} params.userId 用户ID
+	 * @returns {object}
+	 */
+	async promoteUser(params) {
+	  // 调用现有的 promoteUserRole 方法
+	  return await this.promoteUserRole(params);
+	},
+
+	/**
+	 * 更新用户角色
+	 * @param {object} params
+	 * @param {string} params.userId 用户ID
+	 * @param {array} params.role 角色数组
+	 * @returns {object}
+	 */
+	async updateUserRole(params) {
+	  try {
+	    console.log('updateUserRole 开始执行，参数:', params);
+
+	    // 权限检查
+	    const authError = checkAdminPermission(this.getClientInfo());
+	    if (authError) {
+	      return authError;
+	    }
+
+	    const { userId, role } = params;
+
+	    if (!userId || !Array.isArray(role)) {
+	      return { code: -1, errMsg: '请提供有效的用户ID和角色' };
+	    }
+
+	    const db = uniCloud.database();
+
+	    // 更新用户角色
+	    const result = await db.collection('uni-id-users')
+	      .doc(userId)
+	      .update({ role });
+
+	    console.log('更新用户角色结果:', result);
+
+	    return {
+	      code: 0,
+	      errMsg: '用户角色更新成功',
+	      updated: result.updated
+	    };
+
+	  } catch (error) {
+	    console.error('updateUserRole 错误:', error);
+	    return { code: -1, errMsg: '更新用户角色失败: ' + error.message };
 	  }
 	}
 }

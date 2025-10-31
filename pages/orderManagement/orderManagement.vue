@@ -815,7 +815,33 @@
 		  
 		  async loadOrders(append = false) {
 			if (this.loading) return;
-			
+
+			// 验证日期范围
+			if (this.searchForm.startDate && this.searchForm.endDate) {
+			  const startDate = new Date(this.searchForm.startDate);
+			  const endDate = new Date(this.searchForm.endDate);
+			  if (startDate > endDate) {
+				uni.showToast({
+				  title: '开始日期不能晚于结束日期',
+				  icon: 'none'
+				});
+				return;
+			  }
+			}
+
+			// 验证金额范围
+			if (this.searchForm.minAmount && this.searchForm.maxAmount) {
+			  const minAmount = parseFloat(this.searchForm.minAmount);
+			  const maxAmount = parseFloat(this.searchForm.maxAmount);
+			  if (minAmount > maxAmount) {
+				uni.showToast({
+				  title: '最小金额不能大于最大金额',
+				  icon: 'none'
+				});
+				return;
+			  }
+			}
+
 			try {
 			  this.loading = true;
 			  

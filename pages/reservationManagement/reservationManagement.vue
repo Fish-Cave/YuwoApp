@@ -536,6 +536,19 @@ function goToPage(page) {
 }
 
 async function loadReservations() {
+	// 验证日期范围
+	if (searchForm.startDate && searchForm.endDate) {
+		const startDate = new Date(searchForm.startDate);
+		const endDate = new Date(searchForm.endDate);
+		if (startDate > endDate) {
+			uni.showToast({
+				title: '开始日期不能晚于结束日期',
+				icon: 'none'
+			});
+			return;
+		}
+	}
+
 	try {
 		loading.value = true;
 		const params = filterParams.value;

@@ -246,6 +246,14 @@
 			"style": {
 				"navigationBarTitleText": "预约管理"
 			}
+		},
+		{
+			"path": "pages/backendTest/backendTest",
+			"style": {
+				"navigationBarTitleText": "后端测试",
+				"navigationBarBackgroundColor": "#007AFF",
+				"navigationBarTextStyle": "white"
+			}
 		}
 	],
 	"globalStyle": {
