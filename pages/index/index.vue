@@ -18,6 +18,9 @@
 				<view class="glass-card not-playing-card" @click="goToSettlePage">
 					<text class="noplay">需要补票？</text>
 				</view>
+				<view class="glass-card not-playing-card" @click="goToProductList">
+					<text class="noplay">商品商城</text>
+				</view>
 			</view>
 			<view>
 				<!-- 传递 startTime 和 endTime props 给 usage 组件 -->
@@ -145,6 +148,21 @@
 		} else {
 			uni.showToast({
 				title: "您还没有预约权限,请联系管理员申请权限",
+				icon: 'error'
+			});
+		}
+	};
+
+	const goToProductList = () => {
+		console.log("用户点击了 '商品商城' 卡片");
+
+		if (res.role.includes("user") || res.role.includes("admin")) {
+			uni.navigateTo({
+				url: '/pages/productList/productList'
+			});
+		} else {
+			uni.showToast({
+				title: "您还没有购买权限,请联系管理员申请权限",
 				icon: 'error'
 			});
 		}

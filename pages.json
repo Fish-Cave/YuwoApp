@@ -254,6 +254,36 @@
 				"navigationBarBackgroundColor": "#007AFF",
 				"navigationBarTextStyle": "white"
 			}
+		},
+		{
+			"path": "pages/productManagement/productManagement",
+			"style": {
+				"navigationBarTitleText": "商品管理"
+			}
+		},
+	{
+			"path": "pages/productList/productList",
+			"style": {
+				"navigationBarTitleText": "商品商城"
+			}
+		},
+	{
+			"path": "pages/productDetail/productDetail",
+			"style": {
+				"navigationBarTitleText": "商品详情"
+			}
+		},
+		{
+			"path": "pages/productCheckout/productCheckout",
+			"style": {
+				"navigationBarTitleText": "线下购买结算"
+			}
+		},
+		{
+			"path": "pages/test-categories/test-categories",
+			"style": {
+				"navigationBarTitleText": "分类数据检查"
+			}
 		}
 	],
 	"globalStyle": {
@@ -273,7 +303,10 @@
 			"/pages/start/start",
 			"/pages/reservationList/reservationList",
 			"/pages/using/using",
-			"/pages/pay/pay"
+			"/pages/pay/pay",
+			"/pages/productList/productList",
+			"/pages/productDetail/productDetail",
+			"/pages/productCheckout/productCheckout"
 		]
 	},
 	"tabBar": {

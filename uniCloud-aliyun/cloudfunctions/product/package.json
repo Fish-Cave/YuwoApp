@@ -1,0 +1,9 @@
+{
+  "name": "product",
+  "version": "1.0.0",
+  "description": "商品管理系统云函数",
+  "main": "index.obj.js",
+  "dependencies": {
+    "uni-cloud-router": "^0.3.4"
+  }
+}
