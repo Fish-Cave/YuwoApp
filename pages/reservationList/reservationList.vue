@@ -1,40 +1,50 @@
 <template>
-	<view class="container">
-		<view v-for="data in Data" :key="data._id" class="reservation-item glass-card">
-			<view class="reservation-header">
-				<view class="icon-container">
-					<uni-icons type="contact" size="30" color="#ffffff"></uni-icons>
-				</view>
-				<view class="reservation-info">
-					<text class="machine-name">{{ data.machineName }}</text>
-					<text class="reservation-time">
-						预约时间：
-						<uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.startTime' />
-					</text>
-				</view>
-				<view class="status-badge" :class="getStatusClass(data.status)">
-					<text>{{ getStatusText(data.status) }}</text>
-				</view>
-			</view>
+  <view v-if="Data[0]!=null">
+    <view class="container">
+      <view v-for="data in Data" :key="data._id" class="reservation-item glass-card">
+        <view class="reservation-header">
+          <view class="icon-container">
+            <uni-icons type="contact" size="30" color="#ffffff"></uni-icons>
+          </view>
+          <view class="reservation-info">
+            <text class="machine-name">{{ data.machineName }}</text>
+            <text class="reservation-time">
+              预约时间：
+              <uni-dateformat format="yyyy-MM-dd hh:mm" :date='data.startTime' />
+            </text>
+          </view>
+          <view class="status-badge" :class="getStatusClass(data.status)">
+            <text>{{ getStatusText(data.status) }}</text>
+          </view>
+        </view>
 
-			<view class="reservation-footer">
-				<view class="reservation-id">
-					<text class="id-label">预约ID：</text>
-					<text class="id-value">{{ data._id }}</text>
-				</view>
-				<view v-if="data.status == 1" class="button-group">
-					<view class="cancel-button"
-					@click="cancelReservation(data._id)">
-						<text>取消</text>
-					</view>
-					<view class="sign-in-button"
-						@click="goToStart(data.machineName, data.startTime, data._id, data.isOvernight, data.isPlay)">
-						<text>签到</text>
-					</view>
-				</view>
-			</view>
-		</view>
-	</view>
+        <view class="reservation-footer">
+          <view class="reservation-id">
+            <text class="id-label">预约ID：</text>
+            <text class="id-value">{{ data._id }}</text>
+          </view>
+          <view v-if="data.status == 1" class="button-group">
+            <view class="cancel-button"
+                  @click="cancelReservation(data._id)">
+              <text>取消</text>
+            </view>
+            <view class="sign-in-button"
+                  @click="goToStart(data.machineName, data.startTime, data._id, data.isOvernight, data.isPlay)">
+              <text>签到</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view v-else>
+    <text style="display: flex; justify-content: center">还没有预约，快去预约吧！</text>
+  </view>
+
+  <!--
+
+  -->
+
 </template>
 
 <script setup lang="ts">
