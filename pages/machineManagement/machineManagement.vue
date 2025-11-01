@@ -77,6 +77,7 @@
       </view>
     </view>
     
+	<!-- 这部分暂时不需要了，机台分组请使用上面的功能，目前此部分只作为测试使用 -->
     <!-- 机台分组设置 -->
     <view class="section">
       <view class="section-title">机台分组设置</view>
@@ -445,30 +446,42 @@ async function updateMachineOrder(machineId, order) {
 
 // 移动机台向上
 async function moveMachineUp(groupId, machineIndex) {
+  const machinesInGroup = groupId === 'ungrouped'
+      ? ungroupedMachines.value
+      : getMachinesInGroup(groupId);
+  // console.log("移动机台向上")
   if (machineIndex === 0) {
     // 检查是否可以跨组移动（移动到上一个分组的最后一个位置）
     await moveToPreviousGroup(groupId, machineIndex);
+
+    let MachinesInGroup = [];
+    MachinesInGroup = getMachinesInGroup(groupId)
+    // console.log(MachinesInGroup);
+
+    for (let i = 0; i < MachinesInGroup.length; i++) {
+      let newOrd = MachinesInGroup[i].groupDisplayOrder - 1;
+      await updateMachineOrder(MachinesInGroup[i]._id,newOrd);
+    }
     return;
   }
-  
-  const machinesInGroup = groupId === 'ungrouped' 
-    ? ungroupedMachines.value 
-    : getMachinesInGroup(groupId);
-  
-  const currentMachine = machinesInGroup[machineIndex];
-  const previousMachine = machinesInGroup[machineIndex - 1];
-  
-  // 交换排序值
-  const tempOrder = currentMachine.groupDisplayOrder;
-  currentMachine.groupDisplayOrder = previousMachine.groupDisplayOrder;
-  previousMachine.groupDisplayOrder = tempOrder;
-  
-  // 更新数据库
-  await Promise.all([
-    updateMachineOrder(currentMachine._id, currentMachine.groupDisplayOrder),
-    updateMachineOrder(previousMachine._id, previousMachine.groupDisplayOrder)
-  ]);
-  
+  if(machineIndex === 0){
+    return;
+  }else{
+    // 获取当前机台数据和需要交换的机台数据
+    const currentMachine = machinesInGroup[machineIndex];
+    const previousMachine = machinesInGroup[machineIndex - 1];
+
+    // 交换排序值
+    const tempOrder = currentMachine.groupDisplayOrder;
+    currentMachine.groupDisplayOrder = previousMachine.groupDisplayOrder;
+    previousMachine.groupDisplayOrder = tempOrder;
+
+    // 更新数据库
+    await Promise.all([
+      updateMachineOrder(currentMachine._id, currentMachine.groupDisplayOrder),
+      updateMachineOrder(previousMachine._id, previousMachine.groupDisplayOrder)
+    ]);
+  }
   // 重新加载数据
   await loadData();
 }
@@ -550,10 +563,11 @@ async function moveToNextGroup(currentGroupId, machineIndex) {
 
 // 移动到上一个分组
 async function moveToPreviousGroup(currentGroupId, machineIndex) {
-  const machinesInGroup = currentGroupId === 'ungrouped' 
+  //获取移动前，currentGroup组中的机台的情况
+  const machinesInGroup = currentGroupId === 'ungrouped'
     ? ungroupedMachines.value 
     : getMachinesInGroup(currentGroupId);
-  
+  //定位所要移动的机台
   const currentMachine = machinesInGroup[machineIndex];
   
   // 获取当前分组的displayOrder
@@ -580,10 +594,11 @@ async function moveToPreviousGroup(currentGroupId, machineIndex) {
   } else {
     targetMachines = ungroupedMachines.value;
   }
+  // 计算在新组里的序号
   const newOrder = targetMachines.length > 0 ? Math.max(...targetMachines.map(m => m.groupDisplayOrder)) + 1 : 0;
   
   // 更改机台分组和排序
-  const newGroupId = previousGroup ? previousGroup._id : null;
+  const newGroupId = previousGroup ? previousGroup._id : null; //废话
   await todo.updateMachineGroup(currentMachine._id, newGroupId);
   await updateMachineOrder(currentMachine._id, newOrder);
   
