@@ -114,7 +114,7 @@
 	import { reactive, ref, computed, onMounted } from 'vue'
 	// 引入 uni-id-pages 的 store
 	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-	const simpleMode = ref(false)
+	const simpleMode = ref(true)
 
 	const todo = uniCloud.importObject('todo')
 	const reservationHandler = uniCloud.importObject('reservationHandler')
