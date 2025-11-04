@@ -1,11 +1,13 @@
 <template>
 	<view class="container">
 		<view class="filter-container">
-			<view class="filter-button" :class="{'filter-clickable': isSuperUser}" @click="handlePlayerCountClick">
+			<view class="filter-button" :class="{'filter-clickable': isUser}" @click="handlePlayerCountClick">
 				<uni-icons type="person-filled" size="20"></uni-icons>
 				<text class="filter-text">当前签到数:</text>
-				<text style="color: orange; padding-left: 20rpx; font-size: 30rpx; font-weight: bold;">{{howManyPlayer}}</text>
-				<uni-icons v-if="isSuperUser" type="arrow-right" size="16" color="#999" style="margin-left: 10rpx;"></uni-icons>
+				<text
+					style="color: orange; padding-left: 20rpx; font-size: 30rpx; font-weight: bold;">{{howManyPlayer}}</text>
+				<uni-icons v-if="isSuperUser" type="arrow-right" size="16" color="#999"
+					style="margin-left: 10rpx;"></uni-icons>
 			</view>
 			<view class="filter-button" :class="{'filter-active': showFavoritesOnly}" @click="toggleFavoritesFilter">
 				<uni-icons :type="showFavoritesOnly ? 'heart-filled' : 'heart'" size="20" color="#f472b6"></uni-icons>
@@ -22,8 +24,8 @@
 		<template v-if="showGrouped">
 			<!-- 未选择具体分组时，显示分组列表 -->
 			<template v-if="!selectedGroupId">
-				<view v-for="group in availableGroups" :key="group._id" 
-					  class="group-item" @click="selectGroup(group._id)">
+				<view v-for="group in availableGroups" :key="group._id" class="group-item"
+					@click="selectGroup(group._id)">
 					<view class="group-card">
 						<view class="group-info">
 							<text class="group-name">{{ group.name }}</text>
@@ -32,10 +34,9 @@
 						<uni-icons type="arrow-right" size="20" color="#999"></uni-icons>
 					</view>
 				</view>
-				
+
 				<!-- 未分组的机台 -->
-				<view v-if="ungroupedMachines.length > 0" 
-					  class="group-item" @click="selectGroup(null)">
+				<view v-if="ungroupedMachines.length > 0" class="group-item" @click="selectGroup(null)">
 					<view class="group-card">
 						<view class="group-info">
 							<text class="group-name">未分组机台</text>
@@ -57,8 +58,8 @@
 				</view>
 
 				<!-- 显示选中分组的机台 -->
-				<view v-for="machineData in getCurrentGroupMachines().slice(0,10)" 
-					  :key="machineData.machineInfo.machinenum" class="machine-item">
+				<view v-for="machineData in getCurrentGroupMachines().slice(0,10)"
+					:key="machineData.machineInfo.machinenum" class="machine-item">
 					<!-- 机台卡片内容 -->
 					<view class="glass-card">
 						<!-- 机台信息区域 -->
@@ -101,13 +102,13 @@
 							<view class="timeline-container">
 								<view class="timeline-bar">
 									<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
-									    :key="index" class="timeline-segment"
-									    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
-									    <view class="timeline-segment-pulse"></view>
-									    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
-									        class="reservation-count">
-									        {{ getReservationCount(machineData.reservations, reservation) }}
-									    </view>
+										:key="index" class="timeline-segment"
+										:style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
+										<view class="timeline-segment-pulse"></view>
+										<view v-if="getReservationCount(machineData.reservations, reservation) > 1"
+											class="reservation-count">
+											{{ getReservationCount(machineData.reservations, reservation) }}
+										</view>
 									</view>
 								</view>
 							</view>
@@ -129,7 +130,8 @@
 										<uni-icons type="staff" size="20" color="#4b5563"></uni-icons>
 										<text class="button-text">查看预约</text>
 									</view>
-									<view v-if="machineData.machineInfo.status == 0" class="action-button reserve-button"
+									<view v-if="machineData.machineInfo.status == 0"
+										class="action-button reserve-button"
 										@click="goOrder(machineData.machineInfo.name, machineData.machineInfo._id)">
 										<uni-icons type="personadd" size="20" color="#ffffff"></uni-icons>
 										<text class="button-text reserve-text">预约</text>
@@ -137,24 +139,26 @@
 								</template>
 								<!-- 预备用户 -->
 								<template v-else-if="isPreUser">
-									<view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
+									<view v-if="machineData.machineInfo.status != 1"
+										class="action-button no-permission-button">
 										<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
 										<text class="button-text error-text">无权限查看</text>
 									</view>
-									<view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
+									<view v-if="machineData.machineInfo.status == 0"
+										class="action-button no-permission-button">
 										<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
 										<text class="button-text error-text">无权限预约</text>
 									</view>
 								</template>
 								<!-- 其他未登录或角色未知用户 -->
 								<template v-else>
-									<view v-if="machineData.machineInfo.status != 1" class="action-button needlog-button"
-										@click="unlogin()">
+									<view v-if="machineData.machineInfo.status != 1"
+										class="action-button needlog-button" @click="unlogin()">
 										<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
 										<text class="button-text error-text">登陆后查看</text>
 									</view>
-									<view v-if="machineData.machineInfo.status == 0" class="action-button needlog-button"
-										@click="unlogin()">
+									<view v-if="machineData.machineInfo.status == 0"
+										class="action-button needlog-button" @click="unlogin()">
 										<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
 										<text class="button-text error-text">登陆后预约</text>
 									</view>
@@ -212,13 +216,13 @@
 						<view class="timeline-container">
 							<view class="timeline-bar">
 								<view v-for="(reservation, index) in mergeReservations(machineData.reservations)"
-								    :key="index" class="timeline-segment"
-								    :style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
-								    <view class="timeline-segment-pulse"></view>
-								    <view v-if="getReservationCount(machineData.reservations, reservation) > 1"
-								        class="reservation-count">
-								        {{ getReservationCount(machineData.reservations, reservation) }}
-								    </view>
+									:key="index" class="timeline-segment"
+									:style="calculateSegmentStyle(reservation, props.dayStartTime, props.dayEndTime)">
+									<view class="timeline-segment-pulse"></view>
+									<view v-if="getReservationCount(machineData.reservations, reservation) > 1"
+										class="reservation-count">
+										{{ getReservationCount(machineData.reservations, reservation) }}
+									</view>
 								</view>
 							</view>
 						</view>
@@ -248,11 +252,13 @@
 							</template>
 							<!-- 预备用户 -->
 							<template v-else-if="isPreUser">
-								<view v-if="machineData.machineInfo.status != 1" class="action-button no-permission-button">
+								<view v-if="machineData.machineInfo.status != 1"
+									class="action-button no-permission-button">
 									<uni-icons type="eye-slash" size="20" color="#ffffff"></uni-icons>
 									<text class="button-text error-text">无权限查看</text>
 								</view>
-								<view v-if="machineData.machineInfo.status == 0" class="action-button no-permission-button">
+								<view v-if="machineData.machineInfo.status == 0"
+									class="action-button no-permission-button">
 									<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
 									<text class="button-text error-text">无权限预约</text>
 								</view>
@@ -275,6 +281,38 @@
 				</view>
 			</view>
 		</template>
+
+		<!--弹出显示当前签到数-->
+		<uni-popup ref="popup" type="right">
+      <view v-if="activeSignIns[0]!=null">
+        <view v-for="data in activeSignIns">
+          <view class="glass-card">
+
+            <view class="signin-header">
+              <view class="sigin-userinfo">
+                <image :src="data.avatar.url || 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-aliyun-uid/e952b560-822f-4e8d-b9ab-530230c46558.png'" class="avatar"></image>
+                <view class="sigin-nickname">{{data.nickname}}</view>
+              </view>
+
+              <view class="sigin-playinfo">
+                <text>正在游玩:</text>
+                <view class="sigin-machine-name">{{data.machineName}}</view>
+              </view>
+            </view>
+
+            <view class="time-container">
+              <view>开始时间:</view>
+              <view>{{dayjs(data.starttime).format('MM.DD HH:mm')}}</view>
+            </view>
+
+          </view>
+        </view>
+      </view>
+			<view v-else>
+        <text>当前没有人窝哟</text>
+      </view>
+		</uni-popup>
+
 	</view>
 </template>
 
@@ -285,23 +323,24 @@
 	import isFreeDay from '@/modules/isFreeDay.ts'
 	const uniIdCo = uniCloud.importObject("uni-id-co")
 
-	const isSuperUser = ref(false) 
+	const isSuperUser = ref(false)
 	const isUser = ref(false)
 	const isPreUser = ref(false)
-	const membershipType = ref("none"); 
-	const isFree = ref(false) 
+	const membershipType = ref("none");
+	const isFree = ref(false)
 	const activeSignIns = ref([]);
 	const howManyPlayer = ref(0);
+	const popup = ref(null);
 
 	// 新增：分组相关的响应式数据
 	const showGrouped = ref(false); // 是否显示分组模式
 	const selectedGroupId = ref<string | null>(null); // 当前选中的分组ID，null表示未分组
 	const allGroups = ref([]); // 所有分组数据
-	
+
 	// 原有的数据现在需要适配新的数据结构
 	const machineReservationData = ref<Array<{
-		machineInfo: machine & { groupInfo?: any },
-		reservations: Reservation[]
+		machineInfo : machine & { groupInfo ?: any },
+		reservations : Reservation[]
 	}>>([])
 
 	function roleJudge() {
@@ -318,12 +357,12 @@
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = true
-		} else { 
+		} else {
 			isSuperUser.value = false
 			isUser.value = false
 			isPreUser.value = false
 		}
-		getMembershipStatus(); 
+		getMembershipStatus();
 	}
 
 	async function getMembershipStatus() {
@@ -356,7 +395,7 @@
 			}
 		} catch (error) {
 			console.error("获取会员信息失败:", error);
-			membershipType.value = "none"; 
+			membershipType.value = "none";
 		}
 	}
 
@@ -367,26 +406,26 @@
 	const todo = uniCloud.importObject('todo')
 
 	interface machine {
-		"_id": string;
-		"name": string;
-		"capacity": number;
-		"status": number;
-		"machinenum": number;
-		"description": string;
-		"groupId"?: string;
-		"groupDisplayOrder"?: number;
+		"_id" : string;
+		"name" : string;
+		"capacity" : number;
+		"status" : number;
+		"machinenum" : number;
+		"description" : string;
+		"groupId" ?: string;
+		"groupDisplayOrder" ?: number;
 	}
 	interface Reservation {
-		"_id": string;
-		"machineId": string;
-		"isOvernight": boolean;
-		"status": string;
-		"startTime": number;
-		"endTime": number;
-		"userId": string; 
-		"username"?: string; 
-		"avatar"?: string; 
-		"avatar_file"?: any; 
+		"_id" : string;
+		"machineId" : string;
+		"isOvernight" : boolean;
+		"status" : string;
+		"startTime" : number;
+		"endTime" : number;
+		"userId" : string;
+		"username" ?: string;
+		"avatar" ?: string;
+		"avatar_file" ?: any;
 	}
 
 	interface DisplayReservation extends Reservation {
@@ -397,7 +436,7 @@
 	// 新增：分组相关的计算属性和方法
 	const availableGroups = computed(() => {
 		// 过滤掉没有机台的分组
-		return allGroups.value.filter(group => 
+		return allGroups.value.filter(group =>
 			getGroupMachineCount(group._id) > 0
 		);
 	});
@@ -408,14 +447,14 @@
 			reservations: processReservationsForDisplay(machine.reservations, props.dayStartTime, props.dayEndTime)
 		}));
 
-		return processedData.filter(machine => 
+		return processedData.filter(machine =>
 			!machine.machineInfo.groupId &&
 			(!showFavoritesOnly.value || favorites.value.has(machine.machineInfo._id))
 		);
 	});
 
-	function getGroupMachineCount(groupId: string) {
-		return machineReservationData.value.filter(machine => 
+	function getGroupMachineCount(groupId : string) {
+		return machineReservationData.value.filter(machine =>
 			machine.machineInfo.groupId === groupId &&
 			(!showFavoritesOnly.value || favorites.value.has(machine.machineInfo._id))
 		).length;
@@ -426,7 +465,7 @@
 		if (!showGrouped.value) {
 			selectedGroupId.value = null; // 退出分组模式时重置选中的分组
 		}
-		
+
 		uni.showToast({
 			icon: 'none',
 			title: showGrouped.value ? '已开启分组显示' : '已关闭分组显示',
@@ -434,7 +473,7 @@
 		});
 	}
 
-	function selectGroup(groupId: string | null) {
+	function selectGroup(groupId : string | null) {
 		selectedGroupId.value = groupId;
 	}
 
@@ -462,7 +501,7 @@
 			filteredMachines = processedData.filter(machine => !machine.machineInfo.groupId);
 		} else {
 			// 显示指定分组的机台
-			filteredMachines = processedData.filter(machine => 
+			filteredMachines = processedData.filter(machine =>
 				machine.machineInfo.groupId === selectedGroupId.value
 			);
 		}
@@ -497,10 +536,10 @@
 	function viewReservations(machineData) {
 		const detailData = {
 			GetMachineReservationInfo: machineData,
-			dayStartTime: props.dayStartTime, 
-			dayEndTime: props.dayEndTime 
+			dayStartTime: props.dayStartTime,
+			dayEndTime: props.dayEndTime
 		};
-		uni.setStorageSync('detailData', JSON.stringify(detailData)); 
+		uni.setStorageSync('detailData', JSON.stringify(detailData));
 
 		console.log("查看预约信息：", machineData);
 		uni.navigateTo({
@@ -511,29 +550,29 @@
 	}
 
 	const props = defineProps({
-		dayStartTime: { 
+		dayStartTime: {
 			type: Number,
 			required: true
 		},
-		dayEndTime: { 
+		dayEndTime: {
 			type: Number,
 			required: true
 		},
-		fetchStartTime: { 
+		fetchStartTime: {
 			type: Number,
 			required: true
 		},
-		fetchEndTime: { 
+		fetchEndTime: {
 			type: Number,
 			required: true
 		},
-		isFree: { 
+		isFree: {
 			type: Boolean,
 			required: true
 		}
 	})
 
-	function goOrder(machineName: String, machineID: String) {
+	function goOrder(machineName : String, machineID : String) {
 		const orderData = {
 			name: machineName,
 			id: machineID,
@@ -578,7 +617,7 @@
 				allGroups.value = [];
 			} else {
 				console.error("返回的数据格式不正确:", res);
-				machineReservationData.value = []; 
+				machineReservationData.value = [];
 				allGroups.value = [];
 			}
 
@@ -598,11 +637,11 @@
 	})
 
 	function processReservationsForDisplay(
-		rawReservations: Reservation[],
-		dayStartTime: number,
-		dayEndTime: number
-	): DisplayReservation[] {
-		const displayReservations: DisplayReservation[] = [];
+		rawReservations : Reservation[],
+		dayStartTime : number,
+		dayEndTime : number
+	) : DisplayReservation[] {
+		const displayReservations : DisplayReservation[] = [];
 		const dayStartMoment = dayjs(dayStartTime);
 
 		const currentDay8h = dayStartMoment.hour(8).minute(0).second(0).millisecond(0).valueOf();
@@ -644,7 +683,7 @@
 	}
 
 	// 计算条形图 segment 的样式
-	function calculateSegmentStyle(reservation: DisplayReservation, dayStartTime: number, dayEndTime: number) {
+	function calculateSegmentStyle(reservation : DisplayReservation, dayStartTime : number, dayEndTime : number) {
 		const totalDayTime = dayEndTime - dayStartTime;
 		const reservationStartTimeInDay = Math.max(reservation.startTime, dayStartTime) - dayStartTime;
 		const reservationEndTimeInDay = Math.min(reservation.endTime, dayEndTime) - dayStartTime;
@@ -659,7 +698,7 @@
 		};
 	}
 
-	function mergeReservations(reservations: DisplayReservation[]) {
+	function mergeReservations(reservations : DisplayReservation[]) {
 		if (!reservations || reservations.length === 0) return [];
 
 		const sortedReservations = [...reservations].sort((a, b) => a.startTime - b.startTime);
@@ -681,7 +720,7 @@
 		return mergedReservations;
 	}
 
-	function getReservationCount(allReservations: DisplayReservation[], mergedReservation: DisplayReservation) {
+	function getReservationCount(allReservations : DisplayReservation[], mergedReservation : DisplayReservation) {
 		return allReservations.filter(res =>
 			(res.startTime < mergedReservation.endTime && res.endTime > mergedReservation.startTime)
 		).length;
@@ -730,7 +769,7 @@
 	}
 
 	// 收藏/取消收藏功能
-	async function toggleFavorite(machineId: string) {
+	async function toggleFavorite(machineId : string) {
 		try {
 			const userInfo = uniCloud.getCurrentUserInfo();
 			if (!userInfo || !userInfo.uid) {
@@ -812,7 +851,8 @@
 	// 处理"当前窝内签到数"点击事件
 	function handlePlayerCountClick() {
 		if (isSuperUser.value) {
-			showPlayerDetails();
+			//showPlayerDetails();
+			popup.value.open();
 		}
 	}
 
@@ -1018,6 +1058,7 @@
 		color: #f44336;
 	}
 
+	
 	/* 时间轴样式 */
 	.timeline-section {
 		padding: 16rpx 0 24rpx;
@@ -1171,15 +1212,62 @@
 	.error-text {
 		color: #ffffff;
 	}
+
 	/* 新增样式：为管理员的按钮添加可点击的视觉效果 */
 	.filter-clickable {
-	  cursor: pointer;
-	  transition: background-color 0.2s ease;
+		cursor: pointer;
+		transition: background-color 0.2s ease;
 	}
-	
+
 	.filter-clickable:active {
-	  background-color: rgba(255, 255, 255, 0.9);
+		background-color: rgba(255, 255, 255, 0.9);
 	}
+
+	/* 签到情况查询 */
+	.avatar {
+		width: 64px;
+		height: 64px;
+    border-radius: 50%;
+    align-items: center;
+	}
+  .time-container{
+    display: flex;
+    justify-content: space-between;
+    padding: 8rpx;
+  }
+  .signin-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8rpx;
+  }
+  .sigin-machine-name{
+    font-size: 32rpx;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300rpx;
+  }
+  .sigin-userinfo{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .sigin-playinfo{
+    display: flex;
+    flex-direction: column;
+    padding-left: 10px;
+    width: 100%;
+  }
+  .sigin-nickname{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 72px;
+  }
+
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */
 	/* 小屏幕设备 */
 	@media screen and (max-width: 375px) {
@@ -1285,10 +1373,12 @@
 	.filter-container {
 		display: flex;
 		justify-content: space-between;
-		flex-wrap: wrap; /* 允许换行 */
+		flex-wrap: wrap;
+		/* 允许换行 */
 		padding: 10rpx 10rpx;
 		margin-bottom: 10rpx;
-		gap: 15rpx; /* 按钮之间的间距 */
+		gap: 15rpx;
+		/* 按钮之间的间距 */
 	}
 
 	.filter-button {
@@ -1298,9 +1388,12 @@
 		padding: 15rpx 20rpx;
 		border-radius: 30rpx;
 		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-		flex: 1; /* 允许按钮弹性伸缩 */
-		min-width: 200rpx; /* 最小宽度，防止过小 */
-		justify-content: center; /* 内部内容居中 */
+		flex: 1;
+		/* 允许按钮弹性伸缩 */
+		min-width: 200rpx;
+		/* 最小宽度，防止过小 */
+		justify-content: center;
+		/* 内部内容居中 */
 	}
 
 	.filter-active {
@@ -1531,24 +1624,26 @@
 			font-size: 26rpx;
 			color: white;
 		}
+
 		.filter-clickable:active {
-		    background-color: rgba(255, 255, 255, 0.4);
-	    }
+			background-color: rgba(255, 255, 255, 0.4);
+		}
 
 		/* 分组相关 */
 		.group-card {
 			background: rgb(22, 22, 24);
 		}
-		
-		.group-name, .current-group-name {
+
+		.group-name,
+		.current-group-name {
 			color: white;
 		}
-		
+
 		.group-count {
 			color: lightgray;
 			background: rgb(59, 59, 61);
 		}
-		
+
 		.back-text {
 			color: #60a5fa;
 		}
