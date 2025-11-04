@@ -57,7 +57,7 @@
 				</view>
 
 				<!-- 显示选中分组的机台 -->
-				<view v-for="machineData in getCurrentGroupMachines().slice(0,8)" 
+				<view v-for="machineData in getCurrentGroupMachines().slice(0,10)" 
 					  :key="machineData.machineInfo.machinenum" class="machine-item">
 					<!-- 机台卡片内容 -->
 					<view class="glass-card">
