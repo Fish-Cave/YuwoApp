@@ -23,7 +23,7 @@
 				<view style="display: flex; align-items: center; justify-content: space-between;">
 					<text>简洁模式(测试)</text>
 					<switch @change="switchChange" :checked="simpleMode"></switch>
-					
+
 				</view>
 			</view>
 			<view v-if="!simpleMode">
@@ -47,53 +47,48 @@
 			</view>
 			<!-- 简洁模式 -->
 			<view v-else>
-				<view v-if="ReservationData">
-					<view v-for="data in ReservationData.slice(0,1)" :key="data._id"
-						class="reservation-item glass-card">
+				<view v-if="ReservationData[0]!=null">
+					<view v-for="data in ReservationData.slice(0,1)" :key="data._id" class="glass-card">
 						<view class="reservation-header">
-
 							<view class="icon-container">
 								<uni-icons type="contact" size="30" color="#ffffff"></uni-icons>
 							</view>
+							<view class="reservation-info">
+								<text class="machine-name">{{data.machineName}}</text>
+								<view class="status-badge" :class="getStatusClass(data.status)">
+									{{ getStatusText(data.status) }}
+								</view>
+							</view>
+							<view v-if="data.status == 1" class="button-group">
+								<view class="sign-in-button"
+									@click="goToStart(data.machineName, data.startTime, data._id, data.isOvernight, data.isPlay)">
+									<text>签到</text>
+								</view>
+								<view class="cancel-button" @click="cancelReservation(data._id)">
+									<text>取消</text>
+								</view>
+							</view>
 
-              <view class="reservation-info">
-                <view><text class="machine-name">{{data.machineName}}</text></view>
-                <view class="status-badge" :class="getStatusClass(data.status)">
-                  <text>{{ getStatusText(data.status) }}</text>
-                </view>
-              </view>
-
-              <view v-if="data.status == 1" class="button-group">
-                <view class="sign-in-button"
-                      @click="goToStart(data.machineName, data.startTime, data._id, data.isOvernight, data.isPlay)">
-                  <text>签到</text>
-                </view>
-                <view class="cancel-button" @click="cancelReservation(data._id)">
-                  <text>取消</text>
-                </view>
-              </view>
-
-              <view v-if="data.status == 4" class="button-group" >
-                <view class="sign-in-button" @click="goToUsing()">
-                  <text>查看计时</text>
-                </view>
-                <view>
-                  <text style="padding: 4px">占个位喵 :3</text>
-                </view>
-              </view>
-
+							<view v-if="data.status == 4" class="button-group">
+								<view class="sign-in-button" @click="goToUsing()">
+									<text>查看计时</text>
+								</view>
+								<view>
+									<text style="padding: 0">占个位喵:3</text>
+								</view>
+							</view>
 						</view>
+
 					</view>
 				</view>
-        <view v-else>
-          <text style="display: flex; justify-content: center">还没有预约，快去预约吧！</text>
-        </view>
+				<view v-else>
+					<text style="display: flex; justify-content: center">还没有预约，快去预约吧！</text>
+				</view>
 			</view>
 
 
 		</view>
 
-		<!-- 使用说明卡片 -->
 		<view class="instructions-card glass-card">
 			<view class="card-title">
 				<text>使用说明</text>
@@ -108,14 +103,19 @@
 				</view>
 			</view>
 		</view>
+
 	</view>
+
+
+
 </template>
 
 <script setup lang="ts">
 	import { reactive, ref, computed, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
 	// 引入 uni-id-pages 的 store
 	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-	const simpleMode = ref(true)
+	const simpleMode = ref(false)
 
 	const todo = uniCloud.importObject('todo')
 	const reservationHandler = uniCloud.importObject('reservationHandler')
@@ -123,7 +123,7 @@
 
 	const textData = [
 		"简洁模式测试中！",
-		"现在只会显示最新一条已预约的机台，如偏好原有方式或查看预约列表请关闭简洁模式",
+		"简洁模式下只显示最新的预约",
 		"请在预约时间前15分钟内完成签到",
 		"超时未签到将自动取消预约",
 		"游玩结束后请关闭机台",
@@ -202,9 +202,8 @@
 
 	// 控制简洁模式显示，正式采用新版签到界面后可弃用
 	function switchChange() {
-		console.log(simpleMode.value)
 		simpleMode.value = !simpleMode.value
-		console.log(simpleMode.value)
+		//getReservationData()
 	}
 	// 获取预约数据
 	async function getReservationData() {
@@ -248,6 +247,9 @@
 		})
 	}
 	onMounted(() => {
+		getReservationData()
+	})
+	onShow(() => {
 		getReservationData()
 	})
 </script>
@@ -519,136 +521,141 @@
 		}
 	}
 
-  /* 预约项目 */
-  .reservation-item {
-    position: relative;
-    padding: 0;
-  }
+	/* 预约项目 */
+	.reservation-item {
+		position: relative;
+		padding: 0;
+	}
 
-  .reservation-header {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0 4px;
-  }
+	.reservation-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 2rpx;
+		margin-left: 5px;
+	}
 
-  .icon-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    margin-top: 10px;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-  }
+	.icon-container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+		width: 16px;
+		height: 16px;
+		border-radius: 16px;
+		margin-top: 8px;
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+	}
 
-  .reservation-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    flex: 1;
-  }
+	.reservation-info {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 8rpx;
+		flex: 1;
+		margin-left: 10px;
+	}
 
-  .machine-name {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 4px;
-    color: #333;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+	.machine-name {
+		font-size: 18px;
+		font-weight: bold;
+		margin-bottom: 4px;
+		color: #333;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 220px;
+	}
 
-  .status-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-  }
+	.status-badge {
+		padding: 4px 10px;
+		border-radius: 12px;
+		font-size: 12px;
+		font-weight: 600;
+	}
 
-  .status-pending {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-  }
+	.status-pending {
+		background: rgba(239, 68, 68, 0.1);
+		color: #EF4444;
+	}
 
-  .status-completed {
-    background: rgba(110, 231, 78, 0.1);
-    color: #6EE74E;
-  }
+	.status-completed {
+		background: rgba(110, 231, 78, 0.1);
+		color: #6EE74E;
+	}
 
-  .status-expired {
-    background: rgba(156, 163, 175, 0.1);
-    color: #6B7280;
-  }
+	.status-expired {
+		background: rgba(156, 163, 175, 0.1);
+		color: #6B7280;
+	}
 
-  .status-active {
-    background: rgba(255, 193, 7, 0.1);
-    color: #FF9800;
-  }
+	.status-active {
+		background: rgba(255, 193, 7, 0.1);
+		color: #FF9800;
+	}
 
-  .reservation-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 16px;
-  }
+	.reservation-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 16px;
+	}
 
-  .reservation-id {
-    display: flex;
-    align-items: center;
-  }
+	.reservation-id {
+		display: flex;
+		align-items: center;
+	}
 
-  .id-label {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-right: 4px;
-  }
+	.id-label {
+		font-size: 12px;
+		color: #9ca3af;
+		margin-right: 4px;
+	}
 
-  .id-value {
-    font-size: 12px;
-    color: #6b7280;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+	.id-value {
+		font-size: 12px;
+		color: #6b7280;
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 
-  .button-group {
-    display: flow;
-    align-items: center;
-    padding: 8px;
-  }
+	.button-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 8px;
+	}
 
-  .sign-in-button {
-    background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-    transition: all 0.2s ease;
-    margin-top: 8rpx;
-  }
+	.sign-in-button {
+		background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		padding: 8rpx 16rpx;
+		border-radius: 20px;
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+		transition: all 0.2s ease;
+		margin-top: 8rpx;
+	}
 
-  .cancel-button {
-    background: linear-gradient(135deg, #D3D3D3 0%, #B0B0B0 100%);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-    transition: all 0.2s ease;
-    margin-top: 8rpx;
-  }
+	.cancel-button {
+		background: linear-gradient(135deg, #D3D3D3 0%, #B0B0B0 100%);
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		padding: 8rpx 16rpx;
+		border-radius: 20px;
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+		transition: all 0.2s ease;
+		margin-top: 8rpx;
+	}
 
-  .sign-in-button:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-  }
+	.sign-in-button:active {
+		transform: translateY(2px);
+		box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+	}
 
 	/* 黑夜模式 */
 	@media (prefers-color-scheme: dark) {
@@ -787,11 +794,9 @@
 			line-height: 1.5;
 		}
 
-    .machine-name {
-      color: #FFF;
-    }
+		.machine-name {
+			color: #FFF;
+		}
 
 	}
-
-
 </style>
