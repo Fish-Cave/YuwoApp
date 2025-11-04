@@ -47,7 +47,7 @@
 			</view>
 			<!-- 简洁模式 -->
 			<view v-else>
-				<view v-if="ReservationData">
+				<view v-if="ReservationData[0]!=null">
 					<view v-for="data in ReservationData.slice(0,1)" :key="data._id"
 						class="reservation-item glass-card">
 						<view class="reservation-header">
@@ -112,10 +112,11 @@
 </template>
 
 <script setup lang="ts">
-	import { reactive, ref, computed, onMounted } from 'vue'
+	import { reactive, ref, computed, onMounted} from 'vue'
+    import { onShow } from '@dcloudio/uni-app'
 	// 引入 uni-id-pages 的 store
 	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-	const simpleMode = ref(true)
+	const simpleMode = ref(false)
 
 	const todo = uniCloud.importObject('todo')
 	const reservationHandler = uniCloud.importObject('reservationHandler')
@@ -202,9 +203,8 @@
 
 	// 控制简洁模式显示，正式采用新版签到界面后可弃用
 	function switchChange() {
-		console.log(simpleMode.value)
 		simpleMode.value = !simpleMode.value
-		console.log(simpleMode.value)
+    //getReservationData()
 	}
 	// 获取预约数据
 	async function getReservationData() {
@@ -216,7 +216,6 @@
 			console.error('Failed to fetch reservation data:', error)
 		}
 	}
-  //实时获取用户数据
 	// 取消预约
 	async function cancelReservation(resid : string) {
 		try {
@@ -249,6 +248,9 @@
 		})
 	}
 	onMounted(() => {
+		getReservationData()
+	})
+	onShow(() => {
 		getReservationData()
 	})
 </script>
