@@ -19,7 +19,11 @@
 				<text class="filter-text">{{ showGrouped ? '取消分组' : '分组显示' }}</text>
 			</view>
 		</view>
-
+		<view class="tips-container">
+			<text class="tips">
+				登录后如果为会员将会自动显示会员价格
+			</text>
+		</view>
 		<!-- 分组显示模式 -->
 		<template v-if="showGrouped">
 			<!-- 未选择具体分组时，显示分组列表 -->
@@ -290,11 +294,11 @@
 
             <view class="signin-header">
               <view class="sigin-userinfo">
-                <image :src="data.avatar.url || 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-aliyun-uid/e952b560-822f-4e8d-b9ab-530230c46558.png'" class="avatar"></image>
-                <view class="sigin-nickname">{{data.nickname}}</view>
+                <image :src="data.avatar.url" class="avatar"></image>
               </view>
 
               <view class="sigin-playinfo">
+				<view class="sigin-nickname">{{data.nickname}}</view>
                 <text>正在游玩:</text>
                 <view class="sigin-machine-name">{{data.machineName}}</view>
               </view>
@@ -951,7 +955,18 @@
 	.machine-item {
 		margin-bottom: 30rpx;
 	}
-
+	.tips {
+		font-size: 24rpx;
+		color: #999;
+		text-align: center;
+	}
+	.tips-container {
+		padding: 0 20rpx;
+		margin: 20rpx 0;
+		display: flex;
+		justify-content: center;
+		
+	}
 	/* 玻璃拟态卡片 */
 	.glass-card {
 		background: rgba(255, 255, 255, 0.7);
@@ -1265,7 +1280,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 72px;
+    max-width: 120px;
   }
 
 	/* 媒体查询：针对不同尺寸设备的响应式样式 */

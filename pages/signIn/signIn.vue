@@ -532,6 +532,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 0 2rpx;
+		margin-left: 5px;
 	}
 
 	.icon-container {
@@ -552,6 +553,7 @@
 		align-items: flex-start;
 		padding: 8rpx;
 		flex: 1;
+		margin-left: 10px;
 	}
 
 	.machine-name {
@@ -562,7 +564,7 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		max-width: 200rpx;
+		max-width: 220px;
 	}
 
 	.status-badge {

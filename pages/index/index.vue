@@ -6,10 +6,19 @@
 		</view>
 
 		<view class="container">
-			<view class="tips-container">
-				<text class="tips">
-					登录后如果为会员将会自动显示会员价格
-				</text>
+			<view class="banner-wrapper">
+				<neo-banner
+					:list="bannerList"
+					:interval="6000"
+					:circular="true"
+					:autoplay="true"
+					:previousflag="true"
+					:previousDistance="30"
+					:scale="0.9"
+					dotNColor="#cccccc"
+					dotInColor="#f59e0b"
+					keySource="image"
+				></neo-banner>
 			</view>
 			<view class="bottom-divider">
 				<view class="glass-card not-playing-card" @click="goToNoPlayPage">
@@ -39,11 +48,19 @@
 </template>
 
 <script lang="ts" setup>
+	// 广告轮播图数据
+	const bannerList = ref([
+	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' }, 
+	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' },
+	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' }
+	]);
+
 	import { ref, onMounted, computed, reactive, watch } from 'vue'; // 添加 watch
 	import dayjs from 'dayjs';
 	import usage from './usage';
 	import { useProfileStore } from '../../stores/userProfileStore';
-	import isFreeDay from '@/modules/isFreeDay.ts'
+	import isFreeDay from '@/modules/isFreeDay.ts';
+	import NeoBanner from '@/components/neo-banner/neo-banner.vue';
 
 	const userProfile = useProfileStore()
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
@@ -176,6 +193,7 @@
 		uniCloud.getCurrentUserInfo('uni_id_token');
 		isAdmin.value = res.role.includes("admin");
 	});
+	
 </script>
 
 
@@ -258,15 +276,6 @@
 		margin: 0 30rpx;
 	}
 
-	.tip-container {
-		padding: 20rpx 30rpx;
-	}
-
-	.tips {
-		font-size: 24rpx;
-		color: #999;
-	}
-
 	.machine-section {
 		margin-bottom: 40rpx;
 		margin-left: 30rpx;
@@ -295,20 +304,6 @@
 		text-align: center;
 	}
 
-
-	/*说明区域*/
-	.tips-container {
-		padding: 0 20rpx;
-		margin: 20rpx 0;
-		display: flex;
-		justify-content: center;
-	}
-
-	.tips {
-		font-size: 20rpx;
-		color: gray;
-	}
-
 	.noplay {
 		font-size: 25rpx;
 		color: black;
@@ -324,7 +319,12 @@
 		flex: 1; /* 让每个卡片占用相等的剩余空间 */
 		margin: 20rpx 10rpx; /* 调整左右外边距，避免卡片紧贴 */
  	}
-	
+	.banner-wrapper {
+			margin: 20rpx 0;
+			border-radius: 20rpx;
+			overflow: hidden;
+			height: 130rpx;
+		}
 	@media (prefers-color-scheme: dark) {
 
 		.container {
