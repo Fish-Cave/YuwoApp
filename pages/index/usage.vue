@@ -852,8 +852,8 @@
 	function handlePlayerCountClick() {
 		if (isSuperUser.value) {
 			//showPlayerDetails();
-			popup.value.open();
 		}
+		popup.value.open();
 	}
 
 	// 显示签到用户详情的弹窗
