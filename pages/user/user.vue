@@ -166,8 +166,16 @@
 
 		<!-- 底部功能按钮 -->
 		<view class="utilities-card glass-card">
-			<view class="utility-item" @click="handleUtilityClick('notifications')">
+			<view class="utility-item" @click="goToAnnouncements()">
 				<uni-icons type="notification-filled" size="20" color="#6b7280"></uni-icons>
+				<text class="utility-text">公告列表</text>
+				<uni-icons type="right" size="16" color="#6b7280"></uni-icons>
+			</view>
+
+			<view class="utility-divider"></view>
+
+			<view class="utility-item" @click="handleUtilityClick('notifications')">
+				<uni-icons type="chat-filled" size="20" color="#6b7280"></uni-icons>
 				<text class="utility-text">消息通知</text>
 				<uni-icons type="right" size="16" color="#6b7280"></uni-icons>
 			</view>
@@ -444,6 +452,13 @@
 	function goToUserInfoPage() {
 		uni.navigateTo({
 			url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
+		});
+	}
+
+	// 跳转到公告列表
+	function goToAnnouncements() {
+		uni.navigateTo({
+			url: '/pages/announcementList/announcementList'
 		});
 	}
 

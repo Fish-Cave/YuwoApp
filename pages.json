@@ -254,6 +254,38 @@
 				"navigationBarBackgroundColor": "#007AFF",
 				"navigationBarTextStyle": "white"
 			}
+		},
+		{
+			"path": "pages/announcementList/announcementList",
+			"style": {
+				"navigationBarTitleText": "公告列表",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/announcementDetail/announcementDetail",
+			"style": {
+				"navigationBarTitleText": "公告详情",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/announcementManagement/announcementManagement",
+			"style": {
+				"navigationBarTitleText": "公告管理",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/announcementEdit/announcementEdit",
+			"style": {
+				"navigationBarTitleText": "编辑公告",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
 		}
 	],
 	"globalStyle": {

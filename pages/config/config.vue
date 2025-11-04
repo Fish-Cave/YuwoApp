@@ -28,6 +28,9 @@
 						<button class="quick-entry-button" @click="navigateTo('/pages/report/report')">
 							信息统计页面
 						</button>
+						<button class="quick-entry-button" @click="navigateTo('/pages/announcementManagement/announcementManagement')">
+							公告管理
+						</button>
 					</view>
 				</view>
 		<!-- Machine Management Section -->

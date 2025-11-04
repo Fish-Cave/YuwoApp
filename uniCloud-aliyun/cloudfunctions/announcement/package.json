@@ -1,0 +1,6 @@
+{
+  "name": "announcement",
+  "version": "1.0.0",
+  "description": "公告管理云对象",
+  "main": "index.obj.js"
+}
