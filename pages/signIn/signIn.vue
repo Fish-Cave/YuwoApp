@@ -23,6 +23,7 @@
 				<view style="display: flex; align-items: center; justify-content: space-between;">
 					<text>简洁模式(测试)</text>
 					<switch @change="switchChange" :checked="simpleMode"></switch>
+					
 				</view>
 			</view>
 			<view v-if="!simpleMode">
@@ -121,6 +122,8 @@
 	const res = uniCloud.getCurrentUserInfo('uni_id_token')
 
 	const textData = [
+		"简洁模式测试中！",
+		"现在只会显示最新一条已预约的机台，如偏好原有方式或查看预约列表请关闭简洁模式",
 		"请在预约时间前15分钟内完成签到",
 		"超时未签到将自动取消预约",
 		"游玩结束后请关闭机台",
@@ -538,7 +541,6 @@
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    margin-right: 16px;
     margin-top: 10px;
     box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
   }
