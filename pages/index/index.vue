@@ -12,6 +12,7 @@
 					:interval="6000"
 					:circular="true"
 					:autoplay="true"
+					type="dot"
 					:previousflag="true"
 					:previousDistance="30"
 					:scale="0.9"
@@ -51,8 +52,8 @@
 	// 广告轮播图数据
 	const bannerList = ref([
 	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' }, 
-	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' },
-	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-1.png' }
+	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-2.png' },
+	  { image: 'https://static-mp-ce5205c8-70ee-4830-b92a-b3199ca7d6f3.next.bspapp.com/static/banner-3.png' }
 	]);
 
 	import { ref, onMounted, computed, reactive, watch } from 'vue'; // 添加 watch

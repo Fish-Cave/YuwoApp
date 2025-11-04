@@ -828,7 +828,7 @@ module.exports = {
 	        .get()
 	
 	    // 修改这一行，使用函数参数名 startTime 和 endTime 替代未定义的 queryStartTime 和 queryEndTime
-	    const reservationData = await collectionJQL.where(`startTime < ${endTime} && endTime > ${startTime}`)
+	    const reservationData = await collectionJQL.where(`startTime < ${endTime} && endTime > ${startTime} && status != 6`)
 	        .field({
 	            "_id": true,
 	            "machineId": true,
