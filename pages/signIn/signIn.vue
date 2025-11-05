@@ -540,8 +540,8 @@
 		justify-content: center;
 		align-items: center;
 		background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
-		width: 16px;
-		height: 16px;
+		width: 50px;
+		height: 50px;
 		border-radius: 16px;
 		margin-top: 8px;
 		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
