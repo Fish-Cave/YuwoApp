@@ -165,12 +165,21 @@ async function loadAnnouncementData() {
 
 		if (result.code === 0) {
 			const data = result.data
+
+			// 处理数据格式 - 如果data是数组，取第一个元素
+			let announcementData = data
+			if (Array.isArray(data)) {
+				announcementData = data[0]
+			}
+
+			console.log('编辑页面获取到的公告数据:', announcementData)
+
 			Object.assign(formData, {
-				title: data.title,
-				content: data.content,
-				status: data.status,
-				isTop: data.isTop,
-				images: data.images || []
+				title: announcementData.title || '',
+				content: announcementData.content || '',
+				status: announcementData.status || 0,
+				isTop: announcementData.isTop || false,
+				images: announcementData.images || []
 			})
 		} else {
 			uni.showToast({

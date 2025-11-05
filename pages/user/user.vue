@@ -179,14 +179,14 @@
 				<text class="utility-text">消息通知</text>
 				<uni-icons type="right" size="16" color="#6b7280"></uni-icons>
 			</view>
-
+<!--
 			<view class="utility-divider"></view>
 
 			<view class="utility-item" @click="handleUtilityClick('help')">
 				<uni-icons type="info-filled" size="20" color="#6b7280"></uni-icons>
 				<text class="utility-text">帮助中心</text>
 				<uni-icons type="right" size="16" color="#6b7280"></uni-icons>
-			</view>
+			</view>-->
 		</view>
 
 		<!-- 退出登录按钮 -->
