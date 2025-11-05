@@ -1,0 +1,96 @@
+{
+  "bsonType": "object",
+  "required": ["title", "content", "publisher", "publishDate", "modifyDate", "status"],
+  "permission": {
+    "read": true,
+    "create": "auth.uid != null && auth.role.contains('admin')",
+    "update": "auth.uid != null && auth.role.contains('admin')",
+    "delete": "auth.uid != null && auth.role.contains('admin')"
+  },
+  "properties": {
+    "_id": {
+      "bsonType": "string",
+      "description": "ID，系统自动生成"
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "公告标题",
+      "trim": "both",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "content": {
+      "bsonType": "string",
+      "description": "公告内容（Markdown格式）",
+      "minLength": 1,
+      "maxLength": 10000
+    },
+    "publisher": {
+      "bsonType": "string",
+      "description": "发布者用户ID",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "publisherName": {
+      "bsonType": "string",
+      "description": "发布者昵称",
+      "trim": "both",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "publishDate": {
+      "bsonType": "timestamp",
+      "description": "发布日期"
+    },
+    "modifyDate": {
+      "bsonType": "timestamp",
+      "description": "最后修改日期"
+    },
+    "status": {
+      "bsonType": "int",
+      "description": "公告状态：1-已发布，0-草稿",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "isTop": {
+      "bsonType": "bool",
+      "description": "是否置顶，置顶公告只能有一个",
+      "defaultValue": false
+    },
+    "images": {
+      "bsonType": "array",
+      "description": "图片链接数组（JSON格式）",
+      "items": {
+        "bsonType": "object",
+        "required": ["url", "name"],
+        "properties": {
+          "url": {
+            "bsonType": "string",
+            "description": "图片云存储URL",
+            "minLength": 1
+          },
+          "name": {
+            "bsonType": "string",
+            "description": "图片文件名",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "size": {
+            "bsonType": "long",
+            "description": "图片文件大小（字节）"
+          },
+          "uploadTime": {
+            "bsonType": "timestamp",
+            "description": "上传时间"
+          }
+        }
+      },
+      "maxItems": 9
+    },
+    "viewCount": {
+      "bsonType": "int",
+      "description": "浏览次数",
+      "defaultValue": 0
+    }
+  }
+}
