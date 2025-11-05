@@ -1157,29 +1157,56 @@ module.exports = {
 	                _id: signin._id,
 	                userid: signin.userid,
 	                starttime: signin.starttime,
-	                nickname: '未知用户' // 先设置默认值
+	                nickname: '未知用户', // 先设置默认值
+					reservationid: signin.reservationid,
+					machineName: "神秘机台",
+					avatar:""
 	            };
 	        });
-	        
-	        // 2. 对于每个签到记录，单独查询用户信息
+			
+			//console.log(processedData)
+			//使用JQL访问user数据库可能会有权限问题，导致昵称获取错误
+	        const db = uniCloud.database()
+
+	        // 2. 对于每个签到记录，单独查询用户信息和头像信息
 	        for (let i = 0; i < processedData.length; i++) {
 	            try {
-	                const userResult = await dbJQL.collection('uni-id-users')
-	                    .doc(processedData[i].userid)
-	                    .get(); // 不使用 field() 方法，获取完整文档
-	                
-	                if (userResult && userResult.data && userResult.data.length > 0) {
+	                const userResult = await db.collection('uni-id-users')
+	                    .where({
+	                    	_id: processedData[i].userid
+	                    }).get(); 
+	                if (userResult!=null) {
 	                    const userData = userResult.data[0];
-	                    processedData[i].nickname = userData.nickname || userData.username || '未知用户';
-	                } else {
-	                    processedData[i].nickname = '未知用户';
+						if(userData.nickname){
+							processedData[i].nickname = userData.nickname 
+							processedData[i].avatar = userData.avatar_file
+						}else{
+							processedData[i].nickname = '未设置用户名'
+						}
 	                }
 	            } catch (userErr) {
 	                console.error("获取用户信息失败:", userErr);
-	                processedData[i].nickname = '未知用户';
+	                processedData[i].nickname = "无法访问数据库";
 	            }
 	        }
-	        
+	        // 3. 对于每一个签到记录，单独查询机台信息
+			for(let i = 0; i < processedData.length; i++) {
+				try{
+					const resResult = await dbJQL.collection('reservation-log')
+						.where({
+							_id: processedData[i].reservationid
+						}).get()
+					if(resResult!=null){
+						const resData = resResult.data[0]
+						processedData[i].machineName = resData.machineName
+					}else{
+						processedData[i].machineName = "神秘机台"
+					}
+				}catch{
+					processedData[i].machineName = "出现错误"
+				}
+			}
+			
 	        return { data: processedData };
 	    } catch (e) {
 	        console.error("查询签到用户失败:", e);
