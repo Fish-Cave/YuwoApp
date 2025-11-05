@@ -17,7 +17,7 @@
 
 			<view class="announcement-content">
 				<!-- 渲染后的Markdown内容 -->
-				<rich-text :nodes="renderedContent" class="markdown-content"></rich-text>
+				<view class="markdown-content" v-html="renderedContent"></view>
 			</view>
 
 			<!-- 图片展示 -->
@@ -95,6 +95,11 @@ const announcementCloud = uniCloud.importObject('announcement')
 
 // 简单的Markdown渲染函数
 function renderMarkdown(content) {
+	// 如果内容为空或未定义，返回空字符串
+	if (!content) {
+		return ''
+	}
+
 	let html = content
 
 	// 转义HTML标签
@@ -171,11 +176,22 @@ async function loadAnnouncement() {
 			data = result.data
 		}
 
+		// 调试信息
+		console.log('获取到的公告数据:', data)
+		console.log('公告内容:', data?.content)
+
+		// 处理数据格式 - 如果data是数组，取第一个元素
+		let announcementData = data
+		if (Array.isArray(data)) {
+			announcementData = data[0]
+		}
+
 		// 填充数据
-		Object.assign(announcement, data)
+		Object.assign(announcement, announcementData)
 
 		// 渲染Markdown内容
-		renderedContent.value = renderMarkdown(data.content)
+		renderedContent.value = renderMarkdown(announcementData?.content || '')
+		console.log('渲染后的内容:', renderedContent.value)
 
 	} catch (err) {
 		console.error('加载公告失败:', err)
@@ -207,10 +223,18 @@ onMounted(() => {
 	const currentPage = pages[pages.length - 1]
 	const options = currentPage.options
 
+	console.log('页面参数:', options)
+
 	if (options.id) {
 		announcementId.value = options.id
+		console.log('设置公告ID:', options.id)
 	} else if (options.preview === 'true') {
 		isPreview.value = true
+		console.log('进入预览模式')
+	} else {
+		console.error('缺少必要的页面参数')
+		error.value = '缺少公告ID'
+		return
 	}
 
 	loadAnnouncement()

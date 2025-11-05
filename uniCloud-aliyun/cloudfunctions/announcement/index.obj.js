@@ -3,32 +3,58 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const $ = dbCmd.aggregate
 
+// 从 token 中解析用户信息
+function parseUserInfoFromToken(clientInfo) {
+  if (!clientInfo || !clientInfo.uniIdToken) {
+    return null
+  }
+
+  try {
+    const tokenParts = clientInfo.uniIdToken.split('.')
+    if (tokenParts.length !== 3) {
+      return null
+    }
+
+    const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const jsonStr = Buffer.from(base64, 'base64').toString()
+    const payload = JSON.parse(jsonStr)
+
+    return {
+      uid: payload.uid,
+      role: payload.role
+    }
+  } catch (e) {
+    return null
+  }
+}
+
 // 权限检查函数
 function checkAdminPermission(that) {
   try {
     const clientInfo = that.getClientInfo()
-    if (!clientInfo || !clientInfo.uniIdToken) {
+    console.log('Permission check - clientInfo:', JSON.stringify(clientInfo, null, 2))
+
+    const userInfo = parseUserInfoFromToken(clientInfo)
+
+    if (!userInfo || !clientInfo.uniIdToken) {
+      console.log('Permission check failed - no token or invalid token')
       return { errCode: 'PERMISSION_DENIED', errMsg: '用户未登录或无权访问' }
     }
-    const tokenParts = clientInfo.uniIdToken.split('.')
-    if (tokenParts.length !== 3) {
-      return { errCode: 'INVALID_TOKEN', errMsg: '令牌格式无效' }
-    }
-    let payload
-    try {
-      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')
-      const jsonStr = Buffer.from(base64, 'base64').toString()
-      payload = JSON.parse(jsonStr)
-    } catch (e) {
-      return { errCode: 'TOKEN_PARSE_ERROR', errMsg: '无法解析身份令牌: ' + e.message }
-    }
-    const role = payload.role
+
+    const role = userInfo.role
+    console.log('User role from token:', role)
     let hasAdminRole = Array.isArray(role) ? role.includes('admin') : role === 'admin'
+    console.log('Has admin role:', hasAdminRole)
+
     if (!hasAdminRole) {
+      console.log('Permission check failed - not admin')
       return { errCode: 'PERMISSION_DENIED', errMsg: '只有管理员才能执行此操作' }
     }
-    return null
+
+    console.log('Permission check passed - user is admin')
+    return { userInfo }
   } catch (e) {
+    console.error('Permission check error:', e)
     return { errCode: 'PERMISSION_ERROR', errMsg: '权限检查失败: ' + e.message }
   }
 }
@@ -47,15 +73,13 @@ const announcement = {
   async createAnnouncement(data) {
     try {
       // 检查管理员权限
-      const permissionError = checkAdminPermission(this)
-      if (permissionError) {
-        return { code: -1, errMsg: permissionError.errMsg }
+      const authResult = checkAdminPermission(this)
+      if (authResult.errCode) {
+        return { code: -1, errMsg: authResult.errMsg }
       }
 
-      const clientInfo = this.getClientInfo()
-      if (!clientInfo || !clientInfo.uid) {
-        return { code: -1, errMsg: '无权访问' }
-      }
+      const { userInfo } = authResult
+      const uid = userInfo.uid
 
       // 验证必需字段
       if (!data.title || !data.content) {
@@ -68,9 +92,9 @@ const announcement = {
       }
 
       // 获取用户信息
-      const userInfo = await db.collection('uni-id-users')
-        .doc(clientInfo.uid)
-        .field('nickname')
+      const userDoc = await db.collection('uni-id-users')
+        .doc(uid)
+        .field({ nickname: true })
         .get()
 
       // 如果要置顶，先将其他公告设为非置顶
@@ -89,8 +113,8 @@ const announcement = {
       const announcementData = {
         title: data.title.trim(),
         content: data.content.trim(),
-        publisher: clientInfo.uid,
-        publisherName: userInfo.data?.nickname || '管理员',
+        publisher: uid,
+        publisherName: userDoc.data?.nickname || '管理员',
         publishDate: currentTime,
         modifyDate: currentTime,
         status: data.status || 0,
@@ -122,15 +146,13 @@ const announcement = {
   async updateAnnouncement(id, data) {
     try {
       // 检查管理员权限
-      const permissionError = checkAdminPermission(this)
-      if (permissionError) {
-        return { code: -1, errMsg: permissionError.errMsg }
+      const authResult = checkAdminPermission(this)
+      if (authResult.errCode) {
+        return { code: -1, errMsg: authResult.errMsg }
       }
 
-      const clientInfo = this.getClientInfo()
-      if (!clientInfo || !clientInfo.uid) {
-        return { code: -1, errMsg: '无权访问' }
-      }
+      // 不再需要额外的 uid 检查，因为权限检查已经验证了用户身份
+      const { userInfo } = authResult
 
       // 检查图片数量
       if (data.images && data.images.length > 9) {
@@ -188,15 +210,12 @@ const announcement = {
   async deleteAnnouncement(id) {
     try {
       // 检查管理员权限
-      const permissionError = checkAdminPermission(this)
-      if (permissionError) {
-        return { code: -1, errMsg: permissionError.errMsg }
+      const authResult = checkAdminPermission(this)
+      if (authResult.errCode) {
+        return { code: -1, errMsg: authResult.errMsg }
       }
 
-      const clientInfo = this.getClientInfo()
-      if (!clientInfo || !clientInfo.uid) {
-        return { code: -1, errMsg: '无权访问' }
-      }
+      // 不再需要额外的 uid 检查，因为权限检查已经验证了用户身份
 
       // 获取公告信息，删除相关图片
       const announcement = await db.collection('announcements')
@@ -332,9 +351,17 @@ const announcement = {
    */
   async getAnnouncementDetail(id, incrementView = false) {
     try {
+      console.log('获取公告详情，ID:', id)
+
+      if (!id) {
+        return { code: -1, errMsg: '公告ID不能为空' }
+      }
+
       let announcementData = await db.collection('announcements')
         .doc(id)
         .get()
+
+      console.log('查询结果:', announcementData)
 
       if (!announcementData.data) {
         return { code: -1, errMsg: '公告不存在' }
@@ -373,15 +400,12 @@ const announcement = {
   async uploadAnnouncementImage(file) {
     try {
       // 检查管理员权限
-      const permissionError = checkAdminPermission(this)
-      if (permissionError) {
-        return { code: -1, errMsg: permissionError.errMsg }
+      const authResult = checkAdminPermission(this)
+      if (authResult.errCode) {
+        return { code: -1, errMsg: authResult.errMsg }
       }
 
-      const clientInfo = this.getClientInfo()
-      if (!clientInfo || !clientInfo.uid) {
-        return { code: -1, errMsg: '无权访问' }
-      }
+      // 不再需要额外的 uid 检查，因为权限检查已经验证了用户身份
 
       // 检查文件类型
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
@@ -443,15 +467,12 @@ const announcement = {
   async getAnnouncementStats() {
     try {
       // 检查管理员权限
-      const permissionError = checkAdminPermission(this)
-      if (permissionError) {
-        return { code: -1, errMsg: permissionError.errMsg }
+      const authResult = checkAdminPermission(this)
+      if (authResult.errCode) {
+        return { code: -1, errMsg: authResult.errMsg }
       }
 
-      const clientInfo = this.getClientInfo()
-      if (!clientInfo || !clientInfo.uid) {
-        return { code: -1, errMsg: '无权访问' }
-      }
+      // 不再需要额外的 uid 检查，因为权限检查已经验证了用户身份
 
       const stats = await db.collection('announcements')
         .where({

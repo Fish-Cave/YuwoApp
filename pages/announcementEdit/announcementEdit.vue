@@ -119,7 +119,7 @@ const isEdit = computed(() => announcementId.value !== '')
 const formData = reactive({
 	title: '',
 	content: '',
-	status: 0, // 0-草稿，1-发布
+	status: 1, // 默认为发布状态，1-发布，0-草稿
 	isTop: false,
 	images: []
 })
@@ -286,6 +286,7 @@ function onIsTopChange(e) {
 // 发布状态变更
 function onStatusChange(e) {
 	formData.status = e.detail.checked ? 1 : 0
+	console.log('发布状态变更:', e.detail.checked, '新状态:', formData.status)
 }
 
 // 保存公告
@@ -306,6 +307,8 @@ async function saveAnnouncement() {
 			isTop: formData.isTop,
 			images: formData.images
 		}
+
+		console.log('保存公告数据:', data)
 
 		let result
 		if (isEdit.value) {
