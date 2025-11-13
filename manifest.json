@@ -70,7 +70,15 @@
     },
     "h5" : {
         "darkmode" : true,
-        "themeLocation" : "theme.json" // 如果 theme.json 在根目录可省略
+        "themeLocation" : "theme.json", // 如果 theme.json 在根目录可省略
+        "router" : {
+            "mode" : "hash",
+            "base" : "/"
+        },
+        "title" : "鱼窝预约",
+        "devServer" : {
+            "https" : false
+        }
     },
     "uniStatistics" : {
         "enable" : false

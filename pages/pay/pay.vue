@@ -29,9 +29,13 @@
 			</view>
 			<uni-section title="选择支付方式" type="line"></uni-section>
 			<uni-list v-if="insideData && insideData.currentProviders">
-				<!-- #ifdef MP-WEIXIN || H5 || APP -->
+				<!-- #ifdef MP-WEIXIN -->
 				<uni-list-item v-if="insideData.currentProviders.indexOf('wxpay') > -1" :thumb="insideData.images.wxpay"
-					title="微信支付" clickable link></uni-list-item>
+					title="微信支付" @click="createOrder('wxpay')" clickable link></uni-list-item>
+				<!-- #endif -->
+				<!-- #ifdef H5 || APP -->
+				<uni-list-item v-if="insideData.currentProviders.indexOf('wxpay') > -1" :thumb="insideData.images.wxpay"
+					title="微信支付" @click="createQRcode('wxpay')" clickable link></uni-list-item>
 				<!-- #endif -->
 				<!-- #ifdef MP-ALIPAY || H5 || APP -->
 				<uni-list-item v-if="insideData.currentProviders.indexOf('alipay') > -1"
@@ -39,6 +43,17 @@
 					link></uni-list-item>
 				<!-- #endif -->
 			</uni-list>
+			<!-- #ifdef H5 -->
+			<view class="qrcode-section">
+				<view class="qrcode-button" @click="createQRcode('wxpay')">
+					<text>生成微信支付二维码-测试用请勿使用</text>
+				</view>
+				<view class="qrcode-display" v-if="qrCodeImage">
+					<image :src="qrCodeImage" class="generated-qrcode"></image>
+					<text class="qrcode-tip">请使用微信扫码支付</text>
+				</view>
+			</view>
+			<!-- #endif -->
 			<view class="footer">
 				<view class="submit-button" @click="createOrder({ provider: 'wxpay' })">
 					<text>确认购买</text>
@@ -46,7 +61,7 @@
 			</view>
 			<view class="tips-container">
 				<text class="tips">
-					支付方式选择暂时没有效果,默认既为微信支付:P
+					
 				</text>
 			</view>
 		</view>
@@ -82,6 +97,7 @@ export default {
             adpid: "", // 广告id
             return_url: "", // 支付成功后点击查看订单跳转的订单详情页面地址
             main_color: "", // 支付成功页面的主色调
+            qrCodeImage: "", // 生成的二维码图片
         }
     },
     // 监听 - 页面每次【加载时】执行(如：前进)
@@ -99,7 +115,35 @@ export default {
         // 发起支付
         createOrder(provider) {
             Object.assign(this.options, provider);
+            // #ifdef H5
+            // H5环境下强制使用微信Native支付生成二维码
+            if (provider.provider === 'wxpay') {
+                this.options.qr_code = true;
+            }
+            // #endif
             this.$refs.uniPay.createOrder(this.options);
+        },
+
+        // 生成支付二维码
+        async createQRcode(provider) {
+            // 创建支付订单，设置为二维码模式且不弹窗
+            const orderOptions = {
+                provider: provider,
+                qr_code: true,
+                cancel_popup: true, // 取消弹窗
+                ...this.options
+            };
+
+            // 监听二维码生成事件
+            this.$refs.uniPay.$once('qrcode', (res) => {
+                if (res.qr_code_image) {
+                    this.qrCodeImage = res.qr_code_image;
+                    console.log('二维码生成成功', res);
+                }
+            });
+
+            // 调用支付组件创建订单
+            await this.$refs.uniPay.createOrder(orderOptions);
         },
         
         // 更新用户统计数据
@@ -286,10 +330,60 @@ export default {
 		padding: 0 20rpx;
 		margin: 20rpx 0;
 	}
-	
+
 	.tips {
 		font-size: 20rpx;
 		color: gray;
+	}
+
+	/* 二维码区域 */
+	.qrcode-section {
+		margin: 20rpx;
+		text-align: center;
+	}
+
+	.qrcode-button {
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		border-radius: 8px;
+		width: 80%;
+		height: 45px;
+		line-height: 45px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 0 auto 20rpx;
+		font-weight: bold;
+		color: white;
+		font-size: 14px;
+		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+		transition: all 0.3s;
+	}
+
+	.qrcode-button:active {
+		transform: scale(0.98);
+		box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+	}
+
+	.qrcode-display {
+		margin-top: 20rpx;
+		padding: 20rpx;
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		border-radius: 20px;
+		box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+	}
+
+	.generated-qrcode {
+		width: 200px;
+		height: 200px;
+		margin-bottom: 10rpx;
+	}
+
+	.qrcode-tip {
+		font-size: 24rpx;
+		color: #666;
+		display: block;
 	}
 
 	/* 订单信息样式 */
@@ -363,10 +457,23 @@ export default {
 			padding: 0 20rpx;
 			margin: 20rpx 0;
 		}
-		
+
 		.tips {
 			font-size: 20rpx;
 			color: lightgray;
+		}
+
+		.qrcode-display {
+			background: rgb(22, 22, 24);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+		}
+
+		.qrcode-tip {
+			font-size: 24rpx;
+			color: #ccc;
 		}
 	}
 </style>

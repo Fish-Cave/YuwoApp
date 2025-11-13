@@ -43,7 +43,9 @@
 		<view v-if="isAdmin" class="float-config-btn" @click="goToConfig()">
 			<uni-icons type="gear" size="30"></uni-icons>
 		</view>
-
+		<!-- #ifdef H5 || WEB -->
+		<a href="https://beian.miit.gov.cn/">豫ICP备2025152045号</a>
+		<!-- #endif -->
 	</view>
 
 </template>
