@@ -176,7 +176,7 @@
 
 		<!-- 非分组显示模式（原来的显示方式） -->
 		<template v-else>
-			<view v-for="machineData in filteredMachineData.slice(0,8)" :key="machineData.machineInfo.machinenum"
+			<view v-for="machineData in filteredMachineData" :key="machineData.machineInfo.machinenum"
 				class="machine-item">
 				<!-- 原来的机台卡片内容保持完全不变 -->
 				<view class="glass-card">
