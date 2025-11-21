@@ -7,3 +7,6 @@ uni_modules/uni-id-common/config.js
 *.pem
 /uni_modules.zip
 /old-userManagement.vue
+static/banner-1png
+static/banner-2.png
+static/banner-3.png

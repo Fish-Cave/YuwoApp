@@ -294,7 +294,6 @@
 
             <view class="signin-header">
               <view class="sigin-userinfo">
-                <image :src="data.avatar.url" class="avatar"></image>
               </view>
 
               <view class="sigin-playinfo">
