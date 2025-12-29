@@ -1,484 +1,204 @@
 {
     "$schema": "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/schema.json",
-    "$id": "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/2025.json",
-    "year": 2025,
+    "$id": "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/2026.json",
+    "year": 2026,
     "papers": [
-        "https://www.gov.cn/zhengce/zhengceku/202411/content_6986383.htm"
+        "https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
     ],
     "days": [
         {
             "name": "元旦",
-            "date": "2025-01-01",
+            "date": "2026-01-01",
             "isOffDay": true
         },
         {
-            "name": "春节",
-            "date": "2025-01-26",
+            "name": "元旦",
+            "date": "2026-01-02",
+            "isOffDay": true
+        },
+        {
+            "name": "元旦",
+            "date": "2026-01-03",
+            "isOffDay": true
+        },
+        {
+            "name": "元旦",
+            "date": "2026-01-04",
             "isOffDay": false
         },
         {
             "name": "春节",
-            "date": "2025-01-28",
+            "date": "2026-02-14",
+            "isOffDay": false
+        },
+        {
+            "name": "春节",
+            "date": "2026-02-15",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-01-29",
+            "date": "2026-02-16",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-01-30",
+            "date": "2026-02-17",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-01-31",
+            "date": "2026-02-18",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-02-01",
+            "date": "2026-02-19",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-02-02",
+            "date": "2026-02-20",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-02-03",
+            "date": "2026-02-21",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-02-04",
+            "date": "2026-02-22",
             "isOffDay": true
         },
         {
             "name": "春节",
-            "date": "2025-02-08",
+            "date": "2026-02-23",
+            "isOffDay": true
+        },
+        {
+            "name": "春节",
+            "date": "2026-02-28",
             "isOffDay": false
         },
         {
             "name": "清明节",
-            "date": "2025-04-04",
+            "date": "2026-04-04",
             "isOffDay": true
         },
         {
             "name": "清明节",
-            "date": "2025-04-05",
+            "date": "2026-04-05",
             "isOffDay": true
         },
         {
             "name": "清明节",
-            "date": "2025-04-06",
+            "date": "2026-04-06",
             "isOffDay": true
         },
         {
             "name": "劳动节",
-            "date": "2025-04-27",
+            "date": "2026-05-01",
+            "isOffDay": true
+        },
+        {
+            "name": "劳动节",
+            "date": "2026-05-02",
+            "isOffDay": true
+        },
+        {
+            "name": "劳动节",
+            "date": "2026-05-03",
+            "isOffDay": true
+        },
+        {
+            "name": "劳动节",
+            "date": "2026-05-04",
+            "isOffDay": true
+        },
+        {
+            "name": "劳动节",
+            "date": "2026-05-05",
+            "isOffDay": true
+        },
+        {
+            "name": "劳动节",
+            "date": "2026-05-09",
             "isOffDay": false
         },
         {
-            "name": "劳动节",
-            "date": "2025-05-01",
-            "isOffDay": true
-        },
-        {
-            "name": "劳动节",
-            "date": "2025-05-02",
-            "isOffDay": true
-        },
-        {
-            "name": "劳动节",
-            "date": "2025-05-03",
-            "isOffDay": true
-        },
-        {
-            "name": "劳动节",
-            "date": "2025-05-04",
-            "isOffDay": true
-        },
-        {
-            "name": "劳动节",
-            "date": "2025-05-05",
+            "name": "端午节",
+            "date": "2026-06-19",
             "isOffDay": true
         },
         {
             "name": "端午节",
-            "date": "2025-05-31",
+            "date": "2026-06-20",
             "isOffDay": true
         },
         {
             "name": "端午节",
-            "date": "2025-06-01",
+            "date": "2026-06-21",
             "isOffDay": true
         },
         {
-            "name": "端午节",
-            "date": "2025-06-02",
-            "isOffDay": true
-        },
-		{
-		    "name": "暑假",
-		    "date": "2025-07-01",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-02",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-03",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-04",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-05",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-06",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-07",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-08",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-09",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-10",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-11",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-12",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-13",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-14",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-15",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-16",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-17",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-18",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-19",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-20",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-21",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-22",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-23",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-24",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-25",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-26",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-27",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-28",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-29",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-30",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-07-31",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-01",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-02",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-03",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-04",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-05",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-06",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-07",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-08",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-09",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-10",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-11",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-12",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-13",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-14",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-15",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-16",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-17",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-18",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-19",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-20",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-21",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-22",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-23",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-24",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-25",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-26",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-27",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-28",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-29",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-30",
-		    "isOffDay": true
-		},
-		{
-		    "name": "暑假",
-		    "date": "2025-08-31",
-		    "isOffDay": true
-		},
-        {
-            "name": "国庆节、中秋节",
-            "date": "2025-09-28",
+            "name": "国庆节",
+            "date": "2026-09-20",
             "isOffDay": false
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-01",
+            "name": "中秋节",
+            "date": "2026-09-25",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-02",
+            "name": "中秋节",
+            "date": "2026-09-26",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-03",
+            "name": "中秋节",
+            "date": "2026-09-27",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-04",
+            "name": "国庆节",
+            "date": "2026-10-01",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-05",
+            "name": "国庆节",
+            "date": "2026-10-02",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-06",
+            "name": "国庆节",
+            "date": "2026-10-03",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-07",
+            "name": "国庆节",
+            "date": "2026-10-04",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-08",
+            "name": "国庆节",
+            "date": "2026-10-05",
             "isOffDay": true
         },
         {
-            "name": "国庆节、中秋节",
-            "date": "2025-10-11",
+            "name": "国庆节",
+            "date": "2026-10-06",
+            "isOffDay": true
+        },
+        {
+            "name": "国庆节",
+            "date": "2026-10-07",
+            "isOffDay": true
+        },
+        {
+            "name": "国庆节",
+            "date": "2026-10-10",
             "isOffDay": false
         }
     ]
